@@ -6,17 +6,15 @@
 namespace Integra.Space.Pipeline.Filters
 {
     using System;
-    using System.Collections.Generic;
     using Common;
-    using Common.CommandContext;
 
     /// <summary>
     /// Class to validate whether the existence of the specified space objects applies to the command.
     /// </summary>
-    internal class ValidateExistence : Filter<PipelineCommandContext, PipelineCommandContext>
+    internal class ValidateExistence : CommandFilter
     {
         /// <inheritdoc />
-        public override PipelineCommandContext Execute(PipelineCommandContext input)
+        public override PipelineExecutionCommandContext Execute(PipelineExecutionCommandContext input)
         {
             foreach (Tuple<SpaceObjectEnum, string> objects in input.Command.GetUsedSpaceObjects())
             {
@@ -28,7 +26,7 @@ namespace Integra.Space.Pipeline.Filters
         }
 
         /// <inheritdoc />
-        public override void OnError(Exception e)
+        public override void OnError(PipelineExecutionCommandContext e)
         {
             throw new NotImplementedException();
         }

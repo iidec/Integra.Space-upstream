@@ -7,88 +7,92 @@ namespace Integra.Space.Pipeline.Filters
 {
     using System;
     using Common;
-    using Common.CommandContext;
     using Language;
 
     /// <summary>
     /// Specific filters aggregator class.
     /// </summary>
-    internal class SpecificFiltersAggregator : Filter<SpaceCommand, ExecutionPipelineNode<PipelineCommandContext, PipelineCommandContext>>
+    internal class SpecificFiltersAggregator : FirstPipelineFilter
     {
         /// <inheritdoc />
-        public override ExecutionPipelineNode<PipelineCommandContext, PipelineCommandContext> Execute(SpaceCommand input)
+        public override PipelineContext Execute(PipelineContext input)
         {
-            if ((SpaceActionCommandEnum.CrudCommands & input.Action) == SpaceActionCommandEnum.Create)
+            if ((SpaceActionCommandEnum.CrudCommands & input.Command.Action) == SpaceActionCommandEnum.Create
+                 || (SpaceActionCommandEnum.CrudCommands & input.Command.Action) == SpaceActionCommandEnum.Alter
+                 || (SpaceActionCommandEnum.CrudCommands & input.Command.Action) == SpaceActionCommandEnum.Drop)
             {
-                return this.AddCrudSpecificActions(input);
+                this.AddCrudSpecificActions(input);
             }
-            else if ((SpaceActionCommandEnum.CrudCommands & input.Action) == SpaceActionCommandEnum.Create)
+            else if ((SpaceActionCommandEnum.StatusCommands & input.Command.Action) == SpaceActionCommandEnum.Start
+                || (SpaceActionCommandEnum.StatusCommands & input.Command.Action) == SpaceActionCommandEnum.Stop)
             {
-                return this.AddStatusSpecificActions(input);
+                this.AddStatusSpecificActions(input);
             }
-            else if ((SpaceActionCommandEnum.CrudCommands & input.Action) == SpaceActionCommandEnum.Create)
+            else if ((SpaceActionCommandEnum.CommandsPermissions & input.Command.Action) == SpaceActionCommandEnum.Grant
+                || (SpaceActionCommandEnum.CommandsPermissions & input.Command.Action) == SpaceActionCommandEnum.Deny
+                || (SpaceActionCommandEnum.CommandsPermissions & input.Command.Action) == SpaceActionCommandEnum.Revoke)
             {
-                return this.AddPermissionsSpecificActions(input);
+                this.AddPermissionsSpecificActions(input);
             }
             else
             {
-                throw new System.Exception("Not implement command. Command: " + input.Action);
+                throw new System.Exception("Not implement command. Command: " + input.Command.Action);
             }
+
+            return input;
         }
 
         /// <summary>
         /// Gets the specific filters for the specified crud command.
         /// </summary>
-        /// <param name="command">Context of the pipeline.</param>
-        /// <returns>The specific pipeline.</returns>
-        public ExecutionPipelineNode<PipelineCommandContext, PipelineCommandContext> AddCrudSpecificActions(SpaceCommand command)
+        /// <param name="context">Context of the pipeline.</param>
+        public void AddCrudSpecificActions(PipelineContext context)
         {
-            switch (command.Action)
+            switch (context.Command.Action)
             {
                 case SpaceActionCommandEnum.Create:
-                    return new ExecutionPipelineNode<PipelineCommandContext, PipelineCommandContext>(new FilterCreateSource(), command);
+                    context.Pipeline = new CreateEntityFilter();
+                    break;
                 case SpaceActionCommandEnum.Alter:
                 case SpaceActionCommandEnum.Drop:
                 default:
-                    throw new System.Exception("Not implemented crud command. Command: " + command.Action);
+                    throw new System.Exception("Not implemented crud command. Command: " + context.Command.Action);
             }
         }
 
         /// <summary>
         /// Gets the specific filters for the specified status command.
         /// </summary>
-        /// <param name="command">Context of the pipeline.</param>
-        /// <returns>The specific pipeline.</returns>
-        public ExecutionPipelineNode<PipelineCommandContext, PipelineCommandContext> AddStatusSpecificActions(SpaceCommand command)
+        /// <param name="context">Context of the pipeline.</param>
+        public void AddStatusSpecificActions(PipelineContext context)
         {
-            switch (command.Action)
+            switch (context.Command.Action)
             {
                 case SpaceActionCommandEnum.Start:
                 case SpaceActionCommandEnum.Stop:
                 default:
-                    throw new System.Exception("Not implemented status command. Command: " + command.Action);
+                    throw new System.Exception("Not implemented status command. Command: " + context.Command.Action);
             }
         }
 
         /// <summary>
         /// Gets the specific filters for the specified permission command.
         /// </summary>
-        /// <param name="command">Context of the pipeline.</param>
-        /// <returns>The specific pipeline.</returns>
-        public ExecutionPipelineNode<PipelineCommandContext, PipelineCommandContext> AddPermissionsSpecificActions(SpaceCommand command)
+        /// <param name="context">Context of the pipeline.</param>
+        public void AddPermissionsSpecificActions(PipelineContext context)
         {
-            switch (command.Action)
+            switch (context.Command.Action)
             {
                 case SpaceActionCommandEnum.Grant:
                 case SpaceActionCommandEnum.Revoke:
                 case SpaceActionCommandEnum.Deny:
                 default:
-                    throw new System.Exception("Not implemented permission command. Command: " + command.Action);
+                    throw new System.Exception("Not implemented permission command. Command: " + context.Command.Action);
             }
         }
 
         /// <inheritdoc />
-        public override void OnError(Exception e)
+        public override void OnError(PipelineContext e)
         {
             throw new NotImplementedException();
         }

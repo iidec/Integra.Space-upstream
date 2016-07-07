@@ -6,18 +6,15 @@
 namespace Integra.Space.Pipeline.Filters
 {
     using System;
-    using System.Collections.Generic;
-    using System.Linq;
     using Common;
-    using Common.CommandContext;
 
     /// <summary>
     /// Filter lock class.
     /// </summary>
-    internal sealed class FilterUnlock : Filter<PipelineCommandContext, PipelineCommandContext>
+    internal sealed class FilterUnlock : CommandFilter
     {
         /// <inheritdoc />
-        public override PipelineCommandContext Execute(PipelineCommandContext input)
+        public override PipelineExecutionCommandContext Execute(PipelineExecutionCommandContext input)
         {
             foreach (SpaceObjectEnum o in input.Command.GetUsedSpaceObjectTypes())
             {
@@ -28,7 +25,7 @@ namespace Integra.Space.Pipeline.Filters
         }
 
         /// <inheritdoc />
-        public override void OnError(Exception e)
+        public override void OnError(PipelineExecutionCommandContext e)
         {
             throw new NotImplementedException();
         }

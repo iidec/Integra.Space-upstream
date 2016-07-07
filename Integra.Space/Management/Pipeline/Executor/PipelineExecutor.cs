@@ -1,5 +1,5 @@
 ﻿//-----------------------------------------------------------------------
-// <copyright file="CommandPipelineExecutor.cs" company="Integra.Space">
+// <copyright file="PipelineExecutor.cs" company="Integra.Space">
 //     Copyright (c) Integra.Space. All rights reserved.
 // </copyright>
 //-----------------------------------------------------------------------
@@ -10,7 +10,7 @@ namespace Integra.Space.Pipeline
     /// </summary>
     /// <typeparam name="TInput">Input type of the pipeline.</typeparam>
     /// <typeparam name="TOutput">Output type of the pipeline.</typeparam>
-    internal class CommandPipelineExecutor<TInput, TOutput>
+    internal abstract class PipelineExecutor<TInput, TOutput> where TInput : class where TOutput : class
     {
         /// <summary>
         /// Pipeline context.
@@ -18,10 +18,10 @@ namespace Integra.Space.Pipeline
         private Filter<TInput, TOutput> pipeline;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="CommandPipelineExecutor{TInput, TOutput}"/> class.
+        /// Initializes a new instance of the <see cref="PipelineExecutor{TInput, TOutput}"/> class.
         /// </summary>
         /// <param name="pipeline">Pipeline to execute.</param>
-        public CommandPipelineExecutor(Filter<TInput, TOutput> pipeline)
+        public PipelineExecutor(Filter<TInput, TOutput> pipeline)
         {
             this.pipeline = pipeline;
         }
@@ -35,11 +35,13 @@ namespace Integra.Space.Pipeline
         {
             try
             {
-                return this.pipeline.Execute(input);
+                TOutput result = this.pipeline.Execute(input);
+                this.pipeline.Executed = true;
+                return result;
             }
             catch (System.Exception e)
             {
-                this.pipeline.OnError(e);
+                this.pipeline.OnError(input);
                 throw e;
             }
         }

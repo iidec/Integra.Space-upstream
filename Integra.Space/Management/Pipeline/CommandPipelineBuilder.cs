@@ -5,8 +5,6 @@
 //-----------------------------------------------------------------------
 namespace Integra.Space.Pipeline
 {
-    using Common.CommandContext;
-
     /// <summary>
     /// Command pipeline builder.
     /// </summary>
@@ -16,9 +14,9 @@ namespace Integra.Space.Pipeline
         /// Build the pipeline.
         /// </summary>
         /// <returns>The pipeline to execute.</returns>
-        public Filter<string, ExecutionPipelineNode<PipelineCommandContext, PipelineCommandContext>> Build()
+        public Filter<PipelineContext, PipelineContext> Build()
         {
-            Filter<string, ExecutionPipelineNode<PipelineCommandContext, PipelineCommandContext>> result =
+            Filter<PipelineContext, PipelineContext> result =
                 new Filters.FilterCommandParser()
                 .AddStep(new Filters.SpecificFiltersAggregator())
                 .AddStep(new Filters.CommonFiltersAggregator());

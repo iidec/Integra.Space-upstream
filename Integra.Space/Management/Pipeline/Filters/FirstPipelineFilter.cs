@@ -1,25 +1,26 @@
 ﻿//-----------------------------------------------------------------------
-// <copyright file="ValidatePermissions.cs" company="Integra.Space">
+// <copyright file="FirstPipelineFilter.cs" company="Integra.Space">
 //     Copyright (c) Integra.Space. All rights reserved.
 // </copyright>
 //-----------------------------------------------------------------------
 namespace Integra.Space.Pipeline.Filters
 {
     using System;
+    using Integra.Space.Pipeline;
 
     /// <summary>
-    /// Filter lock class.
+    /// Command filter.
     /// </summary>
-    internal sealed class ValidatePermissions : CommandFilter
+    internal abstract class FirstPipelineFilter : Filter<PipelineContext, PipelineContext>
     {
         /// <inheritdoc />
-        public override PipelineExecutionCommandContext Execute(PipelineExecutionCommandContext input)
+        public override PipelineContext Execute(PipelineContext context)
         {
-            return input;
+            throw new NotImplementedException();
         }
 
         /// <inheritdoc />
-        public override void OnError(PipelineExecutionCommandContext e)
+        public override void OnError(PipelineContext e)
         {
             throw new NotImplementedException();
         }

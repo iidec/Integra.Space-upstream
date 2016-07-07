@@ -11,7 +11,7 @@ namespace Integra.Space.Common.CommandContext
     /// <summary>
     /// Command context class.
     /// </summary>
-    internal class PipelineCommandContext
+    internal class PipelineExecutionCommandContext
     {
         /// <summary>
         /// Space command.
@@ -24,11 +24,16 @@ namespace Integra.Space.Common.CommandContext
         private IKernel kernel;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="PipelineCommandContext"/> class.
+        /// Error throwed in the pipeline.
+        /// </summary>
+        private System.Exception error;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PipelineExecutionCommandContext"/> class.
         /// </summary>
         /// <param name="command">Space command.</param>
         /// <param name="kernel">Kernel for dependency injection.</param>
-        public PipelineCommandContext(SpaceCommand command, IKernel kernel)
+        public PipelineExecutionCommandContext(SpaceCommand command, IKernel kernel)
         {
             Contract.Assert(command != null);
             Contract.Assert(kernel != null);
@@ -56,6 +61,24 @@ namespace Integra.Space.Common.CommandContext
             get
             {
                 return this.kernel;
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the error throwed in the pipeline.
+        /// </summary>
+        public System.Exception Error
+        {
+            get
+            {
+                return this.error;
+            }
+            set
+            {
+                if(this.error == null)
+                {
+                    this.error = value;
+                }
             }
         }
     }

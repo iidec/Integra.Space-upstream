@@ -7,17 +7,16 @@ namespace Integra.Space.Pipeline.Filters
 {
     using System.Reflection;
     using System.Reflection.Emit;
-    using Common.CommandContext;
     using Language;
     using Language.Runtime;
     
     /// <summary>
     /// Create command action class.
     /// </summary>
-    internal abstract class FilterQueryParser : Filter<PipelineCommandContext, PipelineCommandContext>
+    internal abstract class FilterQueryParser : CommandFilter
     {
         /// <inheritdoc />
-        public override PipelineCommandContext Execute(PipelineCommandContext input)
+        public override PipelineExecutionCommandContext Execute(PipelineExecutionCommandContext input)
         {
             ManagementSchedulerFactory dsf = new ManagementSchedulerFactory();
             bool printLog = false;

@@ -47,7 +47,6 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="CommandContext\PipelineCommandContext.cs" />
     <Compile Include="Commands\SpacePermission.cs" />
     <Compile Include="Commands\SpaceUserOption.cs" />
     <Compile Include="Commands\SpaceCommand.cs" />

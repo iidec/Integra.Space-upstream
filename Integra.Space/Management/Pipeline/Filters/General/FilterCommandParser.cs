@@ -7,25 +7,24 @@ namespace Integra.Space.Pipeline.Filters
 {
     using System;
     using Common;
-    using Common.CommandContext;
     using Integra.Space.Pipeline;
     using Language;
 
     /// <summary>
     /// Filter command parser class.
     /// </summary>
-    internal class FilterCommandParser : Filter<string, SpaceCommand>
+    internal class FilterCommandParser : FirstPipelineFilter
     {
         /// <inheritdoc />
-        public override SpaceCommand Execute(string input)
+        public override PipelineContext Execute(PipelineContext context)
         {
-            CommandParser cp = new CommandParser(input);
-            SpaceCommand command = cp.Evaluate();
-            return command;
+            CommandParser cp = new CommandParser(context.CommandString);
+            context.Command = cp.Evaluate();
+            return context;
         }
 
         /// <inheritdoc />
-        public override void OnError(Exception e)
+        public override void OnError(PipelineContext e)
         {
             throw new NotImplementedException();
         }

@@ -82,16 +82,22 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Management\Pipeline\Filters\FirstPipeline.cs" />
+    <Compile Include="Management\Pipeline\Filters\FirstPipelineFilter.cs" />
+    <Compile Include="Management\Pipeline\Filters\CommandFilter.cs" />
+    <Compile Include="Management\Pipeline\Filters\CommandPipeline.cs" />
+    <Compile Include="Management\Pipeline\Executor\GenericPipelineExecutor.cs" />
+    <Compile Include="Management\Pipeline\Executor\SpecificPipelineExecutor.cs" />
+    <Compile Include="Management\Pipeline\Contexts\PipelineContext.cs" />
+    <Compile Include="Management\Pipeline\Contexts\PipelineExecutionCommandContext.cs" />
     <Compile Include="Repos\Cache\CacheRepositoryBase.cs" />
     <Compile Include="Repos\Cache\SourceCacheRepository.cs" />
-    <Compile Include="Management\Pipeline\CommandPipelineExecutor.cs" />
+    <Compile Include="Management\Pipeline\Executor\PipelineExecutor.cs" />
     <Compile Include="Management\Pipeline\CommandPipelineBuilder.cs" />
     <Compile Include="Management\Pipeline\Filter.cs" />
-    <Compile Include="Management\Pipeline\ExecutionPipelineNode.cs" />
     <Compile Include="Management\Pipeline\Filters\CommandCommon\ValidatePermissions.cs" />
-    <Compile Include="Management\Pipeline\Filters\CommandSpecific\Source\FilterCreateSource.cs" />
+    <Compile Include="Management\Pipeline\Filters\CommandSpecific\CreateEntityFilter.cs" />
     <Compile Include="Management\Pipeline\Filters\CommandSpecific\Stream\FilterQueryParser.cs" />
-    <Compile Include="Management\Pipeline\Filters\CommandSpecific\CommandActionFilterGenerator.cs" />
     <Compile Include="Management\Pipeline\Filters\CommandSpecific\Stream\ManagementSchedulerFactory.cs" />
     <Compile Include="Management\Pipeline\Filters\General\CommonFiltersAggregator.cs" />
     <Compile Include="Management\Pipeline\Filters\General\SpecificFiltersAggregator.cs" />

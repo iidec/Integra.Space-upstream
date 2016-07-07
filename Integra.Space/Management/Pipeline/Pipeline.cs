@@ -24,7 +24,7 @@ namespace Integra.Space.Pipeline
         /// The destination of outputs.
         /// </summary>
         private readonly Filter<TLink, TOut> destination;
-        
+
         /// <summary>
         /// Initializes a new instance of the <see cref="Pipeline{TIn,TLink,TOut}"/> class.
         /// </summary>
@@ -45,7 +45,7 @@ namespace Integra.Space.Pipeline
         }
 
         /// <inheritdoc />
-        public override void OnError(Exception e)
+        public override void OnError(TIn e)
         {
             throw new NotImplementedException();
         }
