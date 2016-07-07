@@ -10,11 +10,11 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("Integra.Space")]
+[assembly: AssemblyTitle("Integra.Space.Common")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("Integra.Space")]
+[assembly: AssemblyProduct("Integra.Space.Common")]
 [assembly: AssemblyCopyright("Copyright ©  2016")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
@@ -25,7 +25,7 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("f2603245-0b0a-4aa3-9084-a06024852b5f")]
+[assembly: Guid("27c39916-4c52-4472-8168-07a33448a5fc")]
 
 // Version information for an assembly consists of the following four values:
 //
@@ -39,4 +39,7 @@ using System.Runtime.InteropServices;
 // [assembly: AssemblyVersion("1.0.*")]
 [assembly: AssemblyVersion("1.0.0.0")]
 [assembly: AssemblyFileVersion("1.0.0.0")]
+[assembly: InternalsVisibleTo("Integra.Space")]
 [assembly: InternalsVisibleTo("Integra.Space.UnitTests")]
+[assembly: InternalsVisibleTo("Integra.Space.Language")]
+[assembly: InternalsVisibleTo("Integra.Space.LanguageUnitTests")]
