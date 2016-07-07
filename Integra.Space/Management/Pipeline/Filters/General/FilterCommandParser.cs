@@ -5,6 +5,7 @@
 //-----------------------------------------------------------------------
 namespace Integra.Space.Pipeline.Filters
 {
+    using System;
     using Common;
     using Common.CommandContext;
     using Integra.Space.Pipeline;
@@ -21,6 +22,12 @@ namespace Integra.Space.Pipeline.Filters
             CommandParser cp = new CommandParser(input);
             SpaceCommand command = cp.Evaluate();
             return command;
+        }
+
+        /// <inheritdoc />
+        public override void OnError(Exception e)
+        {
+            throw new NotImplementedException();
         }
     }
 }

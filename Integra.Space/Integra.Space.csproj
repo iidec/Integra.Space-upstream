@@ -82,9 +82,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Cache\Repos\IBaseRepository.cs" />
-    <Compile Include="Cache\Repos\RoleRepository.cs" />
-    <Compile Include="Cache\Repos\SourceRepository.cs" />
+    <Compile Include="Repos\Cache\CacheRepositoryBase.cs" />
+    <Compile Include="Repos\Cache\SourceCacheRepository.cs" />
     <Compile Include="Management\Pipeline\CommandPipelineExecutor.cs" />
     <Compile Include="Management\Pipeline\CommandPipelineBuilder.cs" />
     <Compile Include="Management\Pipeline\Filter.cs" />
@@ -104,8 +103,8 @@
     <Compile Include="Management\Pipeline\PipelineBuilderBase.cs" />
     <Compile Include="Management\Pipeline\Pipeline.cs" />
     <Compile Include="Management\Pipeline\PipelineExtensions.cs" />
-    <Compile Include="Cache\CacheContext.cs" />
-    <Compile Include="Cache\Repos\ICacheRepository.cs" />
+    <Compile Include="Repos\Cache\CacheContext.cs" />
+    <Compile Include="Repos\IRepository.cs" />
     <Compile Include="Models\Permission.cs" />
     <Compile Include="Models\User.cs" />
     <Compile Include="Models\Role.cs" />

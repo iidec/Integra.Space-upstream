@@ -76,9 +76,8 @@
     </Otherwise>
   </Choose>
   <ItemGroup>
-    <Compile Include="DefaultSchedulerFactory.cs" />
-    <Compile Include="NinjectModules\TestModule.cs" />
-    <Compile Include="NinjectModules\TestProvider.cs" />
+    <Compile Include="Ninject\NinjectModules\TestModule.cs" />
+    <Compile Include="Ninject\Providers\TestProvider.cs" />
     <Compile Include="UnitTest1.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
@@ -93,6 +92,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <None Include="App.config" />
     <None Include="packages.config" />
   </ItemGroup>
   <Choose>

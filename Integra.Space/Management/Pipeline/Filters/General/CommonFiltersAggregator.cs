@@ -5,6 +5,7 @@
 //-----------------------------------------------------------------------
 namespace Integra.Space.Pipeline.Filters
 {
+    using System;
     using Common.CommandContext;
 
     /// <summary>
@@ -23,6 +24,12 @@ namespace Integra.Space.Pipeline.Filters
                 .AddStep(new FilterUnlock());
 
             return new ExecutionPipelineNode<PipelineCommandContext, PipelineCommandContext>(pipeline, input.Command);
+        }
+
+        /// <inheritdoc />
+        public override void OnError(Exception e)
+        {
+            throw new NotImplementedException();
         }
     }
 }

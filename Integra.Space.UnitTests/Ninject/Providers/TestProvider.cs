@@ -1,22 +1,20 @@
 ﻿using Integra.Space.Cache;
 using Integra.Space.Models;
+using Integra.Space.Repos;
 using Ninject.Activation;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace Integra.Space.UnitTests.NinjectModules
+namespace Integra.Space.UnitTests
 {
-    class TestProvider : Provider<SourceRepository>
+    class TestProvider : Provider<SourceCacheRepository>
     {
-        protected override SourceRepository CreateInstance(IContext context)
+        protected override SourceCacheRepository CreateInstance(IContext context)
         {
             List<Source> sources = new List<Source>();
             sources.Add(new Source(Guid.NewGuid(), "Source2"));
 
-            SourceRepository sr = new SourceRepository(sources);
+            SourceCacheRepository sr = new SourceCacheRepository(sources);
             return sr;
         }
     }

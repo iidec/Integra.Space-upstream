@@ -6,10 +6,10 @@
 namespace Integra.Space.Pipeline.Filters
 {
     using System;
-    using System.Linq;
-    using Cache;
     using Common.CommandContext;
     using Models;
+    using Ninject;
+    using Repos;
 
     /// <summary>
     /// Filter create source class.
@@ -17,13 +17,19 @@ namespace Integra.Space.Pipeline.Filters
     internal class FilterCreateSource : Filter<PipelineCommandContext, PipelineCommandContext>
     {
         /// <inheritdoc />
-        public override PipelineCommandContext Execute(PipelineCommandContext input)
+        public override PipelineCommandContext Execute(PipelineCommandContext context)
         {
-            Source source = new Source(Guid.NewGuid(), input.Command.ObjectName);
-            ICacheRepository<Source> sr = (SourceRepository)input.Kernel.GetService(typeof(SourceRepository));
+            Source source = new Source(Guid.NewGuid(), context.Command.ObjectName);
+            CacheRepositoryBase<Source> sr = context.Kernel.Get<SourceCacheRepository>();
             sr.Add(source);
 
-            return input;
+            return context;
+        }
+        
+        /// <inheritdoc />
+        public override void OnError(Exception e)
+        {
+            throw new NotImplementedException();
         }
     }
 }

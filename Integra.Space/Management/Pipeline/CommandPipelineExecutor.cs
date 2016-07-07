@@ -33,7 +33,15 @@ namespace Integra.Space.Pipeline
         /// <returns>The result of the pipeline execution.</returns>
         public TOutput Execute(TInput input)
         {
-            return this.pipeline.Execute(input);
+            try
+            {
+                return this.pipeline.Execute(input);
+            }
+            catch (System.Exception e)
+            {
+                this.pipeline.OnError(e);
+                throw e;
+            }
         }
     }
 }

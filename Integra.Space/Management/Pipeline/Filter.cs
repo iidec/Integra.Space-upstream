@@ -17,6 +17,12 @@ namespace Integra.Space.Pipeline
         /// </summary>
         /// <param name="input">A enumerable of inputs.</param>
         /// <returns>A enumerable of outputs.</returns>
-        public abstract TOut Execute(TIn input);        
+        public abstract TOut Execute(TIn input);
+
+        /// <summary>
+        /// Implements the operations to execute when an error occurs in the Execute method.
+        /// </summary>
+        /// <param name="e">Exception thrown.</param>
+        public abstract void OnError(System.Exception e);
     }
 }

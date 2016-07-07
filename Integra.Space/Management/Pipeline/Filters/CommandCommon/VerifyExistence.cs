@@ -19,5 +19,11 @@ namespace Integra.Space.Pipeline.Filters
         {
             return input;
         }
+
+        /// <inheritdoc />
+        public override void OnError(Exception e)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

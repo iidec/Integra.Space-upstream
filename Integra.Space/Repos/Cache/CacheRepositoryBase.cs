@@ -1,0 +1,98 @@
+﻿//-----------------------------------------------------------------------
+// <copyright file="CacheRepositoryBase.cs" company="Integra.Space.Language">
+//     Copyright (c) Integra.Space.Language. All rights reserved.
+// </copyright>
+//-----------------------------------------------------------------------
+namespace Integra.Space.Repos
+{
+    using System;
+    using System.Collections.Generic;
+    using System.Diagnostics.Contracts;
+
+    /// <summary>
+    /// Cache repository base class.
+    /// </summary>
+    /// <typeparam name="TEntity">Entity type.</typeparam>
+    internal abstract class CacheRepositoryBase<TEntity> : IRepository<TEntity> where TEntity : class
+    {
+        /// <summary>
+        /// Specify context.
+        /// </summary>
+        private List<TEntity> listOfObjects;
+
+        /// <summary>
+        /// Object used to sync up the access to the context objects.
+        /// </summary>
+        private object sync;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CacheRepositoryBase{TEntity}"/> class.
+        /// </summary>
+        /// <param name="sourceList">List of sources.</param>
+        public CacheRepositoryBase(List<TEntity> sourceList)
+        {
+            Contract.Assert(sourceList != null);
+
+            this.listOfObjects = sourceList;
+            this.sync = new object();
+        }
+
+        /// <inheritdoc />
+        public virtual IEnumerable<TEntity> List
+        {
+            get
+            {
+                return this.listOfObjects;
+            }
+        }
+
+        /// <inheritdoc />
+        protected object Sync
+        {
+            get
+            {
+                return this.sync;
+            }
+        }
+
+        /// <summary>
+        /// Gets the list of objects.
+        /// </summary>
+        protected List<TEntity> ListOfObjects
+        {
+            get
+            {
+                return this.listOfObjects;
+            }
+        }
+
+        /// <inheritdoc />
+        public virtual void Add(TEntity entity)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <inheritdoc />
+        public virtual void Delete(TEntity entity)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <inheritdoc />
+        public virtual TEntity FindById(Guid id)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <inheritdoc />
+        public virtual TEntity FindByName(string name)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <inheritdoc />
+        public void Update(TEntity entity)
+        {
+        }
+    }
+}

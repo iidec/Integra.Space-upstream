@@ -5,6 +5,8 @@
 //-----------------------------------------------------------------------
 namespace Integra.Space.Pipeline
 {
+    using System;
+
     /// <summary>
     /// Pipeline class.
     /// </summary>
@@ -40,6 +42,12 @@ namespace Integra.Space.Pipeline
             TLink source = this.source.Execute(input);
             TOut result = this.destination.Execute(source);
             return result;
+        }
+
+        /// <inheritdoc />
+        public override void OnError(Exception e)
+        {
+            throw new NotImplementedException();
         }
     }
 }

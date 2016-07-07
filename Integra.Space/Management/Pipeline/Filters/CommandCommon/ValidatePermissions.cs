@@ -5,6 +5,7 @@
 //-----------------------------------------------------------------------
 namespace Integra.Space.Pipeline.Filters
 {
+    using System;
     using Common.CommandContext;
 
     /// <summary>
@@ -16,6 +17,12 @@ namespace Integra.Space.Pipeline.Filters
         public override PipelineCommandContext Execute(PipelineCommandContext input)
         {
             return input;
+        }
+
+        /// <inheritdoc />
+        public override void OnError(Exception e)
+        {
+            throw new NotImplementedException();
         }
     }
 }

@@ -5,6 +5,7 @@
 //-----------------------------------------------------------------------
 namespace Integra.Space.Pipeline.Filters
 {
+    using System;
     using System.Collections.Generic;
     using System.Linq;
     using Common;
@@ -24,6 +25,12 @@ namespace Integra.Space.Pipeline.Filters
             }
 
             return input;
+        }
+
+        /// <inheritdoc />
+        public override void OnError(Exception e)
+        {
+            throw new NotImplementedException();
         }
     }
 }

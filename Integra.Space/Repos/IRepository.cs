@@ -1,9 +1,9 @@
 ﻿//-----------------------------------------------------------------------
-// <copyright file="IBaseRepository.cs" company="Integra.Space.Language">
+// <copyright file="IRepository.cs" company="Integra.Space.Language">
 //     Copyright (c) Integra.Space.Language. All rights reserved.
 // </copyright>
 //-----------------------------------------------------------------------
-namespace Integra.Space.Cache
+namespace Integra.Space.Repos
 {
     using System.Collections.Generic;
 
@@ -11,7 +11,7 @@ namespace Integra.Space.Cache
     /// Repository interface.
     /// </summary>
     /// <typeparam name="TEntity">Type of the space object.</typeparam>
-    internal interface IBaseRepository<TEntity> where TEntity : class
+    internal interface IRepository<TEntity> where TEntity : class
     {
         /// <summary>
         /// Gets all the entities of the repository.
@@ -42,5 +42,12 @@ namespace Integra.Space.Cache
         /// <param name="id">Identifier of the entity.</param>
         /// <returns>The entity with the specified identifier.</returns>
         TEntity FindById(System.Guid id);
+
+        /// <summary>
+        /// Gets the entity with the specified name.
+        /// </summary>
+        /// <param name="name">Name of the entity.</param>
+        /// <returns>The entity with the specified identifier.</returns>
+        TEntity FindByName(string name);
     }
 }

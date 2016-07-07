@@ -86,5 +86,11 @@ namespace Integra.Space.Pipeline.Filters
                     throw new System.Exception("Not implemented permission command. Command: " + command.Action);
             }
         }
+
+        /// <inheritdoc />
+        public override void OnError(Exception e)
+        {
+            throw new NotImplementedException();
+        }
     }
 }
