@@ -7,55 +7,16 @@ namespace Integra.Space.Pipeline.Filters
 {
     using System;
     using Models;
-    using Ninject;
-    using Repos;
 
     /// <summary>
     /// Filter create source class.
     /// </summary>
-    internal class CreateSourceFilter : CommandFilter
+    internal class CreateSourceFilter : CreateEntityFilter<Source>
     {
         /// <inheritdoc />
-        public override PipelineExecutionCommandContext Execute(PipelineExecutionCommandContext context)
+        protected override Source CreateEntity(PipelineExecutionCommandContext context)
         {
-            this.CreateSource(context);
-            return context;
-        }
-
-        /// <inheritdoc />
-        public override void OnError(PipelineExecutionCommandContext context)
-        {
-            if (!this.Executed)
-            {
-                return;
-            }
-
-            this.DeleteSource(context);
-        }
-
-        /// <summary>
-        /// Creates a new source.
-        /// </summary>
-        /// <param name="context">Context of the pipeline.</param>
-        private void CreateSource(PipelineExecutionCommandContext context)
-        {
-            Source source = new Source(Guid.NewGuid(), context.Command.ObjectName);
-            IRepository<Source> sr = context.Kernel.Get<IRepository<Source>>();
-            sr.Add(source);
-        }
-
-        /// <summary>
-        /// Delete a the source.
-        /// </summary>
-        /// <param name="context">Context of the pipeline.</param>
-        private void DeleteSource(PipelineExecutionCommandContext context)
-        {
-            IRepository<Source> sr = context.Kernel.Get<IRepository<Source>>();
-            Source source = sr.FindByName(context.Command.ObjectName);
-            if (source != null)
-            {
-                sr.Delete(source);
-            }
+            return new Source(Guid.NewGuid(), context.Command.ObjectName);
         }
     }
 }

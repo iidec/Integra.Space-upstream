@@ -91,6 +91,7 @@
     <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Management\Pipeline\Filters\CommandSpecific\CreateEntityFilter.cs" />
     <Compile Include="Management\Pipeline\Filters\CommandSpecific\CreateStreamFilter.cs" />
     <Compile Include="Management\Pipeline\Filters\CommandSpecific\SpecificFilterKey.cs" />
     <Compile Include="Management\Pipeline\Filters\FirstPipeline.cs" />
