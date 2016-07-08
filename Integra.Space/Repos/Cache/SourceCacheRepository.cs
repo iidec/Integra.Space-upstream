@@ -27,13 +27,13 @@ namespace Integra.Space.Repos
         {
             lock (this.Sync)
             {
-                if (this.ListOfObjects.Exists(x => x.Guid == entity.Guid))
+                if (this.ListOfObjects.Exists(x => x.Identifier == entity.Identifier))
                 {
-                    throw new Exception(string.Format("The source {0} already exists.", entity.Identifier));
+                    throw new Exception(string.Format("The source '{0}' already exists.", entity.Identifier));
                 }
-                else if (this.ListOfObjects.Exists(x => x.Identifier == entity.Identifier))
+                else if (this.ListOfObjects.Exists(x => x.Guid == entity.Guid))
                 {
-                    throw new Exception(string.Format("The unique identifier {0} already exists.", entity.Guid));
+                    throw new Exception(string.Format("The unique identifier '{0}' already exists.", entity.Guid));
                 }
                 else
                 {
@@ -49,11 +49,11 @@ namespace Integra.Space.Repos
             {
                 if (this.ListOfObjects.Exists(x => x.Guid == entity.Guid))
                 {
-                    throw new Exception(string.Format("The source {0} don't exists.", entity.Identifier));
+                    throw new Exception(string.Format("The source '{0}' don't exists.", entity.Identifier));
                 }
                 else if (this.ListOfObjects.Exists(x => x.Identifier == entity.Identifier))
                 {
-                    throw new Exception(string.Format("The unique identifier {0} don't exists.", entity.Guid));
+                    throw new Exception(string.Format("The unique identifier '{0}' don't exists.", entity.Guid));
                 }
                 else
                 {

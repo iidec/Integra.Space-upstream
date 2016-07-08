@@ -1,5 +1,5 @@
 ﻿//-----------------------------------------------------------------------
-// <copyright file="CreateEntityFilter.cs" company="Integra.Space">
+// <copyright file="CreateSourceFilter.cs" company="Integra.Space">
 //     Copyright (c) Integra.Space. All rights reserved.
 // </copyright>
 //-----------------------------------------------------------------------
@@ -13,39 +13,24 @@ namespace Integra.Space.Pipeline.Filters
     /// <summary>
     /// Filter create source class.
     /// </summary>
-    internal class CreateEntityFilter : CommandFilter
+    internal class CreateSourceFilter : CommandFilter
     {
         /// <inheritdoc />
         public override PipelineExecutionCommandContext Execute(PipelineExecutionCommandContext context)
         {
-            switch (context.Command.SpaceObjectType)
-            {
-                case Common.SpaceObjectEnum.Source:
-                    this.CreateSource(context);
-                    break;
-                case Common.SpaceObjectEnum.Stream:
-                    this.CreateStream(context);
-                    break;
-                default:
-                    throw new Exception(string.Format("Invalid object: {0}", context.Command.SpaceObjectType));
-            }
-
+            this.CreateSource(context);
             return context;
         }
 
         /// <inheritdoc />
         public override void OnError(PipelineExecutionCommandContext context)
         {
-            base.OnError(context);
-
-            switch (context.Command.SpaceObjectType)
+            if (!this.Executed)
             {
-                case Common.SpaceObjectEnum.Source:
-                    this.DeleteSource(context);
-                    break;
-                case Common.SpaceObjectEnum.Stream:
-                    break;
+                return;
             }
+
+            this.DeleteSource(context);
         }
 
         /// <summary>
@@ -71,14 +56,6 @@ namespace Integra.Space.Pipeline.Filters
             {
                 sr.Delete(source);
             }
-        }
-
-        /// <summary>
-        /// Creates a new stream.
-        /// </summary>
-        /// <param name="context">Context of the pipeline.</param>
-        private void CreateStream(PipelineExecutionCommandContext context)
-        {
         }
     }
 }

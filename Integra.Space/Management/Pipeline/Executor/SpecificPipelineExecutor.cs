@@ -5,6 +5,8 @@
 //-----------------------------------------------------------------------
 namespace Integra.Space.Pipeline
 {
+    using System;
+
     /// <summary>
     /// Command pipeline builder.
     /// </summary>
@@ -16,6 +18,23 @@ namespace Integra.Space.Pipeline
         /// <param name="pipeline">Pipeline to execute.</param>
         public SpecificPipelineExecutor(Filter<PipelineExecutionCommandContext, PipelineExecutionCommandContext> pipeline) : base(pipeline)
         {
+        }
+
+        /// <inheritdoc />
+        public override PipelineExecutionCommandContext Execute(PipelineExecutionCommandContext context)
+        {
+            try
+            {
+                PipelineExecutionCommandContext result = this.Pipeline.Execute(context);
+                this.Pipeline.Executed = true;
+                return result;
+            }
+            catch (System.Exception e)
+            {
+                context.Error = e;
+                this.Pipeline.OnError(context);
+                throw e;
+            }
         }
     }
 }

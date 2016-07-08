@@ -17,5 +17,22 @@ namespace Integra.Space.Pipeline
         public GenericPipelineExecutor(Filter<PipelineContext, PipelineContext> pipeline) : base(pipeline)
         {
         }
+
+        /// <inheritdoc />
+        public override PipelineContext Execute(PipelineContext context)
+        {
+            try
+            {
+                PipelineContext result = this.Pipeline.Execute(context);
+                this.Pipeline.Executed = true;
+                return result;
+            }
+            catch (System.Exception e)
+            {
+                context.Error = e;
+                this.Pipeline.OnError(context);
+                throw e;
+            }
+        }
     }
 }

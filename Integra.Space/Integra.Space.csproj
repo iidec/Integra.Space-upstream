@@ -96,7 +96,7 @@
     <Compile Include="Management\Pipeline\CommandPipelineBuilder.cs" />
     <Compile Include="Management\Pipeline\Filter.cs" />
     <Compile Include="Management\Pipeline\Filters\CommandCommon\ValidatePermissions.cs" />
-    <Compile Include="Management\Pipeline\Filters\CommandSpecific\CreateEntityFilter.cs" />
+    <Compile Include="Management\Pipeline\Filters\CommandSpecific\CreateSourceFilter.cs" />
     <Compile Include="Management\Pipeline\Filters\CommandSpecific\Stream\FilterQueryParser.cs" />
     <Compile Include="Management\Pipeline\Filters\CommandSpecific\Stream\ManagementSchedulerFactory.cs" />
     <Compile Include="Management\Pipeline\Filters\General\CommonFiltersAggregator.cs" />

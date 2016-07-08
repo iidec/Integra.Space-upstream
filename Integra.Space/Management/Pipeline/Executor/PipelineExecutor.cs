@@ -13,7 +13,7 @@ namespace Integra.Space.Pipeline
     internal abstract class PipelineExecutor<TInput, TOutput> where TInput : class where TOutput : class
     {
         /// <summary>
-        /// Pipeline context.
+        /// Pipeline to execute.
         /// </summary>
         private Filter<TInput, TOutput> pipeline;
 
@@ -27,23 +27,21 @@ namespace Integra.Space.Pipeline
         }
 
         /// <summary>
+        /// Gets the pipeline.
+        /// </summary>
+        protected Filter<TInput, TOutput> Pipeline
+        {
+            get
+            {
+                return this.pipeline;
+            }
+        }
+
+        /// <summary>
         /// Build the pipeline.
         /// </summary>
         /// <param name="input">Input of the pipeline.</param>
         /// <returns>The result of the pipeline execution.</returns>
-        public TOutput Execute(TInput input)
-        {
-            try
-            {
-                TOutput result = this.pipeline.Execute(input);
-                this.pipeline.Executed = true;
-                return result;
-            }
-            catch (System.Exception e)
-            {
-                this.pipeline.OnError(input);
-                throw e;
-            }
-        }
+        public abstract TOutput Execute(TInput input);
     }
 }

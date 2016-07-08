@@ -51,7 +51,7 @@ namespace Integra.Space.Pipeline.Filters
             switch (context.Command.Action)
             {
                 case SpaceActionCommandEnum.Create:
-                    context.Pipeline = new CreateEntityFilter();
+                    context.Pipeline = new CreateSourceFilter();
                     break;
                 case SpaceActionCommandEnum.Alter:
                 case SpaceActionCommandEnum.Drop:

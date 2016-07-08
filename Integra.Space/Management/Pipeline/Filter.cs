@@ -46,7 +46,7 @@ namespace Integra.Space.Pipeline
         /// <summary>
         /// Implements the operations to execute when an error occurs in the Execute method.
         /// </summary>
-        /// <param name="e">Exception thrown.</param>
-        public abstract void OnError(TIn e);
+        /// <param name="context">Context of the pipeline.</param>
+        public abstract void OnError(TIn context);
     }
 }
