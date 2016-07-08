@@ -18,7 +18,7 @@ namespace Integra.Space.UnitTests
             CommandPipelineBuilder cpb = new CommandPipelineBuilder();
             Filter<PipelineContext, PipelineContext> pipeline = cpb.Build();
 
-            GenericPipelineExecutor cpe = new GenericPipelineExecutor(pipeline);
+            FirstPipelineExecutor cpe = new FirstPipelineExecutor(pipeline);
             PipelineContext context = new PipelineContext(command);
             PipelineContext result = cpe.Execute(context);
             return result;

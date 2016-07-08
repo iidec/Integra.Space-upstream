@@ -91,14 +91,16 @@
     <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Management\Pipeline\Filters\CommandSpecific\CreateEntityFilter.cs" />
-    <Compile Include="Management\Pipeline\Filters\CommandSpecific\CreateStreamFilter.cs" />
+    <Compile Include="Management\Pipeline\Filters\CommandSpecific\Create\CreateEntityFilter.cs" />
+    <Compile Include="Management\Pipeline\Filters\CommandSpecific\Create\CreateUserFilter.cs" />
+    <Compile Include="Management\Pipeline\Filters\CommandSpecific\Create\CreateRoleFilter.cs" />
+    <Compile Include="Management\Pipeline\Filters\CommandSpecific\Create\CreateStreamFilter.cs" />
     <Compile Include="Management\Pipeline\Filters\CommandSpecific\SpecificFilterKey.cs" />
     <Compile Include="Management\Pipeline\Filters\FirstPipeline.cs" />
     <Compile Include="Management\Pipeline\Filters\FirstPipelineFilter.cs" />
     <Compile Include="Management\Pipeline\Filters\CommandFilter.cs" />
     <Compile Include="Management\Pipeline\Filters\CommandPipeline.cs" />
-    <Compile Include="Management\Pipeline\Executor\GenericPipelineExecutor.cs" />
+    <Compile Include="Management\Pipeline\Executor\FirstPipelineExecutor.cs" />
     <Compile Include="Management\Pipeline\Executor\SpecificPipelineExecutor.cs" />
     <Compile Include="Management\Pipeline\Contexts\PipelineContext.cs" />
     <Compile Include="Management\Pipeline\Contexts\PipelineExecutionCommandContext.cs" />
@@ -111,7 +113,7 @@
     <Compile Include="Management\Pipeline\CommandPipelineBuilder.cs" />
     <Compile Include="Management\Pipeline\Filter.cs" />
     <Compile Include="Management\Pipeline\Filters\CommandCommon\ValidatePermissions.cs" />
-    <Compile Include="Management\Pipeline\Filters\CommandSpecific\CreateSourceFilter.cs" />
+    <Compile Include="Management\Pipeline\Filters\CommandSpecific\Create\CreateSourceFilter.cs" />
     <Compile Include="Management\Pipeline\Filters\CommandSpecific\Stream\FilterQueryParser.cs" />
     <Compile Include="Management\Pipeline\Filters\CommandSpecific\Stream\ManagementSchedulerFactory.cs" />
     <Compile Include="Management\Pipeline\Filters\General\CommonFiltersAggregator.cs" />
