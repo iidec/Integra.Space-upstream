@@ -11,6 +11,11 @@ namespace Integra.Space.Models
     internal class Stream : SpaceObject
     {
         /// <summary>
+        /// Assembly of the query of the stream.
+        /// </summary>
+        private StreamAssembly streamAssembly;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="Stream"/> class.
         /// </summary>
         /// <param name="guid">Space object unique identifier.</param>
@@ -25,5 +30,24 @@ namespace Integra.Space.Models
         /// Gets the query of the stream.
         /// </summary>
         public string Query { get; private set; }
+
+        /// <summary>
+        /// Gets or sets the assembly of the query of the stream.
+        /// </summary>
+        public StreamAssembly StreamAssembly
+        {
+            get
+            {
+                return this.StreamAssembly;
+            }
+
+            set
+            {
+                if (this.streamAssembly != null)
+                {
+                    this.streamAssembly = value;
+                }
+            }
+        }
     }
 }

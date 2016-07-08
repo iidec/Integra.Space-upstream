@@ -6,8 +6,8 @@
 namespace Integra.Space.Pipeline.Filters
 {
     using System;
+    using System.Collections.Generic;
     using Common;
-    using Language;
 
     /// <summary>
     /// Specific filters aggregator class.
@@ -15,31 +15,40 @@ namespace Integra.Space.Pipeline.Filters
     internal class SpecificFiltersAggregator : FirstPipelineFilter
     {
         /// <inheritdoc />
-        public override PipelineContext Execute(PipelineContext input)
+        public override PipelineContext Execute(PipelineContext context)
         {
-            if ((SpaceActionCommandEnum.CrudCommands & input.Command.Action) == SpaceActionCommandEnum.Create
-                 || (SpaceActionCommandEnum.CrudCommands & input.Command.Action) == SpaceActionCommandEnum.Alter
-                 || (SpaceActionCommandEnum.CrudCommands & input.Command.Action) == SpaceActionCommandEnum.Drop)
+            context.Pipeline = SpecificFilterSelector.GetSpecificFilter(new SpecificFilterKey(context.Command.Action, context.Command.SpaceObjectType));
+            
+            return context;
+        }
+
+        /// <summary>
+        /// Add specific actions the execution pipeline.
+        /// </summary>
+        /// <param name="context">Context of the actual pipeline.</param>
+        public void AddSpecificAtions(PipelineContext context)
+        {
+            if ((SpaceActionCommandEnum.CrudCommands & context.Command.Action) == SpaceActionCommandEnum.Create
+                 || (SpaceActionCommandEnum.CrudCommands & context.Command.Action) == SpaceActionCommandEnum.Alter
+                 || (SpaceActionCommandEnum.CrudCommands & context.Command.Action) == SpaceActionCommandEnum.Drop)
             {
-                this.AddCrudSpecificActions(input);
+                this.AddCrudSpecificActions(context);
             }
-            else if ((SpaceActionCommandEnum.StatusCommands & input.Command.Action) == SpaceActionCommandEnum.Start
-                || (SpaceActionCommandEnum.StatusCommands & input.Command.Action) == SpaceActionCommandEnum.Stop)
+            else if ((SpaceActionCommandEnum.StatusCommands & context.Command.Action) == SpaceActionCommandEnum.Start
+                || (SpaceActionCommandEnum.StatusCommands & context.Command.Action) == SpaceActionCommandEnum.Stop)
             {
-                this.AddStatusSpecificActions(input);
+                this.AddStatusSpecificActions(context);
             }
-            else if ((SpaceActionCommandEnum.CommandsPermissions & input.Command.Action) == SpaceActionCommandEnum.Grant
-                || (SpaceActionCommandEnum.CommandsPermissions & input.Command.Action) == SpaceActionCommandEnum.Deny
-                || (SpaceActionCommandEnum.CommandsPermissions & input.Command.Action) == SpaceActionCommandEnum.Revoke)
+            else if ((SpaceActionCommandEnum.CommandsPermissions & context.Command.Action) == SpaceActionCommandEnum.Grant
+                || (SpaceActionCommandEnum.CommandsPermissions & context.Command.Action) == SpaceActionCommandEnum.Deny
+                || (SpaceActionCommandEnum.CommandsPermissions & context.Command.Action) == SpaceActionCommandEnum.Revoke)
             {
-                this.AddPermissionsSpecificActions(input);
+                this.AddPermissionsSpecificActions(context);
             }
             else
             {
-                throw new System.Exception("Not implement command. Command: " + input.Command.Action);
+                throw new System.Exception("Not implement command. Command: " + context.Command.Action);
             }
-
-            return input;
         }
 
         /// <summary>
@@ -51,12 +60,26 @@ namespace Integra.Space.Pipeline.Filters
             switch (context.Command.Action)
             {
                 case SpaceActionCommandEnum.Create:
-                    context.Pipeline = new CreateSourceFilter();
+                    this.AddCreateAction(context);
                     break;
                 case SpaceActionCommandEnum.Alter:
                 case SpaceActionCommandEnum.Drop:
                 default:
                     throw new System.Exception("Not implemented crud command. Command: " + context.Command.Action);
+            }
+        }
+
+        /// <summary>
+        /// Add specific create actions.
+        /// </summary>
+        /// <param name="context">Context of the pipeline.</param>
+        public void AddCreateAction(PipelineContext context)
+        {
+            switch (context.Command.SpaceObjectType)
+            {
+                case SpaceObjectEnum.Source:
+                    context.Pipeline = new CreateSourceFilter();
+                    break;
             }
         }
 
@@ -95,6 +118,6 @@ namespace Integra.Space.Pipeline.Filters
         public override void OnError(PipelineContext e)
         {
             throw new NotImplementedException();
-        }
+        }        
     }
 }

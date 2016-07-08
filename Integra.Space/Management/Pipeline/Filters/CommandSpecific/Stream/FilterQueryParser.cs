@@ -9,26 +9,36 @@ namespace Integra.Space.Pipeline.Filters
     using System.Reflection.Emit;
     using Language;
     using Language.Runtime;
-    
+    using Models;
+    using Ninject;
+    using Repos;
+
     /// <summary>
     /// Create command action class.
     /// </summary>
-    internal abstract class FilterQueryParser : CommandFilter
+    internal class FilterQueryParser : CommandFilter
     {
         /// <inheritdoc />
-        public override PipelineExecutionCommandContext Execute(PipelineExecutionCommandContext input)
+        public override PipelineExecutionCommandContext Execute(PipelineExecutionCommandContext context)
         {
+            IRepository<Stream> sr = context.Kernel.Get<IRepository<Stream>>();
+            Stream stream = sr.FindByName(context.Command.ObjectName);
+            if (stream == null)
+            {
+                throw new System.Exception("The stream does not exist.");
+            }
+
             ManagementSchedulerFactory dsf = new ManagementSchedulerFactory();
             bool printLog = false;
             bool debugMode = false;
             bool measureElapsedTime = false;
-            CompileContext context = new CompileContext() { PrintLog = printLog, QueryName = string.Empty, Scheduler = dsf, DebugMode = debugMode, MeasureElapsedTime = measureElapsedTime, IsTestMode = true };
+            CompileContext compileContext = new CompileContext() { PrintLog = printLog, QueryName = context.Command.ObjectName, Scheduler = dsf, DebugMode = debugMode, MeasureElapsedTime = measureElapsedTime, IsTestMode = true };
 
-            QueryParser parser = new QueryParser(((CreateAndAlterStreamNode)input.Command).Query);
+            QueryParser parser = new QueryParser(((CreateAndAlterStreamNode)context.Command).Query);
                         
             PlanNode executionPlan = parser.Evaluate();
 
-            SpaceAssemblyBuilder sasmBuilder = new SpaceAssemblyBuilder("SpaceQueryAssembly_" + context.QueryName);
+            SpaceAssemblyBuilder sasmBuilder = new SpaceAssemblyBuilder("SpaceQueryAssembly_" + compileContext.QueryName);
             AssemblyBuilder asmBuilder = sasmBuilder.CreateAssemblyBuilder();
             SpaceModuleBuilder modBuilder = new SpaceModuleBuilder(asmBuilder);
             modBuilder.CreateModuleBuilder();
@@ -36,11 +46,13 @@ namespace Integra.Space.Pipeline.Filters
             TreeTransformations tf = new TreeTransformations(asmBuilder, executionPlan);
             tf.Transform();
 
-            context.AsmBuilder = asmBuilder;
-            CodeGenerator te = new CodeGenerator(context);
+            compileContext.AsmBuilder = asmBuilder;
+            CodeGenerator te = new CodeGenerator(compileContext);
 
             Assembly asm = te.Compile(executionPlan);
-            return input;
+            stream.StreamAssembly = new StreamAssembly(asm);
+
+            return context;
         }
     }
 }

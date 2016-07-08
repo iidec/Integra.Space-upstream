@@ -1,5 +1,5 @@
 ﻿//-----------------------------------------------------------------------
-// <copyright file="CreateSourceFilter.cs" company="Integra.Space">
+// <copyright file="CreateStreamFilter.cs" company="Integra.Space">
 //     Copyright (c) Integra.Space. All rights reserved.
 // </copyright>
 //-----------------------------------------------------------------------
@@ -13,12 +13,12 @@ namespace Integra.Space.Pipeline.Filters
     /// <summary>
     /// Filter create source class.
     /// </summary>
-    internal class CreateSourceFilter : CommandFilter
+    internal class CreateStreamFilter : CommandFilter
     {
         /// <inheritdoc />
         public override PipelineExecutionCommandContext Execute(PipelineExecutionCommandContext context)
         {
-            this.CreateSource(context);
+            this.CreateStream(context);
             return context;
         }
 
@@ -30,31 +30,31 @@ namespace Integra.Space.Pipeline.Filters
                 return;
             }
 
-            this.DeleteSource(context);
+            this.DeleteStream(context);
         }
 
         /// <summary>
         /// Creates a new source.
         /// </summary>
         /// <param name="context">Context of the pipeline.</param>
-        private void CreateSource(PipelineExecutionCommandContext context)
+        private void CreateStream(PipelineExecutionCommandContext context)
         {
-            Source source = new Source(Guid.NewGuid(), context.Command.ObjectName);
-            IRepository<Source> sr = context.Kernel.Get<IRepository<Source>>();
-            sr.Add(source);
+            Stream stream = new Stream(Guid.NewGuid(), context.Command.ObjectName, ((Language.CreateAndAlterStreamNode)context.Command).Query);
+            IRepository<Stream> sr = context.Kernel.Get<IRepository<Stream>>();
+            sr.Add(stream);
         }
 
         /// <summary>
         /// Delete a the source.
         /// </summary>
         /// <param name="context">Context of the pipeline.</param>
-        private void DeleteSource(PipelineExecutionCommandContext context)
+        private void DeleteStream(PipelineExecutionCommandContext context)
         {
-            IRepository<Source> sr = context.Kernel.Get<IRepository<Source>>();
-            Source source = sr.FindByName(context.Command.ObjectName);
-            if (source != null)
+            IRepository<Stream> sr = context.Kernel.Get<IRepository<Stream>>();
+            Stream stream = sr.FindByName(context.Command.ObjectName);
+            if (stream != null)
             {
-                sr.Delete(source);
+                sr.Delete(stream);
             }
         }
     }

@@ -1,5 +1,5 @@
 ﻿//-----------------------------------------------------------------------
-// <copyright file="SourceCacheRepository.cs" company="Integra.Space">
+// <copyright file="StreamCacheRepository.cs" company="Integra.Space">
 //     Copyright (c) Integra.Space. All rights reserved.
 // </copyright>
 //-----------------------------------------------------------------------
@@ -12,24 +12,24 @@ namespace Integra.Space.Repos
     /// <summary>
     /// Space object repository class.
     /// </summary>
-    internal class SourceCacheRepository : CacheRepositoryBase<Source>
+    internal class StreamCacheRepository : CacheRepositoryBase<Stream>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="SourceCacheRepository"/> class.
+        /// Initializes a new instance of the <see cref="StreamCacheRepository"/> class.
         /// </summary>
         /// <param name="sourceList">List of sources.</param>
-        public SourceCacheRepository(List<Source> sourceList) : base(sourceList)
+        public StreamCacheRepository(List<Stream> sourceList) : base(sourceList)
         {
         }
 
         /// <inheritdoc />
-        public override void Add(Source entity)
+        public override void Add(Stream entity)
         {
             lock (this.Sync)
             {
                 if (this.ListOfObjects.Exists(x => x.Identifier == entity.Identifier))
                 {
-                    throw new Exception(string.Format("The source '{0}' already exists.", entity.Identifier));
+                    throw new Exception(string.Format("The stream '{0}' already exists.", entity.Identifier));
                 }
                 else if (this.ListOfObjects.Exists(x => x.Guid == entity.Guid))
                 {
@@ -43,7 +43,7 @@ namespace Integra.Space.Repos
         }
 
         /// <inheritdoc />
-        public override void Delete(Source entity)
+        public override void Delete(Stream entity)
         {
             lock (this.Sync)
             {
@@ -53,13 +53,13 @@ namespace Integra.Space.Repos
                 }
                 else
                 {
-                    throw new Exception(string.Format("The source '{0}' don't exists.", entity.Identifier));
+                    throw new Exception(string.Format("The stream '{0}' don't exists.", entity.Identifier));
                 }
             }
         }
 
         /// <inheritdoc />
-        public override Source FindById(Guid id)
+        public override Stream FindById(Guid id)
         {
             lock (this.Sync)
             {
@@ -68,7 +68,7 @@ namespace Integra.Space.Repos
         }
 
         /// <inheritdoc />
-        public override Source FindByName(string name)
+        public override Stream FindByName(string name)
         {
             lock (this.Sync)
             {
