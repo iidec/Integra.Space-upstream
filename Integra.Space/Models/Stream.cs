@@ -27,9 +27,9 @@ namespace Integra.Space.Models
         }
 
         /// <summary>
-        /// Gets the query of the stream.
+        /// Gets or sets the query of the stream.
         /// </summary>
-        public string Query { get; private set; }
+        public string Query { get; set; }
 
         /// <summary>
         /// Gets or sets the assembly of the query of the stream.

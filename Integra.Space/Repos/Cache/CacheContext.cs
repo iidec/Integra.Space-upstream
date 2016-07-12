@@ -5,104 +5,103 @@
 //-----------------------------------------------------------------------
 namespace Integra.Space.Cache
 {
-    using System;
     using System.Collections.Generic;
     using Models;
-
+    
     /// <summary>
     /// Cache context class.
     /// </summary>
-    internal static class CacheContext
+    internal class CacheContext
     {
         /// <summary>
-        /// Stream list.
+        /// Stream repository.
         /// </summary>
-        private static List<Stream> streams;
+        private List<Stream> streams = new List<Stream>();
 
         /// <summary>
-        /// Source list.
+        /// Source repository.
         /// </summary>
-        private static List<Source> sources;
+        private List<Source> sources = new List<Source>();
 
         /// <summary>
-        /// Role list.
+        /// Role repository.
         /// </summary>
-        private static List<Role> roles;
+        private List<Role> roles = new List<Role>();
 
         /// <summary>
-        /// User list.
+        /// User repository.
         /// </summary>
-        private static List<User> users;
+        private List<User> users = new List<User>();
 
         /// <summary>
-        /// Permission list.
+        /// Permission repository.
         /// </summary>
-        private static List<Permission> permissions;
-
+        private List<Permission> permissions = new List<Permission>();
+        
         /// <summary>
-        /// Initializes static members of the <see cref="CacheContext"/> class.
+        /// Initializes a new instance of the <see cref="CacheContext"/> class.
         /// </summary>
-        static CacheContext()
+        public CacheContext()
         {
-            streams = new List<Stream>();
-            sources = new List<Source>();
-            users = new List<User>();
-            roles = new List<Role>();
-            permissions = new List<Permission>();
+            this.permissions = new List<Permission>();
+            this.users = new List<User>();
+            this.roles = new List<Role>();
+            this.sources = new List<Source>();
+            this.streams = new List<Stream>();
         }
 
         /// <summary>
-        /// Gets the stream list.
+        /// Gets the stream repository.
         /// </summary>
-        public static List<Stream> Streams
+        public List<Stream> Streams
         {
             get
             {
-                return streams;
+                return this.streams;
             }
         }
 
         /// <summary>
-        /// Gets the source list.
+        /// Gets the source repository.
         /// </summary>
-        public static List<Source> Sources
+        public List<Source> Sources
         {
             get
             {
-                return sources;
+                return this.sources;
             }
         }
 
         /// <summary>
-        /// Gets the role list.
+        /// Gets the role repository.
         /// </summary>
-        public static List<Role> Roles
+        public List<Role> Roles
         {
             get
             {
-                return roles;
+                return this.roles;
             }
         }
 
         /// <summary>
-        /// Gets the user list.
+        /// Gets the user repository.
         /// </summary>
-        public static List<User> Users
+        public List<User> Users
         {
             get
             {
-                return users;
+                return this.users;
             }
         }
 
         /// <summary>
-        /// Gets the permission list.
+        /// Gets the permission repository.
         /// </summary>
-        public static List<Permission> Permissions
+        public List<Permission> Permissions
         {
             get
             {
-                return permissions;
+                return this.permissions;
             }
         }
     }

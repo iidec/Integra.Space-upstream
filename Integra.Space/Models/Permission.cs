@@ -46,9 +46,9 @@ namespace Integra.Space.Models
         }
 
         /// <summary>
-        /// Gets the permission value.
+        /// Gets or sets the permission value.
         /// </summary>
-        public int Value { get; private set; }
+        public int Value { get; set; }
 
         /// <summary>
         /// Gets the space object.

@@ -5,6 +5,7 @@
 //-----------------------------------------------------------------------
 namespace Integra.Space.Pipeline.Filters
 {
+    using Models;
     using Ninject;
     using Repos;
 
@@ -12,7 +13,7 @@ namespace Integra.Space.Pipeline.Filters
     /// Filter create source class.
     /// </summary>
     /// <typeparam name="TEntity">Entity type.</typeparam>
-    internal abstract class CreateEntityFilter<TEntity> : CommandFilter where TEntity : class
+    internal abstract class CreateEntityFilter<TEntity> : CommandFilter where TEntity : SpaceObject
     {
         /// <inheritdoc />
         public override PipelineExecutionCommandContext Execute(PipelineExecutionCommandContext context)
@@ -32,7 +33,7 @@ namespace Integra.Space.Pipeline.Filters
                 return;
             }
 
-            this.DeleteSource(context);
+            this.DeleteEntity(context);
         }
 
         /// <summary>
@@ -43,10 +44,10 @@ namespace Integra.Space.Pipeline.Filters
         protected abstract TEntity CreateEntity(PipelineExecutionCommandContext context);
 
         /// <summary>
-        /// Delete a the source.
+        /// Deletes the entity.
         /// </summary>
         /// <param name="context">Context of the pipeline.</param>
-        protected virtual void DeleteSource(PipelineExecutionCommandContext context)
+        private void DeleteEntity(PipelineExecutionCommandContext context)
         {
             IRepository<TEntity> sr = context.Kernel.Get<IRepository<TEntity>>();
             TEntity entity = sr.FindByName(context.Command.ObjectName);

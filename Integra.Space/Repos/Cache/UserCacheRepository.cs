@@ -1,5 +1,5 @@
 ﻿//-----------------------------------------------------------------------
-// <copyright file="StreamCacheRepository.cs" company="Integra.Space">
+// <copyright file="UserCacheRepository.cs" company="Integra.Space">
 //     Copyright (c) Integra.Space. All rights reserved.
 // </copyright>
 //-----------------------------------------------------------------------
@@ -13,76 +13,76 @@ namespace Integra.Space.Repos
     /// <summary>
     /// Space object repository class.
     /// </summary>
-    internal class StreamCacheRepository : CacheRepositoryBase<Stream>
+    internal class UserCacheRepository : CacheRepositoryBase<User>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="StreamCacheRepository"/> class.
+        /// Initializes a new instance of the <see cref="UserCacheRepository"/> class.
         /// </summary>
         /// <param name="context">Cache context.</param>
-        public StreamCacheRepository(CacheContext context) : base(context)
+        public UserCacheRepository(CacheContext context) : base(context)
         {
         }
 
         /// <inheritdoc />
-        public override IEnumerable<Stream> List
+        public override IEnumerable<User> List
         {
             get
             {
-                return this.Context.Streams;
+                return this.Context.Users;
             }
         }
 
         /// <inheritdoc />
-        public override void Add(Stream entity)
+        public override void Add(User entity)
         {
             lock (this.Sync)
             {
-                if (this.Context.Streams.Exists(x => x.Identifier == entity.Identifier))
+                if (this.Context.Users.Exists(x => x.Identifier == entity.Identifier))
                 {
-                    throw new Exception(string.Format("The stream '{0}' already exists.", entity.Identifier));
+                    throw new Exception(string.Format("The user '{0}' already exists.", entity.Identifier));
                 }
-                else if (this.Context.Streams.Exists(x => x.Guid == entity.Guid))
+                else if (this.Context.Users.Exists(x => x.Guid == entity.Guid))
                 {
                     throw new Exception(string.Format("The unique identifier '{0}' already exists.", entity.Guid));
                 }
                 else
                 {
-                    this.Context.Streams.Add(entity);
+                    this.Context.Users.Add(entity);
                 }
             }
         }
 
         /// <inheritdoc />
-        public override void Delete(Stream entity)
+        public override void Delete(User entity)
         {
             lock (this.Sync)
             {
-                if (this.Context.Streams.Exists(x => x.Guid == entity.Guid))
+                if (this.Context.Users.Exists(x => x.Guid == entity.Guid))
                 {
-                    this.Context.Streams.Remove(entity);
+                    this.Context.Users.Remove(entity);
                 }
                 else
                 {
-                    throw new Exception(string.Format("The stream '{0}' don't exists.", entity.Identifier));
+                    throw new Exception(string.Format("The user '{0}' don't exists.", entity.Identifier));
                 }
             }
         }
 
         /// <inheritdoc />
-        public override Stream FindById(Guid id)
+        public override User FindById(Guid id)
         {
             lock (this.Sync)
             {
-                return this.Context.Streams.Find(x => x.Guid == id);
+                return this.Context.Users.Find(x => x.Guid == id);
             }
         }
 
         /// <inheritdoc />
-        public override Stream FindByName(string name)
+        public override User FindByName(string name)
         {
             lock (this.Sync)
             {
-                return this.Context.Streams.Find(x => x.Identifier == name);
+                return this.Context.Users.Find(x => x.Identifier == name);
             }
         }
     }

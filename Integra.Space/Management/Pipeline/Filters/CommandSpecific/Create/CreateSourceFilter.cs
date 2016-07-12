@@ -6,7 +6,10 @@
 namespace Integra.Space.Pipeline.Filters
 {
     using System;
+    using Cache;
     using Models;
+    using Ninject;
+    using Repos;
 
     /// <summary>
     /// Filter create source class.

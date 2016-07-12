@@ -18,7 +18,22 @@ namespace Integra.Space.Pipeline.Filters
         /// <inheritdoc />
         protected override Stream CreateEntity(PipelineExecutionCommandContext context)
         {
-            return new Stream(Guid.NewGuid(), context.Command.ObjectName, ((Language.CreateAndAlterStreamNode)context.Command).Query);
+            if (context.Command is Language.CreateAndAlterStreamNode)
+            {
+                string query = ((Language.CreateAndAlterStreamNode)context.Command).Query;
+                if (!string.IsNullOrWhiteSpace(query))
+                {
+                    return new Stream(Guid.NewGuid(), context.Command.ObjectName, query);
+                }
+                else
+                {
+                    throw new Exception("The query of the stream cannot be null neither whitespace.");
+                }
+            }
+            else
+            {
+                throw new Exception("Wrong command for the filter.");
+            }
         }
     }
 }

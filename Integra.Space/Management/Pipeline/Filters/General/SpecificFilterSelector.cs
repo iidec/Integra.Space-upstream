@@ -27,8 +27,26 @@ namespace Integra.Space.Pipeline.Filters
             filterDictionary = new Dictionary<SpecificFilterKey, Filter<PipelineExecutionCommandContext, PipelineExecutionCommandContext>>(new Comparer());
 
             // add the specific filters.
+
+            // create
             filterDictionary.Add(new SpecificFilterKey(SpaceActionCommandEnum.Create, SpaceObjectEnum.Source), new CreateSourceFilter());
             filterDictionary.Add(new SpecificFilterKey(SpaceActionCommandEnum.Create, SpaceObjectEnum.Stream), new CreateStreamFilter().AddStep(new FilterQueryParser()));
+            filterDictionary.Add(new SpecificFilterKey(SpaceActionCommandEnum.Create, SpaceObjectEnum.User), new CreateUserFilter());
+            filterDictionary.Add(new SpecificFilterKey(SpaceActionCommandEnum.Create, SpaceObjectEnum.Role), new CreateRoleFilter());
+
+            // alter
+            filterDictionary.Add(new SpecificFilterKey(SpaceActionCommandEnum.Alter, SpaceObjectEnum.User), new AlterUserFilter());
+            filterDictionary.Add(new SpecificFilterKey(SpaceActionCommandEnum.Alter, SpaceObjectEnum.Stream), new AlterStreamFilter());
+
+            // drop
+            filterDictionary.Add(new SpecificFilterKey(SpaceActionCommandEnum.Drop, SpaceObjectEnum.Role), new DropRoleFilter());
+            filterDictionary.Add(new SpecificFilterKey(SpaceActionCommandEnum.Drop, SpaceObjectEnum.Source), new DropSourceFilter());
+            filterDictionary.Add(new SpecificFilterKey(SpaceActionCommandEnum.Drop, SpaceObjectEnum.Stream), new DropStreamFilter());
+            filterDictionary.Add(new SpecificFilterKey(SpaceActionCommandEnum.Drop, SpaceObjectEnum.User), new DropUserFilter());
+
+            // permission
+            filterDictionary.Add(new SpecificFilterKey(SpaceActionCommandEnum.Grant, SpaceObjectEnum.User), new GrantPermissionFilter());
+            filterDictionary.Add(new SpecificFilterKey(SpaceActionCommandEnum.Grant, SpaceObjectEnum.Role), new GrantPermissionFilter());
         }
 
         /// <summary>

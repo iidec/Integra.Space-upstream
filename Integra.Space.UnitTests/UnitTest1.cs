@@ -28,23 +28,28 @@ namespace Integra.Space.UnitTests
         public void TestCreateSource()
         {
             string command = "create source Source1";
-            PipelineContext result1 = this.ProcessCommand(command);
-            SpecificPipelineExecutor cpe = new SpecificPipelineExecutor(result1.Pipeline);
 
             IKernel kernel = new StandardKernel();
-            
-            List<Source> sources = new List<Source>();
-            sources.Add(new Source(Guid.NewGuid(), "Source3"));
 
             kernel.Bind<IRepository<Source>>()
-                .To<SourceCacheRepository>()
-                .WithConstructorArgument<List<Source>>(sources);
+                .To<SourceCacheRepository>();
+
+            kernel.Bind<CacheContext>()
+                .ToSelf()
+                .InSingletonScope()
+                ;
+
+            kernel.Get<CacheContext>().Sources.Add(new Source(Guid.NewGuid(), "Source3"));
             
+            PipelineContext result1 = this.ProcessCommand(command);
             PipelineExecutionCommandContext context = new PipelineExecutionCommandContext(result1.Command, kernel);
+            SpecificPipelineExecutor cpe = new SpecificPipelineExecutor(result1.Pipeline);
             PipelineExecutionCommandContext result2 = cpe.Execute(context);
 
-            IRepository<Source> sr = kernel.Get<IRepository<Source>>();
-            Assert.IsNotNull(sr.FindByName("Source1"));
+            List<Source> sr = kernel.Get<CacheContext>().Sources;
+            Source source = sr.Find(x => x.Identifier == "Source1");
+            Assert.IsNotNull(source);
+            Assert.AreEqual<string>("Source1", source.Identifier);
 
             Console.WriteLine();
         }
@@ -64,21 +69,119 @@ namespace Integra.Space.UnitTests
 
             string command = $"create stream Stream1 {{\n{ eql }\n}}";
             PipelineContext result1 = this.ProcessCommand(command);
-            SpecificPipelineExecutor cpe = new SpecificPipelineExecutor(result1.Pipeline);
-
+            
             IKernel kernel = new StandardKernel();
 
-            List<Stream> streams = new List<Stream>();
-
             kernel.Bind<IRepository<Stream>>()
-                .To<StreamCacheRepository>()
-                .WithConstructorArgument<List<Stream>>(streams);
+                .To<StreamCacheRepository>();
+
+            kernel.Bind<CacheContext>()
+                .ToSelf()
+                .InSingletonScope()
+                ;
 
             PipelineExecutionCommandContext context = new PipelineExecutionCommandContext(result1.Command, kernel);
+            SpecificPipelineExecutor cpe = new SpecificPipelineExecutor(result1.Pipeline);
             PipelineExecutionCommandContext result2 = cpe.Execute(context);
 
             IRepository<Stream> sr = kernel.Get<IRepository<Stream>>();
-            Assert.IsNotNull(sr.FindByName("Stream1"));
+            Stream stream = sr.FindByName("Stream1");
+            Assert.IsNotNull(stream);
+            Assert.AreEqual<string>("Stream1", stream.Identifier);
+            Assert.AreEqual<string>(eql.Trim(), stream.Query);
+
+            Console.WriteLine();
+        }
+
+        [TestMethod]
+        public void CreateUser()
+        {
+            string command = "create user User1 password \"abc1234\" status enable";
+
+            IKernel kernel = new StandardKernel();
+
+            List<User> users = new List<User>();
+            users.Add(new User(Guid.NewGuid(), "User2", "abc1234", true));
+
+            kernel.Bind<IRepository<User>>()
+                .To<UserCacheRepository>();
+
+            kernel.Bind<CacheContext>()
+                .ToSelf()
+                .InSingletonScope()
+                ;
+
+            PipelineContext result1 = this.ProcessCommand(command);
+            PipelineExecutionCommandContext context = new PipelineExecutionCommandContext(result1.Command, kernel);
+            SpecificPipelineExecutor cpe = new SpecificPipelineExecutor(result1.Pipeline);
+            PipelineExecutionCommandContext result2 = cpe.Execute(context);
+
+            IRepository<User> sr = kernel.Get<IRepository<User>>();
+            User user = sr.FindByName("User1");
+            Assert.IsNotNull(user);
+            Assert.AreEqual<string>("User1", user.Identifier);
+            Assert.IsTrue(user.Enable);
+            Assert.AreEqual<string>("abc1234", user.Password);
+
+            Console.WriteLine();
+        }
+        
+        [TestMethod]
+        public void AlterUser()
+        {
+            string command = "alter user User1 password \"abc1234\" status enable";
+
+            IKernel kernel = new StandardKernel();
+            
+            kernel.Bind<CacheContext>()
+                .ToSelf()
+                .InSingletonScope()
+                ;
+
+            kernel.Bind<IRepository<User>>()
+                .To<UserCacheRepository>();
+
+            kernel.Get<CacheContext>().Users.Add(new User(Guid.NewGuid(), "User1", "abc", false));
+
+            PipelineContext result1 = this.ProcessCommand(command);
+            PipelineExecutionCommandContext context = new PipelineExecutionCommandContext(result1.Command, kernel);
+            SpecificPipelineExecutor cpe = new SpecificPipelineExecutor(result1.Pipeline);
+            PipelineExecutionCommandContext result2 = cpe.Execute(context);
+
+            IRepository<User> sr = kernel.Get<IRepository<User>>();
+            User user = sr.FindByName("User1");
+            Assert.IsTrue(user.Enable);
+            Assert.AreEqual<string>("abc1234", user.Password);
+
+            Console.WriteLine();
+        }
+
+        [TestMethod]
+        public void GrantPermission()
+        {
+            string command = "grant create stream to user User1";
+
+            IKernel kernel = new StandardKernel();
+
+            kernel.Bind<CacheContext>()
+                .ToSelf()
+                .InSingletonScope()
+                ;
+
+            kernel.Bind<IRepository<User>>()
+                .To<UserCacheRepository>();
+
+            kernel.Get<CacheContext>().Users.Add(new User(Guid.NewGuid(), "User1", "abc", false));
+            
+            kernel.Bind<IRepository<Permission>>()
+                .To<PermissionCacheRepository>();
+
+            PipelineContext result1 = this.ProcessCommand(command);
+            PipelineExecutionCommandContext context = new PipelineExecutionCommandContext(result1.Command, kernel);
+            SpecificPipelineExecutor cpe = new SpecificPipelineExecutor(result1.Pipeline);
+            PipelineExecutionCommandContext result2 = cpe.Execute(context);
+
+            IRepository<Permission> sr = kernel.Get<IRepository<Permission>>();
 
             Console.WriteLine();
         }

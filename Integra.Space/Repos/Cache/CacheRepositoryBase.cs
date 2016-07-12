@@ -8,6 +8,8 @@ namespace Integra.Space.Repos
     using System;
     using System.Collections.Generic;
     using System.Diagnostics.Contracts;
+    using Cache;
+    using Ninject;
 
     /// <summary>
     /// Cache repository base class.
@@ -16,9 +18,9 @@ namespace Integra.Space.Repos
     internal abstract class CacheRepositoryBase<TEntity> : IRepository<TEntity> where TEntity : class
     {
         /// <summary>
-        /// Specify context.
+        /// Cache context.
         /// </summary>
-        private List<TEntity> listOfObjects;
+        private CacheContext context;
 
         /// <summary>
         /// Object used to sync up the access to the context objects.
@@ -28,12 +30,12 @@ namespace Integra.Space.Repos
         /// <summary>
         /// Initializes a new instance of the <see cref="CacheRepositoryBase{TEntity}"/> class.
         /// </summary>
-        /// <param name="sourceList">List of sources.</param>
-        public CacheRepositoryBase(List<TEntity> sourceList)
+        /// <param name="context">Cache context.</param>
+        public CacheRepositoryBase(CacheContext context)
         {
-            Contract.Assert(sourceList != null);
+            Contract.Assert(context != null);
 
-            this.listOfObjects = sourceList;
+            this.context = context;
             this.sync = new object();
         }
 
@@ -42,7 +44,18 @@ namespace Integra.Space.Repos
         {
             get
             {
-                return this.listOfObjects;
+                throw new NotImplementedException();
+            }
+        }
+
+        /// <summary>
+        /// Gets the cache context.
+        /// </summary>
+        protected virtual CacheContext Context
+        {
+            get
+            {
+                return this.context;
             }
         }
 
@@ -52,17 +65,6 @@ namespace Integra.Space.Repos
             get
             {
                 return this.sync;
-            }
-        }
-
-        /// <summary>
-        /// Gets the list of objects.
-        /// </summary>
-        protected List<TEntity> ListOfObjects
-        {
-            get
-            {
-                return this.listOfObjects;
             }
         }
 

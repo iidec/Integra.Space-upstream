@@ -7,7 +7,9 @@ namespace Integra.Space.Repos
 {
     using System;
     using System.Collections.Generic;
+    using Cache;
     using Models;
+    using Ninject;
 
     /// <summary>
     /// Space object repository class.
@@ -17,9 +19,18 @@ namespace Integra.Space.Repos
         /// <summary>
         /// Initializes a new instance of the <see cref="SourceCacheRepository"/> class.
         /// </summary>
-        /// <param name="sourceList">List of sources.</param>
-        public SourceCacheRepository(List<Source> sourceList) : base(sourceList)
+        /// <param name="context">Cache context.</param>
+        public SourceCacheRepository(CacheContext context) : base(context)
         {
+        }
+
+        /// <inheritdoc />
+        public override IEnumerable<Source> List
+        {
+            get
+            {
+                return this.Context.Sources;
+            }
         }
 
         /// <inheritdoc />
@@ -27,17 +38,17 @@ namespace Integra.Space.Repos
         {
             lock (this.Sync)
             {
-                if (this.ListOfObjects.Exists(x => x.Identifier == entity.Identifier))
+                if (this.Context.Sources.Exists(x => x.Identifier == entity.Identifier))
                 {
                     throw new Exception(string.Format("The source '{0}' already exists.", entity.Identifier));
                 }
-                else if (this.ListOfObjects.Exists(x => x.Guid == entity.Guid))
+                else if (this.Context.Sources.Exists(x => x.Guid == entity.Guid))
                 {
                     throw new Exception(string.Format("The unique identifier '{0}' already exists.", entity.Guid));
                 }
                 else
                 {
-                    this.ListOfObjects.Add(entity);
+                    this.Context.Sources.Add(entity);
                 }
             }
         }
@@ -47,9 +58,9 @@ namespace Integra.Space.Repos
         {
             lock (this.Sync)
             {
-                if (this.ListOfObjects.Exists(x => x.Guid == entity.Guid))
+                if (this.Context.Sources.Exists(x => x.Guid == entity.Guid))
                 {
-                    this.ListOfObjects.Remove(entity);
+                    this.Context.Sources.Remove(entity);
                 }
                 else
                 {
@@ -63,7 +74,7 @@ namespace Integra.Space.Repos
         {
             lock (this.Sync)
             {
-                return this.ListOfObjects.Find(x => x.Guid == id);
+                return this.Context.Sources.Find(x => x.Guid == id);
             }
         }
 
@@ -72,7 +83,7 @@ namespace Integra.Space.Repos
         {
             lock (this.Sync)
             {
-                return this.ListOfObjects.Find(x => x.Identifier == name);
+                return this.Context.Sources.Find(x => x.Identifier == name);
             }
         }
     }

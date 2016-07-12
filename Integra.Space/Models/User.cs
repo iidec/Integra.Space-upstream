@@ -5,6 +5,8 @@
 //-----------------------------------------------------------------------
 namespace Integra.Space.Models
 {
+    using System;
+
     /// <summary>
     /// Space object class.
     /// </summary>
@@ -19,16 +21,18 @@ namespace Integra.Space.Models
         /// <param name="enable">Flag that indicates whether the user is enable.</param>
         public User(System.Guid guid, string identifier, string password, bool enable) : base(guid, identifier)
         {
+            this.Password = password;
+            this.Enable = enable;
         }
 
         /// <summary>
-        /// Gets the password of the user.
+        /// Gets or sets the password of the user.
         /// </summary>
-        public string Password { get; private set; }
+        public string Password { get; set; }
 
         /// <summary>
-        /// Gets a value indicating whether the user is enable.
+        /// Gets or sets a value indicating whether the user is enable.
         /// </summary>
-        public bool Enable { get; private set; }
+        public bool Enable { get; set; }
     }
 }

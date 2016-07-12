@@ -7,7 +7,7 @@ namespace Integra.Space.Common
 {
     using System;
     using System.Collections.Generic;
-    using Common;
+    using System.Diagnostics.Contracts;
 
     /// <summary>
     /// Command action node class.
@@ -37,7 +37,9 @@ namespace Integra.Space.Common
         /// <param name="objectName">Object name.</param>
         public SpaceCommand(SpaceActionCommandEnum action, SpaceObjectEnum spaceObjectType, string objectName)
         {
-            this.action = action;
+            Contract.Assert(!string.IsNullOrWhiteSpace(objectName));
+
+            this.action = action; 
             this.spaceObjectType = spaceObjectType;
             this.objectName = objectName;
         }

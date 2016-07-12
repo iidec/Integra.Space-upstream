@@ -18,6 +18,6 @@ namespace Integra.Space.Common
         /// <summary>
         /// Status option.
         /// </summary>
-        Status = 0
+        Status = 1
     }
 }

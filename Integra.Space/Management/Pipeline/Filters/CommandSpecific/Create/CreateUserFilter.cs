@@ -12,7 +12,7 @@ namespace Integra.Space.Pipeline.Filters
     using Models;
 
     /// <summary>
-    /// Filter create source class.
+    /// Filter create user class.
     /// </summary>
     internal class CreateUserFilter : CreateEntityFilter<User>
     {
@@ -20,7 +20,22 @@ namespace Integra.Space.Pipeline.Filters
         protected override User CreateEntity(PipelineExecutionCommandContext context)
         {
             List<SpaceUserOption> options = ((Language.CreateAndAlterUserNode)context.Command).UserOptions;
-            return new User(Guid.NewGuid(), context.Command.ObjectName, (string)options.First(x => x.Option == SpaceUserOptionEnum.Password).Value, (bool)options.First(x => x.Option == SpaceUserOptionEnum.Status).Value);
+
+            if (options.Count > 0 && options.Exists(x => x.Option == SpaceUserOptionEnum.Password))
+            {
+                if (options.Exists(x => x.Option == SpaceUserOptionEnum.Status))
+                {
+                    return new User(Guid.NewGuid(), context.Command.ObjectName, (string)options.First(x => x.Option == SpaceUserOptionEnum.Password).Value, (bool)options.First(x => x.Option == SpaceUserOptionEnum.Status).Value);
+                }
+                else
+                {
+                    return new User(Guid.NewGuid(), context.Command.ObjectName, (string)options.First(x => x.Option == SpaceUserOptionEnum.Password).Value, false);
+                }
+            }
+            else
+            {
+                throw new Exception("Must define a password for the user.");
+            }
         }
     }
 }
