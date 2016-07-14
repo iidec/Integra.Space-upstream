@@ -27,7 +27,6 @@ namespace Integra.Space.Pipeline.Filters
             filterDictionary = new Dictionary<SpecificFilterKey, Filter<PipelineExecutionCommandContext, PipelineExecutionCommandContext>>(new Comparer());
 
             // add the specific filters.
-
             // create
             filterDictionary.Add(new SpecificFilterKey(SpaceActionCommandEnum.Create, SpaceObjectEnum.Source), new CreateSourceFilter());
             filterDictionary.Add(new SpecificFilterKey(SpaceActionCommandEnum.Create, SpaceObjectEnum.Stream), new CreateStreamFilter().AddStep(new FilterQueryParser()));
@@ -45,8 +44,13 @@ namespace Integra.Space.Pipeline.Filters
             filterDictionary.Add(new SpecificFilterKey(SpaceActionCommandEnum.Drop, SpaceObjectEnum.User), new DropUserFilter());
 
             // permission
+            // grant
             filterDictionary.Add(new SpecificFilterKey(SpaceActionCommandEnum.Grant, SpaceObjectEnum.User), new GrantPermissionFilter());
             filterDictionary.Add(new SpecificFilterKey(SpaceActionCommandEnum.Grant, SpaceObjectEnum.Role), new GrantPermissionFilter());
+
+            // deny
+            filterDictionary.Add(new SpecificFilterKey(SpaceActionCommandEnum.Deny, SpaceObjectEnum.User), new DenyPermissionFilter());
+            filterDictionary.Add(new SpecificFilterKey(SpaceActionCommandEnum.Deny, SpaceObjectEnum.Role), new DenyPermissionFilter());
         }
 
         /// <summary>

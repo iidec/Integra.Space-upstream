@@ -21,8 +21,6 @@ namespace Integra.Space.Models
         /// <param name="value">Permission value.</param>
         public Permission(PermissionAssignableObject permissionAssignableObject, SpaceObjectEnum spaceObjectType, int value)
         {
-            Contract.Assert(spaceObjectType != SpaceObjectEnum.Stream && spaceObjectType != SpaceObjectEnum.Source);
-
             this.PermissionAssignableObject = permissionAssignableObject;
             this.SpaceObjectType = spaceObjectType;
             this.Value = value;

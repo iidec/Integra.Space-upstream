@@ -103,6 +103,9 @@
     <Compile Include="Management\Pipeline\Filters\CommandSpecific\Drop\DropUserFilter.cs" />
     <Compile Include="Management\Pipeline\Filters\CommandSpecific\Drop\DropStreamFilter.cs" />
     <Compile Include="Management\Pipeline\Filters\CommandSpecific\Drop\DropSourceFilter.cs" />
+    <Compile Include="Management\Pipeline\Filters\CommandSpecific\Permission\DenyPermissionFilter.cs" />
+    <Compile Include="Management\Pipeline\Filters\CommandSpecific\Permission\RevokePermissionFilter.cs" />
+    <Compile Include="Management\Pipeline\Filters\CommandSpecific\Permission\PermissionFilter.cs" />
     <Compile Include="Management\Pipeline\Filters\CommandSpecific\Permission\GrantPermissionFilter.cs" />
     <Compile Include="Management\Pipeline\Filters\CommandSpecific\SpecificFilterKey.cs" />
     <Compile Include="Management\Pipeline\Filters\FirstPipeline.cs" />

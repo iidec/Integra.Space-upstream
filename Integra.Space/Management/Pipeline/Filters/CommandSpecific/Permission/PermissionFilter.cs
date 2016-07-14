@@ -1,12 +1,14 @@
 ﻿//-----------------------------------------------------------------------
-// <copyright file="GrantPermissionFilter.cs" company="Integra.Space.Language">
+// <copyright file="PermissionFilter.cs" company="Integra.Space.Language">
 //     Copyright (c) Integra.Space.Language. All rights reserved.
 // </copyright>
 //-----------------------------------------------------------------------
 namespace Integra.Space.Pipeline.Filters
 {
+    using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Reflection;
     using Common;
     using Integra.Space.Language;
     using Integra.Space.Models;
@@ -16,15 +18,59 @@ namespace Integra.Space.Pipeline.Filters
     /// <summary>
     /// Grant permission filter class.
     /// </summary>
-    internal class GrantPermissionFilter : CommandFilter
+    internal class PermissionFilter : CommandFilter
     {
         /// <summary>
         /// List of permission with the value before the modification.
         /// </summary>
         private List<Permission> oldPermissions;
-
+        
         /// <inheritdoc />
-        public override PipelineExecutionCommandContext Execute(PipelineExecutionCommandContext context)
+        public override void OnError(PipelineExecutionCommandContext context)
+        {
+            if (this.oldPermissions != null)
+            {
+                PermissionCacheRepository pr = (PermissionCacheRepository)context.Kernel.Get<IRepository<Permission>>();
+                foreach (Permission p in this.oldPermissions)
+                {
+                    pr.ReverseDeny(p);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Assign the permissions specified in the command.
+        /// </summary>
+        /// <param name="context">Pipeline context.</param>
+        /// <param name="listOfPermissions">List of permissions.</param>
+        /// <param name="action">Action to execute over the specified permissions.</param>
+        public void ExecuteActionOverPermissions(PipelineExecutionCommandContext context, List<Permission> listOfPermissions, MethodInfo action)
+        {
+            PermissionCacheRepository pr = (PermissionCacheRepository)context.Kernel.Get<IRepository<Permission>>();
+            this.oldPermissions = new List<Permission>();
+            Permission actualPermission = null;
+            foreach (Permission p in listOfPermissions)
+            {
+                actualPermission = pr.GetPermission(p);
+                if (actualPermission != null)
+                {
+                    this.oldPermissions.Add(new Permission(p.PermissionAssignableObject, p.SpaceObjectType, actualPermission.Value, p.SpaceObject));
+                }
+                else
+                {
+                    this.oldPermissions.Add(new Permission(p.PermissionAssignableObject, p.SpaceObjectType, 0, p.SpaceObject));
+                }
+                
+                action.Invoke(pr, new[] { p });
+            }
+        }
+
+        /// <summary>
+        /// Gets the permission to assign from the command.
+        /// </summary>
+        /// <param name="context">Pipeline context.</param>
+        /// <returns>The list of permission specified in the command.</returns>
+        public List<Permission> GetPermissionsToAssing(PipelineExecutionCommandContext context)
         {
             SpacePermissionsCommandNode permissionCommand = (SpacePermissionsCommandNode)context.Command;
 
@@ -91,40 +137,7 @@ namespace Integra.Space.Pipeline.Filters
                 }
             }
 
-            PermissionCacheRepository pr = (PermissionCacheRepository)context.Kernel.Get<IRepository<Permission>>();
-            this.oldPermissions = new List<Permission>();
-            Permission actualPermission = null;
-            foreach (Permission p in listOfPermissions)
-            {
-                actualPermission = pr.GetPermission(p);
-                if (actualPermission != null)
-                {
-                    this.oldPermissions.Add(new Permission(p.PermissionAssignableObject, p.SpaceObjectType, actualPermission.Value, p.SpaceObject));
-                }
-                else
-                {
-                    this.oldPermissions.Add(new Permission(p.PermissionAssignableObject, p.SpaceObjectType, 0, p.SpaceObject));
-                }
-
-                pr.Grant(p);
-            }
-
-            throw new System.Exception("Simulando error");
-
-            return context;
-        }
-
-        /// <inheritdoc />
-        public override void OnError(PipelineExecutionCommandContext context)
-        {
-            if (this.oldPermissions != null)
-            {
-                PermissionCacheRepository pr = (PermissionCacheRepository)context.Kernel.Get<IRepository<Permission>>();
-                foreach (Permission p in this.oldPermissions)
-                {
-                    pr.ReverseGrant(p);
-                }
-            }
+            return listOfPermissions;
         }
     }
 }

@@ -179,7 +179,97 @@ namespace Integra.Space.UnitTests
             PipelineContext result1 = this.ProcessCommand(command);
             PipelineExecutionCommandContext context = new PipelineExecutionCommandContext(result1.Command, kernel);
             SpecificPipelineExecutor cpe = new SpecificPipelineExecutor(result1.Pipeline);
-            PipelineExecutionCommandContext result2 = cpe.Execute(context);
+
+            try
+            {
+                PipelineExecutionCommandContext result2 = cpe.Execute(context);
+            }
+            catch
+            {
+
+            }
+
+            IRepository<Permission> sr = kernel.Get<IRepository<Permission>>();
+
+            Console.WriteLine();
+        }
+
+        [TestMethod]
+        public void DenyPermission()
+        {
+            string command = "deny create stream to user User1";
+
+            IKernel kernel = new StandardKernel();
+
+            kernel.Bind<CacheContext>()
+                .ToSelf()
+                .InSingletonScope()
+                ;
+
+            kernel.Bind<IRepository<User>>()
+                .To<UserCacheRepository>();
+
+            User user = new User(Guid.NewGuid(), "User1", "abc", false);
+            kernel.Get<CacheContext>().Users.Add(user);
+
+            kernel.Bind<IRepository<Permission>>()
+                .To<PermissionCacheRepository>();
+
+            kernel.Get<CacheContext>().Permissions.Add(new Permission(user, Common.SpaceObjectEnum.Stream, 1));
+
+            PipelineContext result1 = this.ProcessCommand(command);
+            PipelineExecutionCommandContext context = new PipelineExecutionCommandContext(result1.Command, kernel);
+            SpecificPipelineExecutor cpe = new SpecificPipelineExecutor(result1.Pipeline);
+
+            try
+            {
+                PipelineExecutionCommandContext result2 = cpe.Execute(context);
+            }
+            catch
+            {
+
+            }
+
+            IRepository<Permission> sr = kernel.Get<IRepository<Permission>>();
+
+            Console.WriteLine();
+        }
+
+        [TestMethod]
+        public void RevokePermission()
+        {
+            string command = "revoke create stream, create source to user User1";
+
+            IKernel kernel = new StandardKernel();
+
+            kernel.Bind<CacheContext>()
+                .ToSelf()
+                .InSingletonScope()
+                ;
+
+            kernel.Bind<IRepository<User>>()
+                .To<UserCacheRepository>();
+
+            User user = new User(Guid.NewGuid(), "User1", "abc", false);
+            kernel.Get<CacheContext>().Users.Add(user);
+
+            kernel.Bind<IRepository<Permission>>()
+                .To<PermissionCacheRepository>();
+
+            kernel.Get<CacheContext>().Permissions.Add(new Permission(user, Common.SpaceObjectEnum.Stream, 1));
+
+            PipelineContext result1 = this.ProcessCommand(command);
+            PipelineExecutionCommandContext context = new PipelineExecutionCommandContext(result1.Command, kernel);
+            SpecificPipelineExecutor cpe = new SpecificPipelineExecutor(result1.Pipeline);
+
+            try
+            {
+                PipelineExecutionCommandContext result2 = cpe.Execute(context);
+            }
+            catch
+            {
+
+            }
 
             IRepository<Permission> sr = kernel.Get<IRepository<Permission>>();
 
