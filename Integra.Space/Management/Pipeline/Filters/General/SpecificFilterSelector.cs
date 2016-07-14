@@ -51,6 +51,10 @@ namespace Integra.Space.Pipeline.Filters
             // deny
             filterDictionary.Add(new SpecificFilterKey(SpaceActionCommandEnum.Deny, SpaceObjectEnum.User), new DenyPermissionFilter());
             filterDictionary.Add(new SpecificFilterKey(SpaceActionCommandEnum.Deny, SpaceObjectEnum.Role), new DenyPermissionFilter());
+
+            // revoke
+            filterDictionary.Add(new SpecificFilterKey(SpaceActionCommandEnum.Revoke, SpaceObjectEnum.User), new RevokePermissionFilter());
+            filterDictionary.Add(new SpecificFilterKey(SpaceActionCommandEnum.Revoke, SpaceObjectEnum.Role), new RevokePermissionFilter());
         }
 
         /// <summary>

@@ -6,11 +6,7 @@
 namespace Integra.Space.Pipeline.Filters
 {
     using System;
-    using System.Collections.Generic;
-    using System.Linq;
     using System.Reflection;
-    using Common;
-    using Integra.Space.Language;
     using Integra.Space.Models;
     using Integra.Space.Repos;
     using Ninject;
@@ -28,6 +24,19 @@ namespace Integra.Space.Pipeline.Filters
 
             // throw new System.Exception("Simulando error");
             return context;
+        }
+
+        /// <inheritdoc />
+        public override void OnError(PipelineExecutionCommandContext context)
+        {
+            if (this.OldPermissions != null)
+            {
+                PermissionCacheRepository pr = (PermissionCacheRepository)context.Kernel.Get<IRepository<Permission>>();
+                foreach (Permission p in this.OldPermissions)
+                {
+                    pr.ReverseDeny(p);
+                }
+            }
         }
     }
 }

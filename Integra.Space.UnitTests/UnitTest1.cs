@@ -256,7 +256,8 @@ namespace Integra.Space.UnitTests
             kernel.Bind<IRepository<Permission>>()
                 .To<PermissionCacheRepository>();
 
-            kernel.Get<CacheContext>().Permissions.Add(new Permission(user, Common.SpaceObjectEnum.Stream, 1));
+            kernel.Get<CacheContext>().Permissions.Add(new Permission(user, Common.SpaceObjectEnum.Stream, 2));
+            kernel.Get<CacheContext>().Permissions.Add(new Permission(user, Common.SpaceObjectEnum.Source, 1));
 
             PipelineContext result1 = this.ProcessCommand(command);
             PipelineExecutionCommandContext context = new PipelineExecutionCommandContext(result1.Command, kernel);

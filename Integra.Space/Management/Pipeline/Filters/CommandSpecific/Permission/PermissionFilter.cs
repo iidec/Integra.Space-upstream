@@ -24,17 +24,15 @@ namespace Integra.Space.Pipeline.Filters
         /// List of permission with the value before the modification.
         /// </summary>
         private List<Permission> oldPermissions;
-        
-        /// <inheritdoc />
-        public override void OnError(PipelineExecutionCommandContext context)
+
+        /// <summary>
+        /// Gets the old permission list.
+        /// </summary>
+        protected List<Permission> OldPermissions
         {
-            if (this.oldPermissions != null)
+            get
             {
-                PermissionCacheRepository pr = (PermissionCacheRepository)context.Kernel.Get<IRepository<Permission>>();
-                foreach (Permission p in this.oldPermissions)
-                {
-                    pr.ReverseDeny(p);
-                }
+                return this.oldPermissions;
             }
         }
 
@@ -60,7 +58,7 @@ namespace Integra.Space.Pipeline.Filters
                 {
                     this.oldPermissions.Add(new Permission(p.PermissionAssignableObject, p.SpaceObjectType, 0, p.SpaceObject));
                 }
-                
+
                 action.Invoke(pr, new[] { p });
             }
         }
