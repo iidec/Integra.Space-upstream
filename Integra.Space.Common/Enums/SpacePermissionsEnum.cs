@@ -11,23 +11,33 @@ namespace Integra.Space.Common
     internal enum SpacePermissionsEnum
     {
         /// <summary>
+        /// Permission alter.
+        /// </summary>
+        Alter = 1,
+
+        /// <summary>
         /// Permission read.
         /// </summary>
-        Read = 0,
+        Read = 2,
 
         /// <summary>
         /// Permission create.
         /// </summary>
-        Create = 1,
+        Create = 4,
 
         /// <summary>
-        /// Permission alter.
+        /// Permission stop.
         /// </summary>
-        Alter = 2,
+        Stop = 8,
 
         /// <summary>
-        /// Permission drop.
+        /// Permission start.
         /// </summary>
-        Drop = 3
+        Start = 16,
+
+        /// <summary>
+        /// Permission owner.
+        /// </summary>
+        Owner = 31
     }
 }

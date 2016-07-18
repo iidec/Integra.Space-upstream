@@ -15,7 +15,7 @@ namespace Integra.Space.Pipeline.Filters
         /// <inheritdoc />
         protected override Role CloneEntity(Role entityToClone)
         {
-            return new Role(entityToClone.Guid, string.Copy(entityToClone.Identifier));
+            return new Role(entityToClone.Guid, string.Copy(entityToClone.Identifier), Common.SpaceRoleTypeEnum.None);
         }
     }
 }

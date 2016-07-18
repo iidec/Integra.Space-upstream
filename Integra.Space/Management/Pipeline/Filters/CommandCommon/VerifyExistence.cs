@@ -22,7 +22,6 @@ namespace Integra.Space.Pipeline.Filters
         /// <inheritdoc />
         public override void OnError(PipelineExecutionCommandContext e)
         {
-            throw new NotImplementedException();
         }
     }
 }

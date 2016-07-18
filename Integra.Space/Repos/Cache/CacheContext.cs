@@ -34,6 +34,11 @@ namespace Integra.Space.Cache
         private List<User> users = new List<User>();
 
         /// <summary>
+        /// Secure objects by role repository.
+        /// </summary>
+        private List<UserXRole> usersXRoles = new List<UserXRole>();
+
+        /// <summary>
         /// Permission repository.
         /// </summary>
         private List<Permission> permissions = new List<Permission>();
@@ -48,6 +53,7 @@ namespace Integra.Space.Cache
             this.roles = new List<Role>();
             this.sources = new List<Source>();
             this.streams = new List<Stream>();
+            this.usersXRoles = new List<UserXRole>();
         }
 
         /// <summary>
@@ -91,6 +97,17 @@ namespace Integra.Space.Cache
             get
             {
                 return this.users;
+            }
+        }
+
+        /// <summary>
+        /// Gets the secure objects by roles repository.
+        /// </summary>
+        public List<UserXRole> UsersXRoles
+        {
+            get
+            {
+                return this.usersXRoles;
             }
         }
 

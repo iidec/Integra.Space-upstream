@@ -54,6 +54,11 @@ namespace Integra.Space.Common
         Revoke = 128,
 
         /// <summary>
+        /// Action command add.
+        /// </summary>
+        Add = 256,
+
+        /// <summary>
         /// Commands for add, delete o edit a space object.
         /// </summary>
         CrudCommands = Create | Alter | Drop,

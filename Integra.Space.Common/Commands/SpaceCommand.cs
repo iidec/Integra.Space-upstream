@@ -45,6 +45,17 @@ namespace Integra.Space.Common
         }
 
         /// <summary>
+        /// Gets the permission value needed to execute the command.
+        /// </summary>
+        public virtual SpacePermissionsEnum PermissionValue
+        {
+            get
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        /// <summary>
         /// Gets command action.
         /// </summary>
         public SpaceActionCommandEnum Action

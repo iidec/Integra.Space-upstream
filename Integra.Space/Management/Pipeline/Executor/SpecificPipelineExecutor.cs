@@ -10,7 +10,7 @@ namespace Integra.Space.Pipeline
     /// <summary>
     /// Command pipeline builder.
     /// </summary>
-    internal class SpecificPipelineExecutor : PipelineExecutor<PipelineExecutionCommandContext, PipelineExecutionCommandContext>
+    internal class SpecificPipelineExecutor : PipelineExecutorBase<PipelineExecutionCommandContext, PipelineExecutionCommandContext>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="SpecificPipelineExecutor"/> class.

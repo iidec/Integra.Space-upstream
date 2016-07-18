@@ -7,6 +7,8 @@ namespace Integra.Space.Pipeline
 {
     using System.Diagnostics.Contracts;
     using Common;
+    using Models;
+    using Ninject;
 
     /// <summary>
     /// Command context class.
@@ -17,6 +19,11 @@ namespace Integra.Space.Pipeline
         /// Space command string.
         /// </summary>
         private string commandString;
+
+        /// <summary>
+        /// Kernel for dependency injection.
+        /// </summary>
+        private IKernel kernel;
 
         /// <summary>
         /// Space command.
@@ -37,12 +44,34 @@ namespace Integra.Space.Pipeline
         /// Initializes a new instance of the <see cref="PipelineContext"/> class.
         /// </summary>
         /// <param name="commandString">Space command string.</param>
-        public PipelineContext(string commandString)
+        /// <param name="user">The user requesting the command execution.</param>
+        /// <param name="kernel">Kernel for dependency injection.</param>
+        public PipelineContext(string commandString, User user, IKernel kernel)
         {
             Contract.Assert(!string.IsNullOrWhiteSpace(commandString));
+            Contract.Assert(user != null);
+            Contract.Assert(kernel != null);
 
             this.commandString = commandString;
+            this.User = user;
+            this.kernel = kernel;
         }
+
+        /// <summary>
+        /// Gets the kernel for dependency injection.
+        /// </summary>
+        public IKernel Kernel
+        {
+            get
+            {
+                return this.kernel;
+            }
+        }
+
+        /// <summary>
+        /// Gets the user requesting the command execution.
+        /// </summary>
+        public User User { get; private set; }
 
         /// <summary>
         /// Gets the space command string.
@@ -105,10 +134,7 @@ namespace Integra.Space.Pipeline
 
             set
             {
-                if (this.pipeline == null)
-                {
-                    this.pipeline = value;
-                }
+                this.pipeline = value;
             }
         }
     }

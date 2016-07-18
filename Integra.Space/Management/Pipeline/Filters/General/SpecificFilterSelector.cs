@@ -8,6 +8,7 @@ namespace Integra.Space.Pipeline.Filters
     using System.Collections.Generic;
     using Integra.Space.Common;
     using Integra.Space.Pipeline;
+    using Models;
 
     /// <summary>
     /// Specific filter selector class.
@@ -38,10 +39,10 @@ namespace Integra.Space.Pipeline.Filters
             filterDictionary.Add(new SpecificFilterKey(SpaceActionCommandEnum.Alter, SpaceObjectEnum.Stream), new AlterStreamFilter());
 
             // drop
-            filterDictionary.Add(new SpecificFilterKey(SpaceActionCommandEnum.Drop, SpaceObjectEnum.Role), new DropRoleFilter());
-            filterDictionary.Add(new SpecificFilterKey(SpaceActionCommandEnum.Drop, SpaceObjectEnum.Source), new DropSourceFilter());
-            filterDictionary.Add(new SpecificFilterKey(SpaceActionCommandEnum.Drop, SpaceObjectEnum.Stream), new DropStreamFilter());
-            filterDictionary.Add(new SpecificFilterKey(SpaceActionCommandEnum.Drop, SpaceObjectEnum.User), new DropUserFilter());
+            filterDictionary.Add(new SpecificFilterKey(SpaceActionCommandEnum.Drop, SpaceObjectEnum.Role), new DropEntityFilter<Role>());
+            filterDictionary.Add(new SpecificFilterKey(SpaceActionCommandEnum.Drop, SpaceObjectEnum.Source), new DropEntityFilter<Source>());
+            filterDictionary.Add(new SpecificFilterKey(SpaceActionCommandEnum.Drop, SpaceObjectEnum.Stream), new DropEntityFilter<Stream>());
+            filterDictionary.Add(new SpecificFilterKey(SpaceActionCommandEnum.Drop, SpaceObjectEnum.User), new DropEntityFilter<User>());
 
             // permission
             // grant
@@ -55,6 +56,9 @@ namespace Integra.Space.Pipeline.Filters
             // revoke
             filterDictionary.Add(new SpecificFilterKey(SpaceActionCommandEnum.Revoke, SpaceObjectEnum.User), new RevokePermissionFilter());
             filterDictionary.Add(new SpecificFilterKey(SpaceActionCommandEnum.Revoke, SpaceObjectEnum.Role), new RevokePermissionFilter());
+
+            // add
+            filterDictionary.Add(new SpecificFilterKey(SpaceActionCommandEnum.Add, SpaceObjectEnum.Role), new AddSecureObjectToRoleFilter());
         }
 
         /// <summary>

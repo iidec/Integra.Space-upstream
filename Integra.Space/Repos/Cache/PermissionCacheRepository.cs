@@ -41,7 +41,7 @@ namespace Integra.Space.Repos
         {
             lock (this.Sync)
             {
-                Permission permission = this.GetPermission(entity);
+                Permission permission = this.GetPermission(entity.PermissionAssignableObject, entity.SpaceObjectType, entity.SpaceObject.Identifier);
 
                 if (permission == null)
                 {
@@ -62,7 +62,7 @@ namespace Integra.Space.Repos
         {
             lock (this.Sync)
             {
-                Permission permission = this.GetPermission(entity);
+                Permission permission = this.GetPermission(entity.PermissionAssignableObject, entity.SpaceObjectType, entity.SpaceObject.Identifier);
 
                 if (permission != null)
                 {
@@ -86,7 +86,7 @@ namespace Integra.Space.Repos
         {
             lock (this.Sync)
             {
-                Permission permission = this.GetPermission(entity);
+                Permission permission = this.GetPermission(entity.PermissionAssignableObject, entity.SpaceObjectType, entity.SpaceObject.Identifier);
 
                 if (permission == null)
                 {
@@ -107,7 +107,7 @@ namespace Integra.Space.Repos
         {
             lock (this.Sync)
             {
-                Permission permission = this.GetPermission(entity);
+                Permission permission = this.GetPermission(entity.PermissionAssignableObject, entity.SpaceObjectType, entity.SpaceObject.Identifier);
 
                 if (permission != null)
                 {
@@ -124,7 +124,7 @@ namespace Integra.Space.Repos
         {
             lock (this.Sync)
             {
-                Permission permission = this.GetPermission(entity);
+                Permission permission = this.GetPermission(entity.PermissionAssignableObject, entity.SpaceObjectType, entity.SpaceObject.Identifier);
 
                 if (permission != null)
                 {
@@ -141,7 +141,7 @@ namespace Integra.Space.Repos
         {
             lock (this.Sync)
             {
-                Permission permission = this.GetPermission(entity);
+                Permission permission = this.GetPermission(entity.PermissionAssignableObject, entity.SpaceObjectType, entity.SpaceObject.Identifier);
 
                 if (permission != null)
                 {
@@ -153,11 +153,24 @@ namespace Integra.Space.Repos
         /// <summary>
         /// Get the required permission.
         /// </summary>
-        /// <param name="entity">Permission to search.</param>
+        /// <param name="secureObject">Secure object of the permission.</param>
+        /// <param name="spaceObjectType">Space object type of the permission.</param>
         /// <returns>The permission required.</returns>
-        public Permission GetPermission(Permission entity)
+        public Permission GetPermission(PermissionAssignableObject secureObject, Common.SpaceObjectEnum spaceObjectType)
         {
-            return this.Context.Permissions.FirstOrDefault(x =>
+            return this.GetPermission(secureObject, spaceObjectType, null);
+        }
+
+        /// <summary>
+        /// Get the required permission.
+        /// </summary>
+        /// <param name="secureObject">Secure object of the permission.</param>
+        /// <param name="spaceObjectType">Space object specified for the permission. This can be null.</param>
+        /// <param name="spaceObjectIdentifier">Space object type of the permission.</param>
+        /// <returns>The permission required.</returns>
+        public Permission GetPermission(PermissionAssignableObject secureObject, Common.SpaceObjectEnum spaceObjectType, string spaceObjectIdentifier)
+        {
+            return this.Context.Permissions.SingleOrDefault(x =>
             {
                 if (x.PermissionAssignableObject is User)
                 {
@@ -176,11 +189,11 @@ namespace Integra.Space.Repos
                     }
                 }
 
-                if (x.SpaceObjectType == entity.SpaceObjectType)
+                if (x.SpaceObjectType == spaceObjectType)
                 {
-                    if (entity.SpaceObject != null && (entity.SpaceObjectType == Common.SpaceObjectEnum.Source || entity.SpaceObjectType == Common.SpaceObjectEnum.Stream))
+                    if (spaceObjectIdentifier != null && (spaceObjectType == Common.SpaceObjectEnum.Source || spaceObjectType == Common.SpaceObjectEnum.Stream))
                     {
-                        if (x.SpaceObject.Identifier == entity.SpaceObject.Identifier)
+                        if (x.SpaceObject.Identifier == spaceObjectIdentifier)
                         {
                             return true;
                         }

@@ -53,6 +53,7 @@
     <Compile Include="Enums\SpaceActionCommandEnum.cs" />
     <Compile Include="Enums\SpaceObjectEnum.cs" />
     <Compile Include="Enums\SpacePermissionsEnum.cs" />
+    <Compile Include="Enums\SpaceRoleTypeEnum.cs" />
     <Compile Include="Enums\SpaceUserOptionEnum.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Scheduler\IQuerySchedulerFactory.cs" />

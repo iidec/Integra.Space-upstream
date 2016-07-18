@@ -5,7 +5,6 @@
 //-----------------------------------------------------------------------
 namespace Integra.Space.Pipeline.Filters
 {
-    using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Reflection;
@@ -49,7 +48,7 @@ namespace Integra.Space.Pipeline.Filters
             Permission actualPermission = null;
             foreach (Permission p in listOfPermissions)
             {
-                actualPermission = pr.GetPermission(p);
+                actualPermission = pr.GetPermission(p.PermissionAssignableObject, p.SpaceObjectType, p.SpaceObject.Identifier);
                 if (actualPermission != null)
                 {
                     this.oldPermissions.Add(new Permission(p.PermissionAssignableObject, p.SpaceObjectType, actualPermission.Value, p.SpaceObject));
@@ -130,7 +129,7 @@ namespace Integra.Space.Pipeline.Filters
                 }
                 else
                 {
-                    int permissionValue = g.Select(x => x.Permission).Cast<int>().Count();
+                    int permissionValue = g.Select(x => x.Permission).Cast<int>().Sum();
                     listOfPermissions.Add(new Permission(pao, permissionCommand.SpaceObjectType, permissionValue));
                 }
             }

@@ -14,23 +14,26 @@ namespace Integra.Space.Pipeline.Filters
     /// Drop entity class.
     /// </summary>
     /// <typeparam name="TEntity">Entity type.</typeparam>
-    internal abstract class DropEntityFilter<TEntity> : CommandFilter where TEntity : SpaceObject
+    internal class DropEntityFilter<TEntity> : CommandFilter where TEntity : SpaceObject
     {
         /// <summary>
         /// Entity to used for reverse changes.
         /// </summary>
-        private TEntity oldEntityData;
+        private TEntity oldEntity;
 
         /// <inheritdoc />
         public override PipelineExecutionCommandContext Execute(PipelineExecutionCommandContext context)
         {
             IRepository<TEntity> sr = context.Kernel.Get<IRepository<TEntity>>();
             TEntity entity = sr.FindByName(context.Command.ObjectName);
+
             if (entity != null)
             {
+                this.oldEntity = entity;
                 sr.Delete(entity);
             }
 
+            // throw new System.Exception("Test");
             return context;
         }
 
@@ -46,17 +49,10 @@ namespace Integra.Space.Pipeline.Filters
             TEntity entity = sr.FindByName(context.Command.ObjectName);
             if (entity == null)
             {
-                this.oldEntityData = this.CloneEntity(entity);
+                // this.oldEntityData = this.CloneEntity(entity);
                 this.CreateEntity(entity, context);
             }
         }
-
-        /// <summary>
-        /// Clone the entity that going to be modify.
-        /// </summary>
-        /// <param name="entityToClone">Entity to clone.</param>
-        /// <returns>The clone of the specify entity.</returns>
-        protected abstract TEntity CloneEntity(TEntity entityToClone);
 
         /// <summary>
         /// Creates a new entity.

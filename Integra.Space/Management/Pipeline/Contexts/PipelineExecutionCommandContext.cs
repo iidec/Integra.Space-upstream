@@ -7,6 +7,7 @@ namespace Integra.Space.Pipeline
 {
     using System.Diagnostics.Contracts;
     using Common;
+    using Models;
     using Ninject;
 
     /// <summary>
@@ -33,24 +34,40 @@ namespace Integra.Space.Pipeline
         /// Initializes a new instance of the <see cref="PipelineExecutionCommandContext"/> class.
         /// </summary>
         /// <param name="command">Space command.</param>
+        /// <param name="user">The user requesting the command execution.</param>
         /// <param name="kernel">Kernel for dependency injection.</param>
-        public PipelineExecutionCommandContext(SpaceCommand command, IKernel kernel)
+        public PipelineExecutionCommandContext(SpaceCommand command, User user, IKernel kernel)
         {
             Contract.Assert(command != null);
+            Contract.Assert(user != null);
             Contract.Assert(kernel != null);
 
             this.command = command;
+            this.User = user;
             this.kernel = kernel;
         }
 
         /// <summary>
-        /// Gets the space command.
+        /// Gets the user requesting the command execution.
+        /// </summary>
+        public User User { get; private set; }
+
+        /// <summary>
+        /// Gets or sets the space command.
         /// </summary>
         public SpaceCommand Command
         {
             get
             {
                 return this.command;
+            }
+
+            set
+            {
+                if (value != null)
+                {
+                    this.command = value;
+                }
             }
         }
 
