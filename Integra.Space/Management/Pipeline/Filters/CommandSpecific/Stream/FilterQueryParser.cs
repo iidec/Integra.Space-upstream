@@ -19,7 +19,7 @@ namespace Integra.Space.Pipeline.Filters
     internal class FilterQueryParser : CommandFilter
     {
         /// <inheritdoc />
-        public override PipelineExecutionCommandContext Execute(PipelineExecutionCommandContext context)
+        public override PipelineContext Execute(PipelineContext context)
         {
             IRepository<Stream> sr = context.Kernel.Get<IRepository<Stream>>();
             Stream stream = sr.FindByName(context.Command.ObjectName);
@@ -50,7 +50,7 @@ namespace Integra.Space.Pipeline.Filters
             CodeGenerator te = new CodeGenerator(compileContext);
 
             Assembly asm = te.Compile(executionPlan);
-            stream.StreamAssembly = new StreamAssembly(asm);
+            stream.StreamAssembly = new SystemAssembly(asm);
 
             return context;
         }

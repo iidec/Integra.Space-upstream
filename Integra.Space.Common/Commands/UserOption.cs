@@ -10,14 +10,14 @@ namespace Integra.Space.Common
     /// <summary>
     /// Space user option class node.
     /// </summary>
-    internal class SpaceUserOption
+    internal class UserOption
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="SpaceUserOption"/> class.
+        /// Initializes a new instance of the <see cref="UserOption"/> class.
         /// </summary>
         /// <param name="option">User option.</param>
         /// <param name="value">User option value.</param>
-        public SpaceUserOption(SpaceUserOptionEnum option, object value)
+        public UserOption(UserOptionEnum option, object value)
         {
             Contract.Assert(value != null);
 
@@ -28,7 +28,7 @@ namespace Integra.Space.Common
         /// <summary>
         /// Gets the user option.
         /// </summary>
-        public SpaceUserOptionEnum Option { get; private set; }
+        public UserOptionEnum Option { get; private set; }
 
         /// <summary>
         /// Gets the user option value.

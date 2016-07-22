@@ -1,5 +1,5 @@
 ﻿//-----------------------------------------------------------------------
-// <copyright file="Role.cs" company="Integra.Space">
+// <copyright file="SystemRole.cs" company="Integra.Space">
 //     Copyright (c) Integra.Space. All rights reserved.
 // </copyright>
 //-----------------------------------------------------------------------
@@ -11,26 +11,41 @@ namespace Integra.Space.Models
     /// <summary>
     /// Space object class.
     /// </summary>
-    internal class Role : Principal
+    internal class SystemRole
     {
         /// <summary>
-        /// Users of the role.
+        /// Role type enumerator.
+        /// </summary>
+        private SystemRolesEnum roleType;
+
+        /// <summary>
+        /// User assigned to the system role.
         /// </summary>
         private ICollection<User> users;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Role"/> class.
+        /// Initializes a new instance of the <see cref="SystemRole"/> class.
         /// </summary>
-        /// <param name="guid">Space object unique identifier.</param>
-        /// <param name="identifier">Space object name.</param>
         /// <param name="roleType">Role type.</param>
-        public Role(System.Guid guid, string identifier, SystemRolesEnum roleType) : base(guid, identifier)
+        public SystemRole(SystemRolesEnum roleType)
         {
+            this.roleType = roleType;
             this.users = new List<User>();
         }
 
         /// <summary>
-        /// Gets the users of the role.
+        /// Gets the role type of the role.
+        /// </summary>
+        public SystemRolesEnum RoleType
+        {
+            get
+            {
+                return this.roleType;
+            }
+        }
+
+        /// <summary>
+        /// Gets the users assigned to the system role.
         /// </summary>
         public ICollection<User> Users
         {

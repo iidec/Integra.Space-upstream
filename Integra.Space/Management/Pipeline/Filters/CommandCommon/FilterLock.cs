@@ -16,9 +16,9 @@ namespace Integra.Space.Pipeline.Filters
     internal sealed class FilterLock : CommandFilter
     {
         /// <inheritdoc />
-        public override PipelineExecutionCommandContext Execute(PipelineExecutionCommandContext input)
+        public override PipelineContext Execute(PipelineContext input)
         {
-            foreach (SpaceObjectEnum o in input.Command.GetUsedSpaceObjectTypes())
+            foreach (SystemObjectEnum o in input.Command.GetUsedSpaceObjectTypes())
             {
                 /* aqui se bloquearian cada uno de los tipos de objetos */
             }
@@ -27,7 +27,7 @@ namespace Integra.Space.Pipeline.Filters
         }
 
         /// <inheritdoc />
-        public override void OnError(PipelineExecutionCommandContext e)
+        public override void OnError(PipelineContext e)
         {
             throw new NotImplementedException();
         }

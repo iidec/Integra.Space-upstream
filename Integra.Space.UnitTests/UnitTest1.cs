@@ -4,7 +4,6 @@ using Integra.Space.Pipeline;
 using Ninject;
 using Integra.Space.Cache;
 using Integra.Space.Models;
-using Ninject.Parameters;
 using System.Collections.Generic;
 using Integra.Space.Repos;
 using Integra.Space.Common;
@@ -14,6 +13,7 @@ namespace Integra.Space.UnitTests
     [TestClass]
     public class UnitTest1
     {
+        private static Schema schemaDePrueba = new Schema(Guid.NewGuid(), "SchemaDePrueba");
         private User usuarioDelContexto = new User(Guid.NewGuid(), "admin", "admin", true);
 
         private PipelineContext ProcessCommand(string command, IKernel kernel)
@@ -34,31 +34,29 @@ namespace Integra.Space.UnitTests
 
             IKernel kernel = new StandardKernel();
 
-            CacheContext cacheContext = new CacheContext();
-            cacheContext.Sources.Add(new Source(Guid.NewGuid(), "Source3"));
-            cacheContext.Users.Add(this.usuarioDelContexto);
-            cacheContext.Permissions.Add(new Permission(this.usuarioDelContexto, Common.SpaceObjectEnum.Source, (int)(SpacePermissionsEnum.Create)));
+            SystemContext systemContext = new SystemContext();
+            systemContext.Sources.Add(new Source(Guid.NewGuid(), "Source3", schemaDePrueba));
+            systemContext.Users.Add(this.usuarioDelContexto);
+            systemContext.Schemas.Add(schemaDePrueba);
+            systemContext.Permissions.Add(new PermissionOverObjectType(this.usuarioDelContexto, Common.SystemObjectEnum.Source, (int)(PermissionsEnum.Create)));
             
             kernel.Bind<IRepository<Source>>()
-                .ToConstant<SourceCacheRepository>(new SourceCacheRepository(cacheContext));
+                .ToConstant<SourceCacheRepository>(new SourceCacheRepository(systemContext));
 
-            kernel.Bind<IRepository<Permission>>()
-                .ToConstant<PermissionCacheRepository>(new PermissionCacheRepository(cacheContext))
+            kernel.Bind<IRepository<PermissionAssigned>>()
+                .ToConstant<PermissionCacheRepository>(new PermissionCacheRepository(systemContext))
                 ;
 
             kernel.Bind<IRepository<User>>()
-                .ToConstant<UserCacheRepository>(new UserCacheRepository(cacheContext))
+                .ToConstant<UserCacheRepository>(new UserCacheRepository(systemContext))
                 ;
 
             PipelineContext result1 = this.ProcessCommand(command, kernel);
-            PipelineExecutionCommandContext context = new PipelineExecutionCommandContext(result1.Command, this.usuarioDelContexto, kernel);
-            SpecificPipelineExecutor cpe = new SpecificPipelineExecutor(result1.Pipeline);
-            PipelineExecutionCommandContext result2 = cpe.Execute(context);
 
-            List<Source> sr = cacheContext.Sources;
-            Source source = sr.Find(x => x.Identifier == "Source1");
+            List<Source> sr = systemContext.Sources;
+            Source source = sr.Find(x => x.Name == "Source1");
             Assert.IsNotNull(source);
-            Assert.AreEqual<string>("Source1", source.Identifier);
+            Assert.AreEqual<string>("Source1", source.Name);
 
             Console.WriteLine();
         }
@@ -70,16 +68,17 @@ namespace Integra.Space.UnitTests
 
             IKernel kernel = new StandardKernel();
 
-            CacheContext cacheContext = new CacheContext();
-            Source sourceTest = new Source(Guid.NewGuid(), "Source1");
+            SystemContext cacheContext = new SystemContext();
+            Source sourceTest = new Source(Guid.NewGuid(), "Source1", schemaDePrueba);
             cacheContext.Sources.Add(sourceTest);
             cacheContext.Users.Add(this.usuarioDelContexto);
-            cacheContext.Permissions.Add(new Permission(this.usuarioDelContexto, Common.SpaceObjectEnum.Source, (int)(SpacePermissionsEnum.Owner), sourceTest));
+            cacheContext.Schemas.Add(schemaDePrueba);
+            cacheContext.Permissions.Add(new PermissionOverSpecificObject(this.usuarioDelContexto, sourceTest, (int)(PermissionsEnum.Owner)));
 
             kernel.Bind<IRepository<Source>>()
                 .ToConstant<SourceCacheRepository>(new SourceCacheRepository(cacheContext));
 
-            kernel.Bind<IRepository<Permission>>()
+            kernel.Bind<IRepository<PermissionAssigned>>()
                 .ToConstant<PermissionCacheRepository>(new PermissionCacheRepository(cacheContext))
                 ;
 
@@ -88,12 +87,9 @@ namespace Integra.Space.UnitTests
                 ;
 
             PipelineContext result1 = this.ProcessCommand(command, kernel);
-            PipelineExecutionCommandContext context = new PipelineExecutionCommandContext(result1.Command, this.usuarioDelContexto, kernel);
-            SpecificPipelineExecutor cpe = new SpecificPipelineExecutor(result1.Pipeline);
-            PipelineExecutionCommandContext result2 = cpe.Execute(context);
 
             List<Source> sr = cacheContext.Sources;
-            Source source = sr.Find(x => x.Identifier == "Source1");
+            Source source = sr.Find(x => x.Name == "Source1");
             Assert.IsNull(source);
 
             Console.WriteLine();
@@ -116,16 +112,15 @@ namespace Integra.Space.UnitTests
             
             IKernel kernel = new StandardKernel();
 
-            PipelineContext result1 = this.ProcessCommand(command, kernel);
-
-            CacheContext cacheContext = new CacheContext();
+            SystemContext cacheContext = new SystemContext();
             cacheContext.Users.Add(this.usuarioDelContexto);
-            cacheContext.Permissions.Add(new Permission(this.usuarioDelContexto, Common.SpaceObjectEnum.Stream, (int)(SpacePermissionsEnum.Create)));
+            cacheContext.Schemas.Add(schemaDePrueba);
+            cacheContext.Permissions.Add(new PermissionOverObjectType(this.usuarioDelContexto, Common.SystemObjectEnum.Stream, (int)(PermissionsEnum.Create)));
 
             kernel.Bind<IRepository<Stream>>()
                 .ToConstant<StreamCacheRepository>(new StreamCacheRepository(cacheContext));
 
-            kernel.Bind<IRepository<Permission>>()
+            kernel.Bind<IRepository<PermissionAssigned>>()
                 .ToConstant<PermissionCacheRepository>(new PermissionCacheRepository(cacheContext))
                 ;
 
@@ -133,14 +128,12 @@ namespace Integra.Space.UnitTests
                 .ToConstant<UserCacheRepository>(new UserCacheRepository(cacheContext))
                 ;
 
-            PipelineExecutionCommandContext context = new PipelineExecutionCommandContext(result1.Command, this.usuarioDelContexto, kernel);
-            SpecificPipelineExecutor cpe = new SpecificPipelineExecutor(result1.Pipeline);
-            PipelineExecutionCommandContext result2 = cpe.Execute(context);
+            PipelineContext result1 = this.ProcessCommand(command, kernel);
 
             IRepository<Stream> sr = kernel.Get<IRepository<Stream>>();
             Stream stream = sr.FindByName("Stream1");
             Assert.IsNotNull(stream);
-            Assert.AreEqual<string>("Stream1", stream.Identifier);
+            Assert.AreEqual<string>("Stream1", stream.Name);
             Assert.AreEqual<string>(eql.Trim(), stream.Query);
 
             Console.WriteLine();
@@ -153,27 +146,25 @@ namespace Integra.Space.UnitTests
 
             IKernel kernel = new StandardKernel();
 
-            CacheContext cacheContext = new CacheContext();
+            SystemContext cacheContext = new SystemContext();
             cacheContext.Users.Add(this.usuarioDelContexto);
             cacheContext.Users.Add(new User(Guid.NewGuid(), "User2", "abc1234", true));
-            cacheContext.Permissions.Add(new Permission(this.usuarioDelContexto, Common.SpaceObjectEnum.User, (int)(SpacePermissionsEnum.Create)));
+            cacheContext.Schemas.Add(schemaDePrueba);
+            cacheContext.Permissions.Add(new PermissionOverObjectType(this.usuarioDelContexto, Common.SystemObjectEnum.User, (int)(PermissionsEnum.Create)));
 
             kernel.Bind<IRepository<User>>()
                 .ToConstant<UserCacheRepository>(new UserCacheRepository(cacheContext));
 
-            kernel.Bind<IRepository<Permission>>()
+            kernel.Bind<IRepository<PermissionAssigned>>()
                 .ToConstant<PermissionCacheRepository>(new PermissionCacheRepository(cacheContext))
                 ;
                         
             PipelineContext result1 = this.ProcessCommand(command, kernel);
-            PipelineExecutionCommandContext context = new PipelineExecutionCommandContext(result1.Command, this.usuarioDelContexto, kernel);
-            SpecificPipelineExecutor cpe = new SpecificPipelineExecutor(result1.Pipeline);
-            PipelineExecutionCommandContext result2 = cpe.Execute(context);
 
             IRepository<User> sr = kernel.Get<IRepository<User>>();
             User user = sr.FindByName("User1");
             Assert.IsNotNull(user);
-            Assert.AreEqual<string>("User1", user.Identifier);
+            Assert.AreEqual<string>("User1", user.Name);
             Assert.IsTrue(user.Enable);
             Assert.AreEqual<string>("abc1234", user.Password);
 
@@ -187,23 +178,21 @@ namespace Integra.Space.UnitTests
 
             IKernel kernel = new StandardKernel();
 
-            CacheContext cacheContext = new CacheContext();
+            SystemContext cacheContext = new SystemContext();
             cacheContext.Users.Add(this.usuarioDelContexto);
             User userToUpdate = new User(Guid.NewGuid(), "User1", "abc", false);
             cacheContext.Users.Add(userToUpdate);
-            cacheContext.Permissions.Add(new Permission(this.usuarioDelContexto, Common.SpaceObjectEnum.User, (int)(SpacePermissionsEnum.Alter), userToUpdate));
+            cacheContext.Schemas.Add(schemaDePrueba);
+            cacheContext.Permissions.Add(new PermissionOverSpecificObject(this.usuarioDelContexto, userToUpdate, (int)(PermissionsEnum.Alter)));
 
             kernel.Bind<IRepository<User>>()
                 .ToConstant<UserCacheRepository>(new UserCacheRepository(cacheContext));
 
-            kernel.Bind<IRepository<Permission>>()
+            kernel.Bind<IRepository<PermissionAssigned>>()
                 .ToConstant<PermissionCacheRepository>(new PermissionCacheRepository(cacheContext))
                 ;
 
             PipelineContext result1 = this.ProcessCommand(command, kernel);
-            PipelineExecutionCommandContext context = new PipelineExecutionCommandContext(result1.Command, this.usuarioDelContexto, kernel);
-            SpecificPipelineExecutor cpe = new SpecificPipelineExecutor(result1.Pipeline);
-            PipelineExecutionCommandContext result2 = cpe.Execute(context);
 
             IRepository<User> sr = kernel.Get<IRepository<User>>();
             User user = sr.FindByName("User1");
@@ -216,37 +205,41 @@ namespace Integra.Space.UnitTests
         [TestMethod]
         public void GrantPermission()
         {
-            string command = "grant create stream to user User1";
+            string eql = "cross " +
+                                  "JOIN SpaceObservable1 as t1 WHERE t1.@event.Message.#0.#0 == \"0100\" " +
+                                  "WITH SpaceObservable1 as t2 WHERE t2.@event.Message.#0.#0 == \"0110\" " +
+                                  "ON (string)t1.@event.Message.#1.#0 == (string)t2.@event.Message.#1.#0 and (string)t1.@event.Message.#1.#1 == (string)t2.@event.Message.#1.#1 " +
+                                  "TIMEOUT '00:00:01.5' " +
+                                  "WHERE isnull(t2.@event.SourceTimestamp, '01/01/2017') - isnull(t1.@event.SourceTimestamp, '01/01/2016') <= '00:00:01' " +
+                                  "SELECT " +
+                                          "t1.@event.Message.#1.#0 as c1, " +
+                                          "t2.@event.Message.#1.#0 as c3 ";
+
+            string command = "grant create stream, read stream Stream1 to user User1";
 
             IKernel kernel = new StandardKernel();
 
-            CacheContext cacheContext = new CacheContext();
+            SystemContext cacheContext = new SystemContext();
+            cacheContext.Streams.Add(new Stream(Guid.NewGuid(), "Stream1", eql, schemaDePrueba));
+            cacheContext.Users.Add(new User(Guid.NewGuid(), "User1", "abc", true));
             cacheContext.Users.Add(this.usuarioDelContexto);
-            User userToUpdate = new User(Guid.NewGuid(), "User1", "abc", false);
-            cacheContext.Users.Add(userToUpdate);
-            cacheContext.Permissions.Add(new Permission(this.usuarioDelContexto, Common.SpaceObjectEnum.User, (int)(SpacePermissionsEnum.Alter), userToUpdate));
+            cacheContext.Schemas.Add(schemaDePrueba);
+            cacheContext.Permissions.Add(new PermissionOverObjectType(this.usuarioDelContexto, SystemObjectEnum.Stream, (int)PermissionsEnum.Create));
 
             kernel.Bind<IRepository<User>>()
                 .ToConstant<UserCacheRepository>(new UserCacheRepository(cacheContext));
 
-            kernel.Bind<IRepository<Permission>>()
+            kernel.Bind<IRepository<Stream>>()
+                .ToConstant<StreamCacheRepository>(new StreamCacheRepository(cacheContext))
+                ;
+
+            kernel.Bind<IRepository<PermissionAssigned>>()
                 .ToConstant<PermissionCacheRepository>(new PermissionCacheRepository(cacheContext))
                 ;
-            
+
             PipelineContext result1 = this.ProcessCommand(command, kernel);
-            PipelineExecutionCommandContext context = new PipelineExecutionCommandContext(result1.Command, this.usuarioDelContexto, kernel);
-            SpecificPipelineExecutor cpe = new SpecificPipelineExecutor(result1.Pipeline);
 
-            try
-            {
-                PipelineExecutionCommandContext result2 = cpe.Execute(context);
-            }
-            catch
-            {
-
-            }
-
-            IRepository<Permission> sr = kernel.Get<IRepository<Permission>>();
+            IRepository<PermissionAssigned> sr = kernel.Get<IRepository<PermissionAssigned>>();
 
             Console.WriteLine();
         }
@@ -258,31 +251,22 @@ namespace Integra.Space.UnitTests
 
             IKernel kernel = new StandardKernel();
 
-            CacheContext cacheContext = new CacheContext();
+            SystemContext cacheContext = new SystemContext();
             cacheContext.Users.Add(this.usuarioDelContexto);
-            cacheContext.Permissions.Add(new Permission(this.usuarioDelContexto, Common.SpaceObjectEnum.Stream, 1));
+            cacheContext.Users.Add(new User(Guid.NewGuid(), "User1", "abc", true));
+            cacheContext.Schemas.Add(schemaDePrueba);
+            cacheContext.Permissions.Add(new PermissionOverObjectType(this.usuarioDelContexto, SystemObjectEnum.Stream, (int)PermissionsEnum.Owner));
 
             kernel.Bind<IRepository<User>>()
                 .ToConstant<UserCacheRepository>(new UserCacheRepository(cacheContext));
 
-            kernel.Bind<IRepository<Permission>>()
+            kernel.Bind<IRepository<PermissionAssigned>>()
                 .ToConstant<PermissionCacheRepository>(new PermissionCacheRepository(cacheContext))
                 ;
             
             PipelineContext result1 = this.ProcessCommand(command, kernel);
-            PipelineExecutionCommandContext context = new PipelineExecutionCommandContext(result1.Command, this.usuarioDelContexto, kernel);
-            SpecificPipelineExecutor cpe = new SpecificPipelineExecutor(result1.Pipeline);
 
-            try
-            {
-                PipelineExecutionCommandContext result2 = cpe.Execute(context);
-            }
-            catch
-            {
-
-            }
-
-            IRepository<Permission> sr = kernel.Get<IRepository<Permission>>();
+            IRepository<PermissionAssigned> sr = kernel.Get<IRepository<PermissionAssigned>>();
 
             Console.WriteLine();
         }
@@ -294,32 +278,23 @@ namespace Integra.Space.UnitTests
 
             IKernel kernel = new StandardKernel();
 
-            CacheContext cacheContext = new CacheContext();
+            SystemContext cacheContext = new SystemContext();
             cacheContext.Users.Add(this.usuarioDelContexto);
-            cacheContext.Permissions.Add(new Permission(this.usuarioDelContexto, Common.SpaceObjectEnum.Source, 1));
-            cacheContext.Permissions.Add(new Permission(this.usuarioDelContexto, Common.SpaceObjectEnum.Stream, 2));
+            cacheContext.Users.Add(new User(Guid.NewGuid(), "User1", "abc", true));
+            cacheContext.Schemas.Add(schemaDePrueba);
+            cacheContext.Permissions.Add(new PermissionOverObjectType(this.usuarioDelContexto, Common.SystemObjectEnum.Source, 1));
+            cacheContext.Permissions.Add(new PermissionOverObjectType(this.usuarioDelContexto, Common.SystemObjectEnum.Stream, 2));
 
             kernel.Bind<IRepository<User>>()
                 .ToConstant<UserCacheRepository>(new UserCacheRepository(cacheContext));
 
-            kernel.Bind<IRepository<Permission>>()
+            kernel.Bind<IRepository<PermissionAssigned>>()
                 .ToConstant<PermissionCacheRepository>(new PermissionCacheRepository(cacheContext))
                 ;
 
             PipelineContext result1 = this.ProcessCommand(command, kernel);
-            PipelineExecutionCommandContext context = new PipelineExecutionCommandContext(result1.Command, this.usuarioDelContexto, kernel);
-            SpecificPipelineExecutor cpe = new SpecificPipelineExecutor(result1.Pipeline);
 
-            try
-            {
-                PipelineExecutionCommandContext result2 = cpe.Execute(context);
-            }
-            catch
-            {
-
-            }
-
-            IRepository<Permission> sr = kernel.Get<IRepository<Permission>>();
+            IRepository<PermissionAssigned> sr = kernel.Get<IRepository<PermissionAssigned>>();
 
             Console.WriteLine();
         }
@@ -327,18 +302,18 @@ namespace Integra.Space.UnitTests
         [TestMethod]
         public void AddSecureObjectsToRole()
         {
-            string command = "add user User1, role Role2, user User2, role Role3 to role Role1";
+            string command = "add user User1, user User2, user User3, user User4 to role Role1";
 
             IKernel kernel = new StandardKernel();
 
-            CacheContext cacheContext = new CacheContext();
+            SystemContext cacheContext = new SystemContext();
             cacheContext.Users.Add(this.usuarioDelContexto);
             cacheContext.Users.Add(new User(Guid.NewGuid(), "User1", "abc", true));
             cacheContext.Users.Add(new User(Guid.NewGuid(), "User2", "abc", true));
+            cacheContext.Users.Add(new User(Guid.NewGuid(), "User3", "abc", true));
+            cacheContext.Users.Add(new User(Guid.NewGuid(), "User4", "abc", true));
 
-            cacheContext.Roles.Add(new Role(Guid.NewGuid(), "Role1", Common.SpaceRoleTypeEnum.None));
-            cacheContext.Roles.Add(new Role(Guid.NewGuid(), "Role2", Common.SpaceRoleTypeEnum.None));
-            cacheContext.Roles.Add(new Role(Guid.NewGuid(), "Role3", Common.SpaceRoleTypeEnum.None));
+            cacheContext.Roles.Add(new Role(Guid.NewGuid(), "Role1", Common.SystemRolesEnum.None));
 
             kernel.Bind<IRepository<UserXRole>>()
                 .ToConstant<UserXRoleCacheRepository>(new UserXRoleCacheRepository(cacheContext));
@@ -346,7 +321,7 @@ namespace Integra.Space.UnitTests
             kernel.Bind<IRepository<User>>()
                 .ToConstant<UserCacheRepository>(new UserCacheRepository(cacheContext));
 
-            kernel.Bind<IRepository<Permission>>()
+            kernel.Bind<IRepository<PermissionAssigned>>()
                 .ToConstant<PermissionCacheRepository>(new PermissionCacheRepository(cacheContext))
                 ;
 
@@ -354,17 +329,6 @@ namespace Integra.Space.UnitTests
                 .ToConstant<RoleCacheRepository>(new RoleCacheRepository(cacheContext));
             
             PipelineContext result1 = this.ProcessCommand(command, kernel);
-            PipelineExecutionCommandContext context = new PipelineExecutionCommandContext(result1.Command, this.usuarioDelContexto, kernel);
-            SpecificPipelineExecutor cpe = new SpecificPipelineExecutor(result1.Pipeline);
-
-            try
-            {
-                PipelineExecutionCommandContext result2 = cpe.Execute(context);
-            }
-            catch
-            {
-
-            }
 
             IRepository<UserXRole> r = kernel.Get<IRepository<UserXRole>>();
 

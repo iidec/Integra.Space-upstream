@@ -1,42 +1,40 @@
 ﻿//-----------------------------------------------------------------------
-// <copyright file="Role.cs" company="Integra.Space">
+// <copyright file="Principal.cs" company="Integra.Space">
 //     Copyright (c) Integra.Space. All rights reserved.
 // </copyright>
 //-----------------------------------------------------------------------
 namespace Integra.Space.Models
 {
     using System.Collections.Generic;
-    using Integra.Space.Common;
 
     /// <summary>
     /// Space object class.
     /// </summary>
-    internal class Role : Principal
+    internal class Principal : SystemObject
     {
         /// <summary>
-        /// Users of the role.
+        /// Permissions assigned to the principal.
         /// </summary>
-        private ICollection<User> users;
+        private ICollection<PermissionAssigned> permissions;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Role"/> class.
+        /// Initializes a new instance of the <see cref="Principal"/> class.
         /// </summary>
         /// <param name="guid">Space object unique identifier.</param>
         /// <param name="identifier">Space object name.</param>
-        /// <param name="roleType">Role type.</param>
-        public Role(System.Guid guid, string identifier, SystemRolesEnum roleType) : base(guid, identifier)
+        public Principal(System.Guid guid, string identifier) : base(guid, identifier)
         {
-            this.users = new List<User>();
+            this.permissions = new List<PermissionAssigned>();
         }
 
         /// <summary>
-        /// Gets the users of the role.
+        /// Gets the permissions assigned to the principal.
         /// </summary>
-        public ICollection<User> Users
+        public ICollection<PermissionAssigned> Permissions
         {
             get
             {
-                return this.users;
+                return this.permissions;
             }
         }
     }

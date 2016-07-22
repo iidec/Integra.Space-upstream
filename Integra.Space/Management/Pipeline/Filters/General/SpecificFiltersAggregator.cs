@@ -12,7 +12,7 @@ namespace Integra.Space.Pipeline.Filters
     /// <summary>
     /// Specific filters aggregator class.
     /// </summary>
-    internal class SpecificFiltersAggregator : FirstPipelineFilter
+    internal class SpecificFiltersAggregator : CommandFilter
     {
         /// <inheritdoc />
         public override PipelineContext Execute(PipelineContext context)

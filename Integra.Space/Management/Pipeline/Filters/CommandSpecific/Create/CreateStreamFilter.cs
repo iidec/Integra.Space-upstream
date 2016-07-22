@@ -16,14 +16,14 @@ namespace Integra.Space.Pipeline.Filters
     internal class CreateStreamFilter : CreateEntityFilter<Stream>
     {
         /// <inheritdoc />
-        protected override Stream CreateEntity(PipelineExecutionCommandContext context)
+        protected override Stream CreateEntity(PipelineContext context)
         {
             if (context.Command is Language.CreateAndAlterStreamNode)
             {
                 string query = ((Language.CreateAndAlterStreamNode)context.Command).Query;
                 if (!string.IsNullOrWhiteSpace(query))
                 {
-                    return new Stream(Guid.NewGuid(), context.Command.ObjectName, query);
+                    return new Stream(Guid.NewGuid(), context.Command.ObjectName, query, this.GetSchema(context));
                 }
                 else
                 {

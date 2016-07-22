@@ -1,5 +1,5 @@
 ﻿//-----------------------------------------------------------------------
-// <copyright file="RoleCacheRepository.cs" company="Integra.Space">
+// <copyright file="StreamCacheRepository.cs" company="Integra.Space">
 //     Copyright (c) Integra.Space. All rights reserved.
 // </copyright>
 //-----------------------------------------------------------------------
@@ -13,76 +13,76 @@ namespace Integra.Space.Repos
     /// <summary>
     /// Space object repository class.
     /// </summary>
-    internal class RoleCacheRepository : CacheRepositoryBase<Role>
+    internal class StreamCacheRepository : SecureObjectRepositoryBase<Stream>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="RoleCacheRepository"/> class.
+        /// Initializes a new instance of the <see cref="StreamCacheRepository"/> class.
         /// </summary>
         /// <param name="context">Cache context.</param>
-        public RoleCacheRepository(CacheContext context) : base(context)
+        public StreamCacheRepository(SystemContext context) : base(context)
         {
         }
 
         /// <inheritdoc />
-        public override IEnumerable<Role> List
+        public override IEnumerable<Stream> List
         {
             get
             {
-                return this.Context.Roles;
+                return this.Context.Streams;
             }
         }
 
         /// <inheritdoc />
-        public override void Add(Role entity)
+        public override void Add(Stream entity)
         {
             lock (this.Sync)
             {
-                if (this.Context.Roles.Exists(x => x.Identifier == entity.Identifier))
+                if (this.Context.Streams.Exists(x => x.Name == entity.Name))
                 {
-                    throw new Exception(string.Format("The source '{0}' already exists.", entity.Identifier));
+                    throw new Exception(string.Format("The stream '{0}' already exists.", entity.Name));
                 }
-                else if (this.Context.Roles.Exists(x => x.Guid == entity.Guid))
+                else if (this.Context.Streams.Exists(x => x.Guid == entity.Guid))
                 {
                     throw new Exception(string.Format("The unique identifier '{0}' already exists.", entity.Guid));
                 }
                 else
                 {
-                    this.Context.Roles.Add(entity);
+                    this.Context.Streams.Add(entity);
                 }
             }
         }
 
         /// <inheritdoc />
-        public override void Delete(Role entity)
+        public override void Delete(Stream entity)
         {
             lock (this.Sync)
             {
-                if (this.Context.Roles.Exists(x => x.Guid == entity.Guid))
+                if (this.Context.Streams.Exists(x => x.Guid == entity.Guid))
                 {
-                    this.Context.Roles.Remove(entity);
+                    this.Context.Streams.Remove(entity);
                 }
                 else
                 {
-                    throw new Exception(string.Format("The source '{0}' don't exists.", entity.Identifier));
+                    throw new Exception(string.Format("The stream '{0}' don't exists.", entity.Name));
                 }
             }
         }
 
         /// <inheritdoc />
-        public override Role FindById(Guid id)
+        public override Stream FindById(Guid id)
         {
             lock (this.Sync)
             {
-                return this.Context.Roles.Find(x => x.Guid == id);
+                return this.Context.Streams.Find(x => x.Guid == id);
             }
         }
 
         /// <inheritdoc />
-        public override Role FindByName(string name)
+        public override Stream FindByName(string name)
         {
             lock (this.Sync)
             {
-                return this.Context.Roles.Find(x => x.Identifier == name);
+                return this.Context.Streams.Find(x => x.Name == name);
             }
         }
     }

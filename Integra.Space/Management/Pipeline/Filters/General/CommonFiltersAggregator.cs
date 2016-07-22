@@ -10,15 +10,15 @@ namespace Integra.Space.Pipeline.Filters
     /// <summary>
     /// Common filters aggregator class.
     /// </summary>
-    internal class CommonFiltersAggregator : FirstPipelineFilter
+    internal class CommonFiltersAggregator : CommandFilter
     {
         /// <inheritdoc />
         public override PipelineContext Execute(PipelineContext input)
         {
             input.Pipeline = new FilterLock()
-                .AddStep(new ValidatePermissions())
-                .AddStep(new VerifyExistence())
                 .AddStep(new ValidateExistence())
+                .AddStep(new ValidateSpecificObjectPermissions())
+                .AddStep(new ValidateObjectTypePermissions())
                 .AddStep(input.Pipeline)
                 .AddStep(new FilterUnlock());
 

@@ -13,7 +13,7 @@ namespace Integra.Space.Pipeline.Filters
     /// Filter create source class.
     /// </summary>
     /// <typeparam name="TEntity">Entity type.</typeparam>
-    internal abstract class AlterEntityFilter<TEntity> : CommandFilter where TEntity : SpaceObject
+    internal abstract class AlterEntityFilter<TEntity> : CommandFilter where TEntity : SystemObject
     {
         /// <summary>
         /// Entity to used for reverse changes.
@@ -32,7 +32,7 @@ namespace Integra.Space.Pipeline.Filters
         }
 
         /// <inheritdoc />
-        public override PipelineExecutionCommandContext Execute(PipelineExecutionCommandContext context)
+        public override PipelineContext Execute(PipelineContext context)
         {
             IRepository<TEntity> sr = context.Kernel.Get<IRepository<TEntity>>();
             TEntity entity = sr.FindByName(context.Command.ObjectName);
@@ -50,7 +50,7 @@ namespace Integra.Space.Pipeline.Filters
         }
 
         /// <inheritdoc />
-        public override void OnError(PipelineExecutionCommandContext context)
+        public override void OnError(PipelineContext context)
         {
             // siempre se reversan los cambios aunque no se haya ejecutado el paso actual.
             IRepository<TEntity> sr = context.Kernel.Get<IRepository<TEntity>>();
@@ -66,14 +66,14 @@ namespace Integra.Space.Pipeline.Filters
         /// </summary>
         /// <param name="entity">Entity to edit.</param>
         /// <param name="context">Context of the pipeline.</param>
-        protected abstract void DoChanges(TEntity entity, PipelineExecutionCommandContext context);
+        protected abstract void DoChanges(TEntity entity, PipelineContext context);
 
         /// <summary>
         /// Reverse the changes of the entity.
         /// </summary>
         /// <param name="entity">Entity edited.</param>
         /// <param name="context">Context of the pipeline.</param>
-        protected abstract void ReverseChanges(TEntity entity, PipelineExecutionCommandContext context);
+        protected abstract void ReverseChanges(TEntity entity, PipelineContext context);
 
         /// <summary>
         /// Clone the entity that going to be modify.

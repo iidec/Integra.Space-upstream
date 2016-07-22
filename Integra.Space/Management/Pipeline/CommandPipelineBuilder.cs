@@ -19,7 +19,8 @@ namespace Integra.Space.Pipeline
             Filter<PipelineContext, PipelineContext> result =
                 new Filters.FilterCommandParser()
                 .AddStep(new Filters.SpecificFiltersAggregator())
-                .AddStep(new Filters.CommonFiltersAggregator());
+                .AddStep(new Filters.CommonFiltersAggregator())
+                .AddStep(new Filters.PipelineExecutorFilter());
 
             return result;
         }

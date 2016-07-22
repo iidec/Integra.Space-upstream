@@ -1,5 +1,5 @@
 ﻿//-----------------------------------------------------------------------
-// <copyright file="SpaceCommand.cs" company="Integra.Space.Common">
+// <copyright file="SystemCommand.cs" company="Integra.Space.Common">
 //     Copyright (c) Integra.Space.Common. All rights reserved.
 // </copyright>
 //-----------------------------------------------------------------------
@@ -12,17 +12,17 @@ namespace Integra.Space.Common
     /// <summary>
     /// Command action node class.
     /// </summary>
-    internal abstract class SpaceCommand
+    internal abstract class SystemCommand
     {
         /// <summary>
         /// Command action.
         /// </summary>
-        private SpaceActionCommandEnum action;
+        private ActionCommandEnum action;
 
         /// <summary>
         /// Space object type.
         /// </summary>
-        private SpaceObjectEnum spaceObjectType;
+        private SystemObjectEnum spaceObjectType;
 
         /// <summary>
         /// Space object name.
@@ -30,12 +30,12 @@ namespace Integra.Space.Common
         private string objectName;
         
         /// <summary>
-        /// Initializes a new instance of the <see cref="SpaceCommand"/> class.
+        /// Initializes a new instance of the <see cref="SystemCommand"/> class.
         /// </summary>
         /// <param name="action">Space command action.</param>
         /// <param name="spaceObjectType">Space object type.</param>
         /// <param name="objectName">Object name.</param>
-        public SpaceCommand(SpaceActionCommandEnum action, SpaceObjectEnum spaceObjectType, string objectName)
+        public SystemCommand(ActionCommandEnum action, SystemObjectEnum spaceObjectType, string objectName)
         {
             Contract.Assert(!string.IsNullOrWhiteSpace(objectName));
 
@@ -47,7 +47,7 @@ namespace Integra.Space.Common
         /// <summary>
         /// Gets the permission value needed to execute the command.
         /// </summary>
-        public virtual SpacePermissionsEnum PermissionValue
+        public virtual PermissionsEnum PermissionValue
         {
             get
             {
@@ -58,7 +58,7 @@ namespace Integra.Space.Common
         /// <summary>
         /// Gets command action.
         /// </summary>
-        public SpaceActionCommandEnum Action
+        public ActionCommandEnum Action
         {
             get
             {
@@ -69,7 +69,7 @@ namespace Integra.Space.Common
         /// <summary>
         /// Gets the space object type.
         /// </summary>
-        public SpaceObjectEnum SpaceObjectType
+        public SystemObjectEnum SpaceObjectType
         {
             get
             {
@@ -92,9 +92,9 @@ namespace Integra.Space.Common
         /// Gets the list of used space object types by the command.
         /// </summary>
         /// <returns>The list of used objects by the command.</returns>
-        public virtual HashSet<SpaceObjectEnum> GetUsedSpaceObjectTypes()
+        public virtual HashSet<SystemObjectEnum> GetUsedSpaceObjectTypes()
         {
-            HashSet<SpaceObjectEnum> listOfUsedObjectTypes = new HashSet<SpaceObjectEnum>();
+            HashSet<SystemObjectEnum> listOfUsedObjectTypes = new HashSet<SystemObjectEnum>();
             listOfUsedObjectTypes.Add(this.spaceObjectType);
 
             return listOfUsedObjectTypes;
@@ -104,21 +104,20 @@ namespace Integra.Space.Common
         /// Gets the list of used space objects by the command.
         /// </summary>
         /// <returns>The list of used objects by the command.</returns>
-        public virtual HashSet<Tuple<SpaceObjectEnum, string>> GetUsedSpaceObjects()
+        public virtual HashSet<Tuple<SystemObjectEnum, string>> GetUsedSpaceObjects()
         {
-            HashSet<Tuple<SpaceObjectEnum, string>> listOfUsedObjects = new HashSet<Tuple<SpaceObjectEnum, string>>(new ObjectUsedComparer());
+            HashSet<Tuple<SystemObjectEnum, string>> listOfUsedObjects = new HashSet<Tuple<SystemObjectEnum, string>>(new ObjectUsedComparer());
             listOfUsedObjects.Add(Tuple.Create(this.spaceObjectType, this.objectName));
-
             return listOfUsedObjects;
         }
 
         /// <summary>
         /// Object used comparer class.
         /// </summary>
-        private class ObjectUsedComparer : IEqualityComparer<Tuple<SpaceObjectEnum, string>>
+        private class ObjectUsedComparer : IEqualityComparer<Tuple<SystemObjectEnum, string>>
         {
             /// <inheritdoc />
-            public bool Equals(Tuple<SpaceObjectEnum, string> x, Tuple<SpaceObjectEnum, string> y)
+            public bool Equals(Tuple<SystemObjectEnum, string> x, Tuple<SystemObjectEnum, string> y)
             {
                 if (x.Item1 == y.Item1 && x.Item2 == y.Item2)
                 {
@@ -129,7 +128,7 @@ namespace Integra.Space.Common
             }
 
             /// <inheritdoc />
-            public int GetHashCode(Tuple<SpaceObjectEnum, string> obj)
+            public int GetHashCode(Tuple<SystemObjectEnum, string> obj)
             {
                 if (obj.Item2 != null)
                 {

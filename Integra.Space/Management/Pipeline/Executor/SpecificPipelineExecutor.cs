@@ -10,22 +10,22 @@ namespace Integra.Space.Pipeline
     /// <summary>
     /// Command pipeline builder.
     /// </summary>
-    internal class SpecificPipelineExecutor : PipelineExecutorBase<PipelineExecutionCommandContext, PipelineExecutionCommandContext>
+    internal class SpecificPipelineExecutor : PipelineExecutorBase<PipelineContext, PipelineContext>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="SpecificPipelineExecutor"/> class.
         /// </summary>
         /// <param name="pipeline">Pipeline to execute.</param>
-        public SpecificPipelineExecutor(Filter<PipelineExecutionCommandContext, PipelineExecutionCommandContext> pipeline) : base(pipeline)
+        public SpecificPipelineExecutor(Filter<PipelineContext, PipelineContext> pipeline) : base(pipeline)
         {
         }
 
         /// <inheritdoc />
-        public override PipelineExecutionCommandContext Execute(PipelineExecutionCommandContext context)
+        public override PipelineContext Execute(PipelineContext context)
         {
             try
             {
-                PipelineExecutionCommandContext result = this.Pipeline.Execute(context);
+                PipelineContext result = this.Pipeline.Execute(context);
                 this.Pipeline.Executed = true;
                 return result;
             }

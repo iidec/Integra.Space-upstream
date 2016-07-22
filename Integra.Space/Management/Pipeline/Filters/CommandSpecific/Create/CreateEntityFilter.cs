@@ -13,10 +13,10 @@ namespace Integra.Space.Pipeline.Filters
     /// Filter create source class.
     /// </summary>
     /// <typeparam name="TEntity">Entity type.</typeparam>
-    internal abstract class CreateEntityFilter<TEntity> : CommandFilter where TEntity : SpaceObject
+    internal abstract class CreateEntityFilter<TEntity> : CommandFilter where TEntity : SystemObject
     {
         /// <inheritdoc />
-        public override PipelineExecutionCommandContext Execute(PipelineExecutionCommandContext context)
+        public override PipelineContext Execute(PipelineContext context)
         {
             TEntity entity = this.CreateEntity(context);
             IRepository<TEntity> sr = context.Kernel.Get<IRepository<TEntity>>();
@@ -26,7 +26,7 @@ namespace Integra.Space.Pipeline.Filters
         }
 
         /// <inheritdoc />
-        public override void OnError(PipelineExecutionCommandContext context)
+        public override void OnError(PipelineContext context)
         {
             if (!this.Executed)
             {
@@ -41,13 +41,13 @@ namespace Integra.Space.Pipeline.Filters
         /// </summary>
         /// <param name="context">Context of the pipeline.</param>
         /// <returns>The created entity.</returns>
-        protected abstract TEntity CreateEntity(PipelineExecutionCommandContext context);
+        protected abstract TEntity CreateEntity(PipelineContext context);
 
         /// <summary>
         /// Deletes the entity.
         /// </summary>
         /// <param name="context">Context of the pipeline.</param>
-        private void DeleteEntity(PipelineExecutionCommandContext context)
+        private void DeleteEntity(PipelineContext context)
         {
             IRepository<TEntity> sr = context.Kernel.Get<IRepository<TEntity>>();
             TEntity entity = sr.FindByName(context.Command.ObjectName);

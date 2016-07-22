@@ -1,5 +1,5 @@
 ﻿//-----------------------------------------------------------------------
-// <copyright file="SpaceActionCommandEnum.cs" company="Integra.Space.Common">
+// <copyright file="ActionCommandEnum.cs" company="Integra.Space.Common">
 //     Copyright (c) Integra.Space.Common. All rights reserved.
 // </copyright>
 //-----------------------------------------------------------------------
@@ -11,7 +11,7 @@ namespace Integra.Space.Common
     /// Command action enumerable.
     /// </summary>
     [Flags]
-    internal enum SpaceActionCommandEnum
+    internal enum ActionCommandEnum
     {
         /// <summary>
         /// Action command drop.
@@ -52,6 +52,11 @@ namespace Integra.Space.Common
         /// Action command revoke.
         /// </summary>
         Revoke = 128,
+
+        /// <summary>
+        /// Action command read.
+        /// </summary>
+        Read = 256,
 
         /// <summary>
         /// Action command add.

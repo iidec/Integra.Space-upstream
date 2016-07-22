@@ -16,14 +16,14 @@ namespace Integra.Space.Models
         /// Initializes a new instance of the <see cref="UserXRole"/> class.
         /// </summary>
         /// <param name="role">Role for the secure object.</param>
-        /// <param name="permissionAssignableObject">Permission assignable space object.</param>
-        public UserXRole(Role role, PermissionAssignableObject permissionAssignableObject)
+        /// <param name="user">Space user.</param>
+        public UserXRole(Role role, User user)
         {
             Contract.Assert(role != null);
-            Contract.Assert(permissionAssignableObject != null);
+            Contract.Assert(user != null);
 
             this.Role = role;
-            this.PermissionAssignableObject = permissionAssignableObject;
+            this.Principal = user;
         }
 
         /// <summary>
@@ -34,6 +34,6 @@ namespace Integra.Space.Models
         /// <summary>
         /// Gets the permission assignable object type.
         /// </summary>
-        public PermissionAssignableObject PermissionAssignableObject { get; private set; }
+        public Principal Principal { get; private set; }
     }
 }

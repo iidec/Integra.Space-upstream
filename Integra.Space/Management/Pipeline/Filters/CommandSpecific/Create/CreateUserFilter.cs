@@ -9,6 +9,7 @@ namespace Integra.Space.Pipeline.Filters
     using System.Collections.Generic;
     using System.Linq;
     using Common;
+    using Language;
     using Models;
 
     /// <summary>
@@ -17,19 +18,19 @@ namespace Integra.Space.Pipeline.Filters
     internal class CreateUserFilter : CreateEntityFilter<User>
     {
         /// <inheritdoc />
-        protected override User CreateEntity(PipelineExecutionCommandContext context)
+        protected override User CreateEntity(PipelineContext context)
         {
-            List<SpaceUserOption> options = ((Language.CreateAndAlterUserNode)context.Command).UserOptions;
+            List<UserOption> options = ((Language.CreateAndAlterUserNode)context.Command).UserOptions;
 
-            if (options.Count > 0 && options.Exists(x => x.Option == SpaceUserOptionEnum.Password))
+            if (options.Count > 0 && options.Exists(x => x.Option == UserOptionEnum.Password))
             {
-                if (options.Exists(x => x.Option == SpaceUserOptionEnum.Status))
+                if (options.Exists(x => x.Option == UserOptionEnum.Status))
                 {
-                    return new User(Guid.NewGuid(), context.Command.ObjectName, (string)options.First(x => x.Option == SpaceUserOptionEnum.Password).Value, (bool)options.First(x => x.Option == SpaceUserOptionEnum.Status).Value);
+                    return new User(Guid.NewGuid(), context.Command.ObjectName, (string)options.First(x => x.Option == UserOptionEnum.Password).Value, (bool)options.First(x => x.Option == UserOptionEnum.Status).Value);
                 }
                 else
                 {
-                    return new User(Guid.NewGuid(), context.Command.ObjectName, (string)options.First(x => x.Option == SpaceUserOptionEnum.Password).Value, false);
+                    return new User(Guid.NewGuid(), context.Command.ObjectName, (string)options.First(x => x.Option == UserOptionEnum.Password).Value, false);
                 }
             }
             else

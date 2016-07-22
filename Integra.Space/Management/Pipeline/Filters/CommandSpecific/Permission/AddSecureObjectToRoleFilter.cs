@@ -22,31 +22,27 @@ namespace Integra.Space.Pipeline.Filters
         private List<UserXRole> usersAndRolesAssigned;
 
         /// <inheritdoc />
-        public override PipelineExecutionCommandContext Execute(PipelineExecutionCommandContext context)
+        public override PipelineContext Execute(PipelineContext context)
         {
             IRepository<Role> roles = context.Kernel.Get<IRepository<Role>>();
             Role role = roles.FindByName(((Language.AddCommandNode)context.Command).ToIdentifier);
 
-            List<Tuple<string, Common.SpaceObjectEnum>> usersAndRoles = ((Language.AddCommandNode)context.Command).UsersAndRoles;
+            List<Tuple<string, Common.SystemObjectEnum>> users = ((Language.AddCommandNode)context.Command).UsersAndRoles;
             IRepository<UserXRole> repo = context.Kernel.Get<IRepository<UserXRole>>();
             this.usersAndRolesAssigned = new List<UserXRole>();
-            PermissionAssignableObject permissionAsignableObject;
-            foreach (Tuple<string, Common.SpaceObjectEnum> t in usersAndRoles)
+            User user;
+            foreach (Tuple<string, Common.SystemObjectEnum> t in users)
             {
-                if (t.Item2 == Common.SpaceObjectEnum.User)
+                if (t.Item2 == Common.SystemObjectEnum.User)
                 {
-                    permissionAsignableObject = context.Kernel.Get<IRepository<User>>().FindByName(t.Item1);
-                }
-                else if (t.Item2 == Common.SpaceObjectEnum.Role)
-                {
-                    permissionAsignableObject = context.Kernel.Get<IRepository<Role>>().FindByName(t.Item1);
+                    user = context.Kernel.Get<IRepository<User>>().FindByName(t.Item1);
                 }
                 else
                 {
-                    throw new Exception("A secure object is needed.");
+                    throw new Exception("A user is required.");
                 }
 
-                UserXRole uxr = new UserXRole(role, permissionAsignableObject);
+                UserXRole uxr = new UserXRole(role, user);
 
                 repo.Add(uxr);
                 this.usersAndRolesAssigned.Add(uxr);
@@ -57,7 +53,7 @@ namespace Integra.Space.Pipeline.Filters
         }
 
         /// <inheritdoc />
-        public override void OnError(PipelineExecutionCommandContext context)
+        public override void OnError(PipelineContext context)
         {
             if (this.usersAndRolesAssigned != null)
             {

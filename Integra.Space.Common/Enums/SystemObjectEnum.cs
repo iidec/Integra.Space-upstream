@@ -1,43 +1,46 @@
 ﻿//-----------------------------------------------------------------------
-// <copyright file="SpacePermissionsEnum.cs" company="Integra.Space.Common">
+// <copyright file="SystemObjectEnum.cs" company="Integra.Space.Common">
 //     Copyright (c) Integra.Space.Common. All rights reserved.
 // </copyright>
 //-----------------------------------------------------------------------
 namespace Integra.Space.Common
 {
+    using System;
+
     /// <summary>
-    /// Space permissions enumerable.
+    /// Space object enumerable.
     /// </summary>
-    internal enum SpacePermissionsEnum
+    [Flags]
+    internal enum SystemObjectEnum
     {
         /// <summary>
-        /// Permission alter.
+        /// Space object source.
         /// </summary>
-        Alter = 1,
+        Source = 1,
 
         /// <summary>
-        /// Permission read.
+        /// Space object stream.
         /// </summary>
-        Read = 2,
+        Stream = 2,
 
         /// <summary>
-        /// Permission create.
+        /// Space object user.
         /// </summary>
-        Create = 4,
+        User = 4,
 
         /// <summary>
-        /// Permission stop.
+        /// Space object role
         /// </summary>
-        Stop = 8,
+        Role = 8,
 
         /// <summary>
-        /// Permission start.
+        /// Space object schema
         /// </summary>
-        Start = 16,
+        Schema = 16,
 
         /// <summary>
-        /// Permission owner.
+        /// Objects that can assign permissions.
         /// </summary>
-        Owner = 31
+        PermissionAssignableObjects = User | Role
     }
 }

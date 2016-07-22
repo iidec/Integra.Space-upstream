@@ -18,47 +18,47 @@ namespace Integra.Space.Pipeline.Filters
         /// <summary>
         /// Dictionary of filters.
         /// </summary>
-        private static Dictionary<SpecificFilterKey, Filter<PipelineExecutionCommandContext, PipelineExecutionCommandContext>> filterDictionary;
+        private static Dictionary<SpecificFilterKey, Filter<PipelineContext, PipelineContext>> filterDictionary;
 
         /// <summary>
         /// Initializes static members of the <see cref="SpecificFilterSelector"/> class.
         /// </summary>
         static SpecificFilterSelector()
         {
-            filterDictionary = new Dictionary<SpecificFilterKey, Filter<PipelineExecutionCommandContext, PipelineExecutionCommandContext>>(new Comparer());
+            filterDictionary = new Dictionary<SpecificFilterKey, Filter<PipelineContext, PipelineContext>>(new Comparer());
 
             // add the specific filters.
             // create
-            filterDictionary.Add(new SpecificFilterKey(SpaceActionCommandEnum.Create, SpaceObjectEnum.Source), new CreateSourceFilter());
-            filterDictionary.Add(new SpecificFilterKey(SpaceActionCommandEnum.Create, SpaceObjectEnum.Stream), new CreateStreamFilter().AddStep(new FilterQueryParser()));
-            filterDictionary.Add(new SpecificFilterKey(SpaceActionCommandEnum.Create, SpaceObjectEnum.User), new CreateUserFilter());
-            filterDictionary.Add(new SpecificFilterKey(SpaceActionCommandEnum.Create, SpaceObjectEnum.Role), new CreateRoleFilter());
+            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.Create, SystemObjectEnum.Source), new CreateSourceFilter());
+            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.Create, SystemObjectEnum.Stream), new CreateStreamFilter().AddStep(new FilterQueryParser()));
+            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.Create, SystemObjectEnum.User), new CreateUserFilter());
+            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.Create, SystemObjectEnum.Role), new CreateRoleFilter());
 
             // alter
-            filterDictionary.Add(new SpecificFilterKey(SpaceActionCommandEnum.Alter, SpaceObjectEnum.User), new AlterUserFilter());
-            filterDictionary.Add(new SpecificFilterKey(SpaceActionCommandEnum.Alter, SpaceObjectEnum.Stream), new AlterStreamFilter());
+            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.Alter, SystemObjectEnum.User), new AlterUserFilter());
+            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.Alter, SystemObjectEnum.Stream), new AlterStreamFilter());
 
             // drop
-            filterDictionary.Add(new SpecificFilterKey(SpaceActionCommandEnum.Drop, SpaceObjectEnum.Role), new DropEntityFilter<Role>());
-            filterDictionary.Add(new SpecificFilterKey(SpaceActionCommandEnum.Drop, SpaceObjectEnum.Source), new DropEntityFilter<Source>());
-            filterDictionary.Add(new SpecificFilterKey(SpaceActionCommandEnum.Drop, SpaceObjectEnum.Stream), new DropEntityFilter<Stream>());
-            filterDictionary.Add(new SpecificFilterKey(SpaceActionCommandEnum.Drop, SpaceObjectEnum.User), new DropEntityFilter<User>());
+            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.Drop, SystemObjectEnum.Role), new DropEntityFilter<Role>());
+            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.Drop, SystemObjectEnum.Source), new DropEntityFilter<Source>());
+            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.Drop, SystemObjectEnum.Stream), new DropEntityFilter<Stream>());
+            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.Drop, SystemObjectEnum.User), new DropEntityFilter<User>());
 
             // permission
             // grant
-            filterDictionary.Add(new SpecificFilterKey(SpaceActionCommandEnum.Grant, SpaceObjectEnum.User), new GrantPermissionFilter());
-            filterDictionary.Add(new SpecificFilterKey(SpaceActionCommandEnum.Grant, SpaceObjectEnum.Role), new GrantPermissionFilter());
-
+            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.Grant, SystemObjectEnum.User), new GrantPermissionFilter<PermissionOverObjectType>().AddStep(new GrantPermissionFilter<PermissionOverSpecificObject>()));
+            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.Grant, SystemObjectEnum.Role), new GrantPermissionFilter<PermissionOverObjectType>().AddStep(new GrantPermissionFilter<PermissionOverSpecificObject>()));
+            
             // deny
-            filterDictionary.Add(new SpecificFilterKey(SpaceActionCommandEnum.Deny, SpaceObjectEnum.User), new DenyPermissionFilter());
-            filterDictionary.Add(new SpecificFilterKey(SpaceActionCommandEnum.Deny, SpaceObjectEnum.Role), new DenyPermissionFilter());
+            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.Deny, SystemObjectEnum.User), new GrantPermissionFilter<PermissionOverObjectType>().AddStep(new GrantPermissionFilter<PermissionOverSpecificObject>()));
+            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.Deny, SystemObjectEnum.Role), new GrantPermissionFilter<PermissionOverObjectType>().AddStep(new GrantPermissionFilter<PermissionOverSpecificObject>()));
 
             // revoke
-            filterDictionary.Add(new SpecificFilterKey(SpaceActionCommandEnum.Revoke, SpaceObjectEnum.User), new RevokePermissionFilter());
-            filterDictionary.Add(new SpecificFilterKey(SpaceActionCommandEnum.Revoke, SpaceObjectEnum.Role), new RevokePermissionFilter());
+            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.Revoke, SystemObjectEnum.User), new GrantPermissionFilter<PermissionOverObjectType>().AddStep(new GrantPermissionFilter<PermissionOverSpecificObject>()));
+            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.Revoke, SystemObjectEnum.Role), new GrantPermissionFilter<PermissionOverObjectType>().AddStep(new GrantPermissionFilter<PermissionOverSpecificObject>()));
 
             // add
-            filterDictionary.Add(new SpecificFilterKey(SpaceActionCommandEnum.Add, SpaceObjectEnum.Role), new AddSecureObjectToRoleFilter());
+            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.Add, SystemObjectEnum.Role), new AddSecureObjectToRoleFilter());
         }
 
         /// <summary>
@@ -66,7 +66,7 @@ namespace Integra.Space.Pipeline.Filters
         /// </summary>
         /// <param name="key">Key of the dictionary.</param>
         /// <returns>The filter assigned for the specified key.</returns>
-        public static Filter<PipelineExecutionCommandContext, PipelineExecutionCommandContext> GetSpecificFilter(SpecificFilterKey key)
+        public static Filter<PipelineContext, PipelineContext> GetSpecificFilter(SpecificFilterKey key)
         {
             if (filterDictionary.ContainsKey(key))
             {

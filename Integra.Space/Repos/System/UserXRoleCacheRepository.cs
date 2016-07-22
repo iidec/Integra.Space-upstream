@@ -13,13 +13,13 @@ namespace Integra.Space.Repos
     /// <summary>
     /// Space object repository class.
     /// </summary>
-    internal class UserXRoleCacheRepository : CacheRepositoryBase<UserXRole>
+    internal class UserXRoleCacheRepository : SystemRepositoryBase<UserXRole>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="UserXRoleCacheRepository"/> class.
         /// </summary>
         /// <param name="context">Cache context.</param>
-        public UserXRoleCacheRepository(CacheContext context) : base(context)
+        public UserXRoleCacheRepository(SystemContext context) : base(context)
         {
         }
 
@@ -37,7 +37,7 @@ namespace Integra.Space.Repos
         {
             lock (this.Sync)
             {
-                if (!this.Context.UsersXRoles.Exists(x => x.Role.Guid == entity.Role.Guid && x.PermissionAssignableObject.Guid == entity.PermissionAssignableObject.Guid))
+                if (!this.Context.UsersXRoles.Exists(x => x.Role.Guid == entity.Role.Guid && x.Principal.Guid == entity.Principal.Guid))
                 {
                     this.Context.UsersXRoles.Add(entity);
                 }
@@ -49,13 +49,13 @@ namespace Integra.Space.Repos
         {
             lock (this.Sync)
             {
-                if (this.Context.UsersXRoles.Exists(x => x.Role.Guid == entity.Role.Guid && x.PermissionAssignableObject.Guid == entity.PermissionAssignableObject.Guid))
+                if (this.Context.UsersXRoles.Exists(x => x.Role.Guid == entity.Role.Guid && x.Principal.Guid == entity.Principal.Guid))
                 {
                     this.Context.UsersXRoles.Remove(entity);
                 }
                 else
                 {
-                    throw new Exception(string.Format("The secure object {0} is not assigned to the role '{1}'.", entity.PermissionAssignableObject.Identifier, entity.Role.Identifier));
+                    throw new Exception(string.Format("The secure object {0} is not assigned to the role '{1}'.", entity.Principal.Name, entity.Role.Name));
                 }
             }
         }
@@ -65,7 +65,7 @@ namespace Integra.Space.Repos
         {
             lock (this.Sync)
             {
-                return this.Context.UsersXRoles.Exists(x => x.PermissionAssignableObject.Guid == entity.PermissionAssignableObject.Guid && x.Role.Guid == entity.Role.Guid);
+                return this.Context.UsersXRoles.Exists(x => x.Principal.Guid == entity.Principal.Guid && x.Role.Guid == entity.Role.Guid);
             }
         }
     }

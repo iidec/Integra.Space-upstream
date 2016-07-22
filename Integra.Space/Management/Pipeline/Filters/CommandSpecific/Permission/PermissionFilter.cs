@@ -5,6 +5,7 @@
 //-----------------------------------------------------------------------
 namespace Integra.Space.Pipeline.Filters
 {
+    using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Reflection;
@@ -17,17 +18,18 @@ namespace Integra.Space.Pipeline.Filters
     /// <summary>
     /// Grant permission filter class.
     /// </summary>
-    internal class PermissionFilter : CommandFilter
+    /// <typeparam name="TPermission">Permission type.</typeparam>
+    internal abstract class PermissionFilter<TPermission> : CommandFilter where TPermission : PermissionAssigned
     {
         /// <summary>
         /// List of permission with the value before the modification.
         /// </summary>
-        private List<Permission> oldPermissions;
+        private List<Tuple<TPermission, bool>> oldPermissions;
 
         /// <summary>
         /// Gets the old permission list.
         /// </summary>
-        protected List<Permission> OldPermissions
+        protected List<Tuple<TPermission, bool>> OldPermissions
         {
             get
             {
@@ -35,30 +37,49 @@ namespace Integra.Space.Pipeline.Filters
             }
         }
 
-        /// <summary>
-        /// Assign the permissions specified in the command.
-        /// </summary>
-        /// <param name="context">Pipeline context.</param>
-        /// <param name="listOfPermissions">List of permissions.</param>
-        /// <param name="action">Action to execute over the specified permissions.</param>
-        public void ExecuteActionOverPermissions(PipelineExecutionCommandContext context, List<Permission> listOfPermissions, MethodInfo action)
+        /// <inheritdoc />
+        public override PipelineContext Execute(PipelineContext context)
         {
-            PermissionCacheRepository pr = (PermissionCacheRepository)context.Kernel.Get<IRepository<Permission>>();
-            this.oldPermissions = new List<Permission>();
-            Permission actualPermission = null;
-            foreach (Permission p in listOfPermissions)
+            PermissionCacheRepository<TPermission> pr = context.Kernel.Get<PermissionCacheRepository<TPermission>>();
+            this.oldPermissions = new List<Tuple<TPermission, bool>>();
+            PermissionAssigned actualPermission = null;
+            IEnumerable<PermissionAssigned> listOfPermissions = this.GetPermissionsToAssing(context).Where(x => x is TPermission);
+            foreach (TPermission p in listOfPermissions)
             {
-                actualPermission = pr.GetPermission(p.PermissionAssignableObject, p.SpaceObjectType, p.SpaceObject.Identifier);
+                actualPermission = pr.GetPermission(p);
+
                 if (actualPermission != null)
                 {
-                    this.oldPermissions.Add(new Permission(p.PermissionAssignableObject, p.SpaceObjectType, actualPermission.Value, p.SpaceObject));
+                    this.oldPermissions.Add(Tuple.Create(p, false));
                 }
                 else
                 {
-                    this.oldPermissions.Add(new Permission(p.PermissionAssignableObject, p.SpaceObjectType, 0, p.SpaceObject));
+                    this.oldPermissions.Add(Tuple.Create(p, true));
                 }
 
-                action.Invoke(pr, new[] { p });
+                this.ExecutePermissionAction(pr, p);
+            }
+
+            return context;
+        }
+
+        /// <inheritdoc />
+        public override void OnError(PipelineContext context)
+        {
+            if (this.OldPermissions != null)
+            {
+                PermissionCacheRepository<TPermission> pr = context.Kernel.Get<PermissionCacheRepository<TPermission>>();
+                foreach (Tuple<TPermission, bool> p in this.OldPermissions)
+                {
+                    if (p.Item2)
+                    {
+                        pr.Revoke(p.Item1);
+                    }
+                    else
+                    {
+                        this.ExecuteReverse(pr, p.Item1);
+                    }
+                }
             }
         }
 
@@ -67,74 +88,109 @@ namespace Integra.Space.Pipeline.Filters
         /// </summary>
         /// <param name="context">Pipeline context.</param>
         /// <returns>The list of permission specified in the command.</returns>
-        public List<Permission> GetPermissionsToAssing(PipelineExecutionCommandContext context)
+        public List<PermissionAssigned> GetPermissionsToAssing(PipelineContext context)
         {
             SpacePermissionsCommandNode permissionCommand = (SpacePermissionsCommandNode)context.Command;
 
-            PermissionAssignableObject pao = null;
-            if (permissionCommand.SpaceObjectType == SpaceObjectEnum.User)
+            Principal principal = null;
+            if (permissionCommand.SpaceObjectType == SystemObjectEnum.User)
             {
                 IRepository<User> repo = context.Kernel.Get<IRepository<User>>();
-                pao = repo.FindByName(permissionCommand.ToIdentifier);
+                principal = repo.FindByName(permissionCommand.ToIdentifier);
             }
-            else if (permissionCommand.SpaceObjectType == SpaceObjectEnum.Role)
+            else if (permissionCommand.SpaceObjectType == SystemObjectEnum.Role)
             {
                 IRepository<Role> repo = context.Kernel.Get<IRepository<Role>>();
-                pao = repo.FindByName(permissionCommand.ToIdentifier);
+                principal = repo.FindByName(permissionCommand.ToIdentifier);
             }
             else
             {
-                throw new System.Exception("User o role required to assign permissions.");
+                throw new Exception("User o role required to assign permissions.");
             }
 
-            List<Permission> listOfPermissions = new List<Permission>();
-            IEnumerable<IGrouping<SpaceObjectEnum, SpacePermission>> pg = permissionCommand.Permissions.GroupBy(x => x.ObjectType);
+            List<PermissionAssigned> listOfPermissions = new List<PermissionAssigned>();
 
-            foreach (IGrouping<SpaceObjectEnum, SpacePermission> g in pg)
-            {
-                if (g.Key == SpaceObjectEnum.Source || g.Key == SpaceObjectEnum.Stream)
+            IEnumerable<IGrouping<SystemObjectEnum, PermissionOverObjectType>> g1 = permissionCommand.Permissions
+                .Where(x => x.ObjectName == null)
+                .Select(x =>
                 {
-                    int permissionValue = g.Select(x => x.Permission).Where(x => x != SpacePermissionsEnum.Read).Cast<int>().Count();
-                    listOfPermissions.Add(new Permission(pao, g.Key, permissionValue));
-
-                    g.Where(x => x.Permission == SpacePermissionsEnum.Read).ToList().ForEach(x =>
+                    if (permissionCommand.Action == ActionCommandEnum.Deny)
                     {
-                        if (x.ObjectType == SpaceObjectEnum.Source)
-                        {
-                            IRepository<Source> sources = context.Kernel.Get<IRepository<Source>>();
-                            Source source = sources.FindByName(x.ObjectName);
-                            if (source != null)
-                            {
-                                listOfPermissions.Add(new Permission(pao, permissionCommand.SpaceObjectType, permissionValue, source));
-                            }
-                            else
-                            {
-                                throw new System.Exception(string.Format("The source '{0}' does not exist.", x.ObjectName));
-                            }
-                        }
-                        else if (x.ObjectType == SpaceObjectEnum.Stream)
-                        {
-                            IRepository<Stream> sources = context.Kernel.Get<IRepository<Stream>>();
-                            Stream stream = sources.FindByName(x.ObjectName);
-                            if (stream != null)
-                            {
-                                listOfPermissions.Add(new Permission(pao, permissionCommand.SpaceObjectType, permissionValue, stream));
-                            }
-                            else
-                            {
-                                throw new System.Exception(string.Format("The stream '{0}' does not exist.", x.ObjectName));
-                            }
-                        }
-                    });
+                        return new PermissionOverObjectType(principal, x.ObjectType, 0, (int)x.Permission);
+                    }
+                    else
+                    {
+                        return new PermissionOverObjectType(principal, x.ObjectType, (int)x.Permission, 0);
+                    }
+                })
+                .GroupBy(x => x.SpaceObjectType);
+
+            foreach (IGrouping<SystemObjectEnum, PermissionOverObjectType> g in g1)
+            {
+                int permissionValue = g.Select(x => x.GrantValue).Cast<int>().Sum();
+
+                if (permissionCommand.Action == ActionCommandEnum.Deny)
+                {
+                    listOfPermissions.Add(new PermissionOverObjectType(principal, g.Key, 0, permissionValue));
                 }
                 else
                 {
-                    int permissionValue = g.Select(x => x.Permission).Cast<int>().Sum();
-                    listOfPermissions.Add(new Permission(pao, permissionCommand.SpaceObjectType, permissionValue));
+                    listOfPermissions.Add(new PermissionOverObjectType(principal, g.Key, permissionValue, 0));
+                }
+            }
+
+            IEnumerable<IGrouping<SystemObject, PermissionOverSpecificObject>> g2 = permissionCommand.Permissions
+                .Where(x => x.ObjectName != null)
+                .Select(x =>
+                {
+                    MethodInfo method2 = typeof(ResolutionExtensions).GetMethods()
+                    .First(m => m.Name == "Get" && m.GetParameters()[1].ParameterType.Equals(typeof(Ninject.Parameters.IParameter).MakeArrayType()))
+                    .MakeGenericMethod(new Type[] { typeof(IRepository<>).MakeGenericType(Type.GetType("Integra.Space.Models." + x.ObjectType.ToString())) });
+
+                    var repo = method2.Invoke(null, new object[] { context.Kernel, new Ninject.Parameters.IParameter[] { } });
+                    SystemObject systemObject = (SystemObject)repo.GetType().GetMethod("FindByName").Invoke(repo, new object[] { x.ObjectName });
+
+                    if (permissionCommand.Action == ActionCommandEnum.Deny)
+                    {
+                        return new PermissionOverSpecificObject(principal, systemObject, 0, (int)x.Permission);
+                    }
+                    else
+                    {
+                        return new PermissionOverSpecificObject(principal, systemObject, (int)x.Permission, 0);
+                    }
+                })
+                .GroupBy(x => x.SpaceObject, new SystemObjectComparer());
+
+            foreach (IGrouping<SystemObject, PermissionOverSpecificObject> g in g2)
+            {
+                int permissionValue = g.Where(x => x is PermissionOverSpecificObject).Select(x => x.GrantValue).Cast<int>().Sum();
+                PermissionOverSpecificObject permission = g.First();
+
+                if (permissionCommand.Action == ActionCommandEnum.Deny)
+                {
+                    listOfPermissions.Add(new PermissionOverSpecificObject(permission.Principal, g.Key, 0, permissionValue));
+                }
+                else
+                {
+                    listOfPermissions.Add(new PermissionOverSpecificObject(permission.Principal, g.Key, permissionValue, 0));
                 }
             }
 
             return listOfPermissions;
         }
+
+        /// <summary>
+        /// Execute the reverse operation of the command.
+        /// </summary>
+        /// <param name="repo">Permission repository.</param>
+        /// <param name="permission">Permission to reverse.</param>
+        protected abstract void ExecuteReverse(PermissionCacheRepository<TPermission> repo, TPermission permission);
+
+        /// <summary>
+        /// Execute the operation to the command.
+        /// </summary>
+        /// <param name="repo">Permission repository.</param>
+        /// <param name="permission">Permission to reverse.</param>
+        protected abstract void ExecutePermissionAction(PermissionCacheRepository<TPermission> repo, TPermission permission);
     }
 }

@@ -13,7 +13,7 @@ namespace Integra.Space.Pipeline.Filters
     /// <summary>
     /// Filter command parser class.
     /// </summary>
-    internal class FilterCommandParser : FirstPipelineFilter
+    internal class FilterCommandParser : CommandFilter
     {
         /// <inheritdoc />
         public override PipelineContext Execute(PipelineContext context)

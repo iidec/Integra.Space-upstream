@@ -14,29 +14,19 @@ namespace Integra.Space.Pipeline.Filters
     /// <summary>
     /// Grant permission filter class.
     /// </summary>
-    internal class RevokePermissionFilter : PermissionFilter
+    /// <typeparam name="TPermission">Permission type.</typeparam>
+    internal class RevokePermissionFilter<TPermission> : PermissionFilter<TPermission> where TPermission : PermissionAssigned
     {
         /// <inheritdoc />
-        public override PipelineExecutionCommandContext Execute(PipelineExecutionCommandContext context)
+        protected override void ExecutePermissionAction(PermissionCacheRepository<TPermission> repo, TPermission permission)
         {
-            MethodInfo method = typeof(PermissionCacheRepository).GetMethod("Revoke", new Type[] { typeof(Permission) });
-            this.ExecuteActionOverPermissions(context, this.GetPermissionsToAssing(context), method);
-
-            // throw new System.Exception("Simulando error");
-            return context;
+            repo.Revoke(permission);
         }
-        
+
         /// <inheritdoc />
-        public override void OnError(PipelineExecutionCommandContext context)
+        protected override void ExecuteReverse(PermissionCacheRepository<TPermission> pr, TPermission permission)
         {
-            if (this.OldPermissions != null)
-            {
-                PermissionCacheRepository pr = (PermissionCacheRepository)context.Kernel.Get<IRepository<Permission>>();
-                foreach (Permission p in this.OldPermissions)
-                {
-                    pr.ReverseRevoke(p);
-                }
-            }
+            pr.ReverseRevoke(permission);
         }
     }
 }

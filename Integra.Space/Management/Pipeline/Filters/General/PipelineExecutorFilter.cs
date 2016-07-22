@@ -1,22 +1,24 @@
 ﻿//-----------------------------------------------------------------------
-// <copyright file="FirstPipelineFilter.cs" company="Integra.Space">
+// <copyright file="PipelineExecutorFilter.cs" company="Integra.Space">
 //     Copyright (c) Integra.Space. All rights reserved.
 // </copyright>
 //-----------------------------------------------------------------------
 namespace Integra.Space.Pipeline.Filters
 {
     using System;
-    using Integra.Space.Pipeline;
 
     /// <summary>
-    /// Command filter.
+    /// Pipeline executor filter class.
     /// </summary>
-    internal abstract class FirstPipelineFilter : Filter<PipelineContext, PipelineContext>
+    internal class PipelineExecutorFilter : CommandFilter
     {
         /// <inheritdoc />
-        public override PipelineContext Execute(PipelineContext context)
+        public override PipelineContext Execute(PipelineContext input)
         {
-            throw new NotImplementedException();
+            PipelineExecutor cpe = new PipelineExecutor(input.Pipeline);
+            PipelineContext result = cpe.Execute(input);
+
+            return input;
         }
 
         /// <inheritdoc />

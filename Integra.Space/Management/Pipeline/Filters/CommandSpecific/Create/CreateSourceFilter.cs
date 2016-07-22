@@ -17,9 +17,9 @@ namespace Integra.Space.Pipeline.Filters
     internal class CreateSourceFilter : CreateEntityFilter<Source>
     {
         /// <inheritdoc />
-        protected override Source CreateEntity(PipelineExecutionCommandContext context)
+        protected override Source CreateEntity(PipelineContext context)
         {
-            return new Source(Guid.NewGuid(), context.Command.ObjectName);
+            return new Source(Guid.NewGuid(), context.Command.ObjectName, this.GetSchema(context));
         }
     }
 }

@@ -1,5 +1,5 @@
 ﻿//-----------------------------------------------------------------------
-// <copyright file="CacheRepositoryBase.cs" company="Integra.Space.Language">
+// <copyright file="SecureObjectRepositoryBase.cs" company="Integra.Space.Language">
 //     Copyright (c) Integra.Space.Language. All rights reserved.
 // </copyright>
 //-----------------------------------------------------------------------
@@ -9,18 +9,19 @@ namespace Integra.Space.Repos
     using System.Collections.Generic;
     using System.Diagnostics.Contracts;
     using Cache;
+    using Models;
     using Ninject;
 
     /// <summary>
     /// Cache repository base class.
     /// </summary>
     /// <typeparam name="TEntity">Entity type.</typeparam>
-    internal abstract class CacheRepositoryBase<TEntity> : IRepository<TEntity> where TEntity : class
+    internal abstract class SecureObjectRepositoryBase<TEntity> : IRepository<TEntity> where TEntity : SecureObject
     {
         /// <summary>
         /// Cache context.
         /// </summary>
-        private CacheContext context;
+        private SystemContext context;
 
         /// <summary>
         /// Object used to sync up the access to the context objects.
@@ -28,10 +29,10 @@ namespace Integra.Space.Repos
         private object sync;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="CacheRepositoryBase{TEntity}"/> class.
+        /// Initializes a new instance of the <see cref="SecureObjectRepositoryBase{TEntity}"/> class.
         /// </summary>
         /// <param name="context">Cache context.</param>
-        public CacheRepositoryBase(CacheContext context)
+        public SecureObjectRepositoryBase(SystemContext context)
         {
             Contract.Assert(context != null);
 
@@ -51,7 +52,7 @@ namespace Integra.Space.Repos
         /// <summary>
         /// Gets the cache context.
         /// </summary>
-        protected virtual CacheContext Context
+        protected virtual SystemContext Context
         {
             get
             {

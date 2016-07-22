@@ -6,7 +6,7 @@
 namespace Integra.Space.Pipeline
 {
     using System.Diagnostics.Contracts;
-    using Common;
+    using Language;
     using Models;
     using Ninject;
 
@@ -28,7 +28,7 @@ namespace Integra.Space.Pipeline
         /// <summary>
         /// Space command.
         /// </summary>
-        private SpaceCommand command;
+        private SystemCommand command;
 
         /// <summary>
         /// Error thrown in the pipeline.
@@ -38,7 +38,7 @@ namespace Integra.Space.Pipeline
         /// <summary>
         /// Created pipeline.
         /// </summary>
-        private Filter<PipelineExecutionCommandContext, PipelineExecutionCommandContext> pipeline;
+        private Filter<PipelineContext, PipelineContext> pipeline;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PipelineContext"/> class.
@@ -87,7 +87,7 @@ namespace Integra.Space.Pipeline
         /// <summary>
         /// Gets or sets the space command.
         /// </summary>
-        public SpaceCommand Command
+        public SystemCommand Command
         {
             get
             {
@@ -125,7 +125,7 @@ namespace Integra.Space.Pipeline
         /// <summary>
         /// Gets or sets the created pipeline.
         /// </summary>
-        public Filter<PipelineExecutionCommandContext, PipelineExecutionCommandContext> Pipeline
+        public Filter<PipelineContext, PipelineContext> Pipeline
         {
             get
             {

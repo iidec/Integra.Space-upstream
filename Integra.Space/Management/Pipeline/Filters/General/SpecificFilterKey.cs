@@ -17,7 +17,7 @@ namespace Integra.Space.Pipeline.Filters
         /// </summary>
         /// <param name="action">Command action.</param>
         /// <param name="objectType">Space object type.</param>
-        public SpecificFilterKey(SpaceActionCommandEnum action, SpaceObjectEnum objectType)
+        public SpecificFilterKey(ActionCommandEnum action, SystemObjectEnum objectType)
         {
             this.Action = action;
             this.SpaceObjectType = objectType;
@@ -26,11 +26,11 @@ namespace Integra.Space.Pipeline.Filters
         /// <summary>
         /// Gets the command action.
         /// </summary>
-        public SpaceActionCommandEnum Action { get; private set; }
+        public ActionCommandEnum Action { get; private set; }
 
         /// <summary>
         /// Gets the object type.
         /// </summary>
-        public SpaceObjectEnum SpaceObjectType { get; private set; }
+        public SystemObjectEnum SpaceObjectType { get; private set; }
     }
 }

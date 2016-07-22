@@ -14,9 +14,9 @@ namespace Integra.Space.Pipeline.Filters
     internal class CreateRoleFilter : CreateEntityFilter<Role>
     {
         /// <inheritdoc />
-        protected override Role CreateEntity(PipelineExecutionCommandContext context)
+        protected override Role CreateEntity(PipelineContext context)
         {
-            return new Role(Guid.NewGuid(), context.Command.ObjectName, Common.SpaceRoleTypeEnum.None);
+            return new Role(Guid.NewGuid(), context.Command.ObjectName, Common.SystemRolesEnum.None);
         }
     }
 }

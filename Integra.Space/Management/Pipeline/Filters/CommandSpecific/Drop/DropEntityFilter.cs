@@ -14,7 +14,7 @@ namespace Integra.Space.Pipeline.Filters
     /// Drop entity class.
     /// </summary>
     /// <typeparam name="TEntity">Entity type.</typeparam>
-    internal class DropEntityFilter<TEntity> : CommandFilter where TEntity : SpaceObject
+    internal class DropEntityFilter<TEntity> : CommandFilter where TEntity : SystemObject
     {
         /// <summary>
         /// Entity to used for reverse changes.
@@ -22,7 +22,7 @@ namespace Integra.Space.Pipeline.Filters
         private TEntity oldEntity;
 
         /// <inheritdoc />
-        public override PipelineExecutionCommandContext Execute(PipelineExecutionCommandContext context)
+        public override PipelineContext Execute(PipelineContext context)
         {
             IRepository<TEntity> sr = context.Kernel.Get<IRepository<TEntity>>();
             TEntity entity = sr.FindByName(context.Command.ObjectName);
@@ -38,7 +38,7 @@ namespace Integra.Space.Pipeline.Filters
         }
 
         /// <inheritdoc />
-        public override void OnError(PipelineExecutionCommandContext context)
+        public override void OnError(PipelineContext context)
         {
             if (!this.Executed)
             {
@@ -59,7 +59,7 @@ namespace Integra.Space.Pipeline.Filters
         /// </summary>
         /// <param name="entity">Entity to edit.</param>
         /// <param name="context">Context of the pipeline.</param>
-        private void CreateEntity(TEntity entity, PipelineExecutionCommandContext context)
+        private void CreateEntity(TEntity entity, PipelineContext context)
         {
             IRepository<TEntity> sr = context.Kernel.Get<IRepository<TEntity>>();
             sr.Add(entity);

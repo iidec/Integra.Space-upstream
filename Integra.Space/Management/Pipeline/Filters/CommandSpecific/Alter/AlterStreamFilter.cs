@@ -16,11 +16,11 @@ namespace Integra.Space.Pipeline.Filters
         /// <inheritdoc />
         protected override Stream CloneEntity(Stream entityToClone)
         {
-            return new Stream(entityToClone.Guid, string.Copy(entityToClone.Identifier), string.Copy(entityToClone.Query));
+            return new Stream(entityToClone.Guid, string.Copy(entityToClone.Name), string.Copy(entityToClone.Query), entityToClone.Schema);
         }
 
         /// <inheritdoc />
-        protected override void DoChanges(Stream entity, PipelineExecutionCommandContext context)
+        protected override void DoChanges(Stream entity, PipelineContext context)
         {
             string query = ((Language.CreateAndAlterStreamNode)context.Command).Query;
             
@@ -35,7 +35,7 @@ namespace Integra.Space.Pipeline.Filters
         }
 
         /// <inheritdoc />
-        protected override void ReverseChanges(Stream entity, PipelineExecutionCommandContext context)
+        protected override void ReverseChanges(Stream entity, PipelineContext context)
         {
             entity.Query = this.OldEntityData.Query;
         }

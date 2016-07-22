@@ -8,12 +8,12 @@ namespace Integra.Space.Models
     /// <summary>
     /// Space object class.
     /// </summary>
-    internal class Stream : SpaceObject
+    internal class Stream : SecureObject
     {
         /// <summary>
         /// Assembly of the query of the stream.
         /// </summary>
-        private StreamAssembly streamAssembly;
+        private SystemAssembly streamAssembly;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Stream"/> class.
@@ -21,7 +21,8 @@ namespace Integra.Space.Models
         /// <param name="guid">Space object unique identifier.</param>
         /// <param name="identifier">Space object name.</param>
         /// <param name="query">Query of the stream.</param>
-        public Stream(System.Guid guid, string identifier, string query) : base(guid, identifier)
+        /// <param name="schema">Schema witch the secure object belongs.</param>
+        public Stream(System.Guid guid, string identifier, string query, Schema schema) : base(guid, identifier, schema)
         {
             this.Query = query;
         }
@@ -34,7 +35,7 @@ namespace Integra.Space.Models
         /// <summary>
         /// Gets or sets the assembly of the query of the stream.
         /// </summary>
-        public StreamAssembly StreamAssembly
+        public SystemAssembly StreamAssembly
         {
             get
             {

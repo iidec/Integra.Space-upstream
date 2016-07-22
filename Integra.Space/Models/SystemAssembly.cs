@@ -1,5 +1,5 @@
 ﻿//-----------------------------------------------------------------------
-// <copyright file="StreamAssembly.cs" company="Integra.Space">
+// <copyright file="SystemAssembly.cs" company="Integra.Space">
 //     Copyright (c) Integra.Space. All rights reserved.
 // </copyright>
 //-----------------------------------------------------------------------
@@ -10,7 +10,7 @@ namespace Integra.Space.Models
     /// <summary>
     /// Stream assembly class.
     /// </summary>
-    internal class StreamAssembly
+    internal class SystemAssembly
     {
         /// <summary>
         /// Assembly of the query.
@@ -18,10 +18,10 @@ namespace Integra.Space.Models
         private Assembly assembly;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="StreamAssembly"/> class.
+        /// Initializes a new instance of the <see cref="SystemAssembly"/> class.
         /// </summary>
         /// <param name="assembly">Assembly of the query.</param>
-        public StreamAssembly(Assembly assembly)
+        public SystemAssembly(Assembly assembly)
         {
             this.assembly = assembly;
         }

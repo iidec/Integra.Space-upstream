@@ -1,5 +1,5 @@
 ﻿//-----------------------------------------------------------------------
-// <copyright file="UserCacheRepository.cs" company="Integra.Space">
+// <copyright file="SourceCacheRepository.cs" company="Integra.Space">
 //     Copyright (c) Integra.Space. All rights reserved.
 // </copyright>
 //-----------------------------------------------------------------------
@@ -9,80 +9,81 @@ namespace Integra.Space.Repos
     using System.Collections.Generic;
     using Cache;
     using Models;
+    using Ninject;
 
     /// <summary>
     /// Space object repository class.
     /// </summary>
-    internal class UserCacheRepository : CacheRepositoryBase<User>
+    internal class SourceCacheRepository : SecureObjectRepositoryBase<Source>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="UserCacheRepository"/> class.
+        /// Initializes a new instance of the <see cref="SourceCacheRepository"/> class.
         /// </summary>
         /// <param name="context">Cache context.</param>
-        public UserCacheRepository(CacheContext context) : base(context)
+        public SourceCacheRepository(SystemContext context) : base(context)
         {
         }
 
         /// <inheritdoc />
-        public override IEnumerable<User> List
+        public override IEnumerable<Source> List
         {
             get
             {
-                return this.Context.Users;
+                return this.Context.Sources;
             }
         }
 
         /// <inheritdoc />
-        public override void Add(User entity)
+        public override void Add(Source entity)
         {
             lock (this.Sync)
             {
-                if (this.Context.Users.Exists(x => x.Identifier == entity.Identifier))
+                if (this.Context.Sources.Exists(x => x.Name == entity.Name))
                 {
-                    throw new Exception(string.Format("The user '{0}' already exists.", entity.Identifier));
+                    throw new Exception(string.Format("The source '{0}' already exists.", entity.Name));
                 }
-                else if (this.Context.Users.Exists(x => x.Guid == entity.Guid))
+                else if (this.Context.Sources.Exists(x => x.Guid == entity.Guid))
                 {
                     throw new Exception(string.Format("The unique identifier '{0}' already exists.", entity.Guid));
                 }
                 else
                 {
-                    this.Context.Users.Add(entity);
+                    this.Context.Sources.Add(entity);
                 }
             }
         }
 
         /// <inheritdoc />
-        public override void Delete(User entity)
+        public override void Delete(Source entity)
         {
             lock (this.Sync)
             {
-                if (this.Context.Users.Exists(x => x.Guid == entity.Guid))
+                if (this.Context.Sources.Exists(x => x.Guid == entity.Guid))
                 {
-                    this.Context.Users.Remove(entity);
+                    this.Context.Sources.Remove(entity);
                 }
                 else
                 {
-                    throw new Exception(string.Format("The user '{0}' don't exists.", entity.Identifier));
+                    throw new Exception(string.Format("The source '{0}' don't exists.", entity.Name));
                 }
             }
         }
 
         /// <inheritdoc />
-        public override User FindById(Guid id)
+        public override Source FindById(Guid id)
         {
             lock (this.Sync)
             {
-                return this.Context.Users.Find(x => x.Guid == id);
+                return this.Context.Sources.Find(x => x.Guid == id);
             }
         }
 
         /// <inheritdoc />
-        public override User FindByName(string name)
+        public override Source FindByName(string name)
         {
             lock (this.Sync)
             {
-                return this.Context.Users.Find(x => x.Identifier == name);
+                return this.Context.Sources.Find(x => x.Name == name);
             }
         }
     }
