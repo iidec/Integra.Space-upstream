@@ -32,6 +32,7 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="EntityFramework, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
     <Reference Include="Integra.Common, Version=2.1.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\Integra.Common.Debug.2.1.0.0\lib\net45\Integra.Common.dll</HintPath>
       <Private>True</Private>
@@ -91,6 +92,7 @@
     <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Management\Pipeline\Contexts\SecurityContext.cs" />
     <Compile Include="Management\Pipeline\Filters\CommandCommon\ValidateObjectTypePermissions.cs" />
     <Compile Include="Management\Pipeline\Filters\CommandCommon\ValidateSpecificObjectPermissions.cs" />
     <Compile Include="Management\Pipeline\Filters\CommandFilter.cs" />
@@ -122,6 +124,7 @@
     <Compile Include="Models\SystemRole.cs" />
     <Compile Include="Models\Schema.cs" />
     <Compile Include="Models\SecureObject.cs" />
+    <Compile Include="Models\User.cs" />
     <Compile Include="Models\UserXRole.cs" />
     <Compile Include="Models\SystemAssembly.cs" />
     <Compile Include="Repos\Schema\SecureObjectRepositoryBase.cs" />
@@ -156,7 +159,6 @@
     <Compile Include="Management\Pipeline\PipelineExtensions.cs" />
     <Compile Include="Repos\IRepository.cs" />
     <Compile Include="Models\PermissionAssigned.cs" />
-    <Compile Include="Models\User.cs" />
     <Compile Include="Models\Role.cs" />
     <Compile Include="Models\Source.cs" />
     <Compile Include="Models\Principal.cs" />
@@ -171,6 +173,10 @@
     <ProjectReference Include="..\Integra.Space.Common\Integra.Space.Common.csproj">
       <Project>{27c39916-4c52-4472-8168-07a33448a5fc}</Project>
       <Name>Integra.Space.Common</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Integra.Space.Database\Integra.Space.Database.csproj">
+      <Project>{9a2a2515-4dbd-44e5-a4ab-d0d15e49396f}</Project>
+      <Name>Integra.Space.Database</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup />

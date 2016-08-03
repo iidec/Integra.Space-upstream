@@ -91,6 +91,7 @@ namespace Integra.Space.Pipeline.Filters
         public List<PermissionAssigned> GetPermissionsToAssing(PipelineContext context)
         {
             SpacePermissionsCommandNode permissionCommand = (SpacePermissionsCommandNode)context.Command;
+            Schema schema = this.GetSchema(context);
 
             Principal principal = null;
             if (permissionCommand.SpaceObjectType == SystemObjectEnum.User)
@@ -110,32 +111,34 @@ namespace Integra.Space.Pipeline.Filters
 
             List<PermissionAssigned> listOfPermissions = new List<PermissionAssigned>();
 
-            IEnumerable<IGrouping<SystemObjectEnum, PermissionOverObjectType>> g1 = permissionCommand.Permissions
+            IEnumerable<IGrouping<dynamic, PermissionOverObjectType>> g1 = permissionCommand.Permissions
                 .Where(x => x.ObjectName == null)
                 .Select(x =>
                 {
                     if (permissionCommand.Action == ActionCommandEnum.Deny)
                     {
-                        return new PermissionOverObjectType(principal, x.ObjectType, 0, (int)x.Permission);
+                        return new PermissionOverObjectType(principal, x.ObjectType, 0, (int)x.Permission, schema);
                     }
                     else
                     {
-                        return new PermissionOverObjectType(principal, x.ObjectType, (int)x.Permission, 0);
+                        return new PermissionOverObjectType(principal, x.ObjectType, (int)x.Permission, 0, schema);
                     }
                 })
-                .GroupBy(x => x.SpaceObjectType);
+                .GroupBy(x => new { ObjectType = x.SpaceObjectType, SchemaName = x.Schema.Name });
 
-            foreach (IGrouping<SystemObjectEnum, PermissionOverObjectType> g in g1)
+            foreach (IGrouping<dynamic, PermissionOverObjectType> g in g1)
             {
-                int permissionValue = g.Select(x => x.GrantValue).Cast<int>().Sum();
+                int permissionValue = 0;
 
                 if (permissionCommand.Action == ActionCommandEnum.Deny)
                 {
-                    listOfPermissions.Add(new PermissionOverObjectType(principal, g.Key, 0, permissionValue));
+                    g.Select(x => x.DenyValue).Cast<int>().ToList().ForEach(x => permissionValue = permissionValue | x);
+                    listOfPermissions.Add(new PermissionOverObjectType(principal, g.Key.ObjectType, 0, permissionValue, schema));
                 }
                 else
                 {
-                    listOfPermissions.Add(new PermissionOverObjectType(principal, g.Key, permissionValue, 0));
+                    g.Select(x => x.GrantValue).Cast<int>().ToList().ForEach(x => permissionValue = permissionValue | x);
+                    listOfPermissions.Add(new PermissionOverObjectType(principal, g.Key.ObjectType, permissionValue, 0, schema));
                 }
             }
 
@@ -162,16 +165,18 @@ namespace Integra.Space.Pipeline.Filters
                 .GroupBy(x => x.SpaceObject, new SystemObjectComparer());
 
             foreach (IGrouping<SystemObject, PermissionOverSpecificObject> g in g2)
-            {
-                int permissionValue = g.Where(x => x is PermissionOverSpecificObject).Select(x => x.GrantValue).Cast<int>().Sum();
+            {                
                 PermissionOverSpecificObject permission = g.First();
+                int permissionValue = 0;
 
                 if (permissionCommand.Action == ActionCommandEnum.Deny)
                 {
+                    g.Where(x => x is PermissionOverSpecificObject).Select(x => x.DenyValue).Cast<int>().ToList().ForEach(x => permissionValue = permissionValue | x);
                     listOfPermissions.Add(new PermissionOverSpecificObject(permission.Principal, g.Key, 0, permissionValue));
                 }
                 else
                 {
+                    g.Where(x => x is PermissionOverSpecificObject).Select(x => x.GrantValue).Cast<int>().ToList().ForEach(x => permissionValue = permissionValue | x);
                     listOfPermissions.Add(new PermissionOverSpecificObject(permission.Principal, g.Key, permissionValue, 0));
                 }
             }

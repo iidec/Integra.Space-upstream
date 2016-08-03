@@ -107,6 +107,7 @@ namespace Integra.Space.Repos
                 if (permission != null)
                 {
                     permission.GrantValue = permission.GrantValue + entity.GrantValue;
+                    permission.DenyValue = permission.DenyValue + entity.DenyValue;
                 }
             }
         }

@@ -41,6 +41,16 @@ namespace Integra.Space.Pipeline
         private Filter<PipelineContext, PipelineContext> pipeline;
 
         /// <summary>
+        /// Flag indicating that the user is allowed to do things to a specific object
+        /// </summary>
+        private bool? isAllowedOverSpecificObject;
+
+        /// <summary>
+        /// Flag indicating that the user is allowed to do things in a global environment. Example. create a schema, role, or user.
+        /// </summary>
+        private bool? isAllowedOverSystem;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="PipelineContext"/> class.
         /// </summary>
         /// <param name="commandString">Space command string.</param>
@@ -135,6 +145,54 @@ namespace Integra.Space.Pipeline
             set
             {
                 this.pipeline = value;
+            }
+        }
+
+        /// <summary>
+        /// Sets a value indicating that the user is allowed to do things to a specific object
+        /// </summary>
+        public bool? IsAllowedOverSpecificObject
+        {
+            set
+            {
+                if (this.isAllowedOverSpecificObject == null)
+                {
+                    this.isAllowedOverSpecificObject = value;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Sets a value indicating that the user is allowed to do things in a global environment. Example. create a schema, role, or user.
+        /// </summary>
+        public bool? IsAllowedOverSystem
+        {
+            set
+            {
+                if (this.isAllowedOverSystem == null)
+                {
+                    this.isAllowedOverSystem = value;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets a value indicating whether the user has permissions to execute the command.
+        /// </summary>
+        /// <returns>A value indicating whether the user has permissions to execute the command.</returns>
+        public bool HasPermissions()
+        {
+            if (this.isAllowedOverSpecificObject == null && this.isAllowedOverSystem == null)
+            {
+                return false;
+            }
+            else if (this.isAllowedOverSpecificObject == false || this.isAllowedOverSystem == false)
+            {
+                return false;
+            }
+            else
+            {
+                return true;
             }
         }
     }

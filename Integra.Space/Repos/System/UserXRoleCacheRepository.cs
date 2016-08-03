@@ -7,6 +7,7 @@ namespace Integra.Space.Repos
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using Cache;
     using Models;
 
@@ -66,6 +67,32 @@ namespace Integra.Space.Repos
             lock (this.Sync)
             {
                 return this.Context.UsersXRoles.Exists(x => x.Principal.Guid == entity.Principal.Guid && x.Role.Guid == entity.Role.Guid);
+            }
+        }
+
+        /// <summary>
+        /// Gets the roles of the specified user.
+        /// </summary>
+        /// <param name="user">User assigned to roles.</param>
+        /// <returns>Roles assigned to the user.</returns>
+        public IEnumerable<Role> GetRolesOfTheUser(User user)
+        {
+            lock (this.Sync)
+            {
+                return this.Context.UsersXRoles.Where(x => user.Guid == x.Principal.Guid).Select(x => x.Role);
+            }
+        }
+
+        /// <summary>
+        /// Gets the users of the specified role.
+        /// </summary>
+        /// <param name="role">Role that you want to list it's users.</param>
+        /// <returns>Users assigned to the role.</returns>
+        public IEnumerable<Principal> GetUsersOfTheRole(Role role)
+        {
+            lock (this.Sync)
+            {
+                return this.Context.UsersXRoles.Where(x => role.Guid == x.Role.Guid).Select(x => x.Principal);
             }
         }
     }

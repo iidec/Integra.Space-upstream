@@ -18,7 +18,23 @@ namespace Integra.Space.Pipeline.Filters
         {
             if (x.Principal.Name == y.Principal.Name && x.SpaceObjectType == y.SpaceObjectType)
             {
-                if (((x.GrantValue ^ x.DenyValue) & (y.GrantValue ^ y.DenyValue)) == (y.GrantValue ^ y.DenyValue))
+                if (x.Schema != y.Schema)
+                {
+                    return false;
+                }
+
+                int xValue = x.GrantValue ^ x.DenyValue;
+                int yValue = y.GrantValue ^ y.DenyValue;
+
+                int valorMayor = xValue;
+                int valorMenor = yValue;
+                if (xValue < yValue)
+                {
+                    valorMayor = yValue;
+                    valorMenor = xValue;
+                }
+
+                if ((valorMayor & valorMenor) == valorMenor)
                 {
                     return true;
                 }

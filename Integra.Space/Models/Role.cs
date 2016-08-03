@@ -23,8 +23,7 @@ namespace Integra.Space.Models
         /// </summary>
         /// <param name="guid">Space object unique identifier.</param>
         /// <param name="identifier">Space object name.</param>
-        /// <param name="roleType">Role type.</param>
-        public Role(System.Guid guid, string identifier, SystemRolesEnum roleType) : base(guid, identifier)
+        public Role(System.Guid guid, string identifier) : base(guid, identifier)
         {
             this.users = new List<User>();
         }

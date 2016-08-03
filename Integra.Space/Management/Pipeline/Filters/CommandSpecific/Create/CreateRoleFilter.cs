@@ -16,7 +16,7 @@ namespace Integra.Space.Pipeline.Filters
         /// <inheritdoc />
         protected override Role CreateEntity(PipelineContext context)
         {
-            return new Role(Guid.NewGuid(), context.Command.ObjectName, Common.SystemRolesEnum.None);
+            return new Role(Guid.NewGuid(), context.Command.ObjectName);
         }
     }
 }

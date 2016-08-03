@@ -18,6 +18,22 @@ namespace Integra.Space.Pipeline.Filters
         {
             if (x.Guid == y.Guid && x.Name == y.Name)
             {
+                if (x is SecureObject && !(y is SecureObject))
+                {
+                    return false;
+                }
+                else if (!(x is SecureObject) && y is SecureObject)
+                {
+                    return false;
+                }
+                else if (x is SecureObject && y is SecureObject)
+                {
+                    if (!(((SecureObject)x).Schema.Name == ((SecureObject)y).Schema.Name))
+                    {
+                        return false;
+                    }
+                }
+
                 return true;
             }
 
