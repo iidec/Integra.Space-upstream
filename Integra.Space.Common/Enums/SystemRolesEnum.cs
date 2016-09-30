@@ -8,7 +8,6 @@ namespace Integra.Space.Common
     /// <summary>
     /// Space role enumerator.
     /// </summary>
-    [System.Flags]
     internal enum SystemRolesEnum
     {
         /// <summary>

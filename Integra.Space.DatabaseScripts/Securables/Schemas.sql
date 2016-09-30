@@ -8,9 +8,9 @@
     [owner_db_id] UNIQUEIDENTIFIER NOT NULL, 
     [owner_srv_id] UNIQUEIDENTIFIER NOT NULL, 
     PRIMARY KEY ([srv_id], [db_id], [sch_id]), 
-    CONSTRAINT [AK_Schemas_sch_name] UNIQUE ([sch_name]), 
+    CONSTRAINT [AK_Schemas_sch_name] UNIQUE ([sch_name], [db_id]), 
     CONSTRAINT [FK_Schemas_Databases] FOREIGN KEY ([srv_id], [db_id]) REFERENCES [space].[databases]([srv_id], [db_id]) ,
     CONSTRAINT [FK_Schemas_DatabaseUsers] FOREIGN KEY ([owner_id], [owner_srv_id], [owner_db_id]) REFERENCES [space].[database_users]([dbusr_id], [srv_id], [db_id]) , 
     CONSTRAINT [CK_Schemas_db_ownership] CHECK ([owner_db_id] = [db_id]),
-	CONSTRAINT [CK_Schemas_server_ownership] CHECK ([owner_srv_id] = [srv_id]) 
+	CONSTRAINT [CK_Schemas_server_ownership] CHECK ([owner_srv_id] = [srv_id])
 )

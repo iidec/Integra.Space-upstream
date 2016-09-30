@@ -13,6 +13,7 @@ namespace Integra.Space.Database
         public SecurableClass()
         {
             PermissionsBySecurables = new HashSet<PermissionBySecurable>();
+            //securables = new HashSet<Securable>();
         }
 
         [Key]
@@ -28,5 +29,8 @@ namespace Integra.Space.Database
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<PermissionBySecurable> PermissionsBySecurables { get; set; }
+        
+        //[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
+        //public virtual ICollection<Securable> securables { get; set; }
     }
 }

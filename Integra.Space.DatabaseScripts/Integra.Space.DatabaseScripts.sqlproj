@@ -71,6 +71,7 @@
     <Folder Include="ServerPermissions\Endpoints" />
     <Folder Include="ServerPermissions\Logins" />
     <Folder Include="ServerPermissions\Servers" />
+    <Folder Include="StoreProcedures" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="DatabasePermissions\DatabaseRoles\DBRolesAssignedPermissionsToDBRoles.sql" />
@@ -88,18 +89,12 @@
     <Build Include="DatabasePermissions\Views\ViewAssignedPermissionsToDBRoles.sql" />
     <Build Include="DatabasePermissions\Views\ViewAssignedPermissionsToUsers.sql" />
     <Build Include="Securables\DatabaseRoles.sql" />
-    <Build Include="Securables\DatabaseRolesByUsers.sql" />
     <Build Include="Securables\Databases.sql" />
     <Build Include="Securables\DatabaseUsers.sql" />
     <Build Include="Securables\Endpoints.sql" />
-    <Build Include="Securables\GranularPermissions.sql" />
     <Build Include="Securables\Logins.sql" />
-    <Build Include="Securables\LoginsByUsers.sql" />
-    <Build Include="Securables\PermissionsBySecurables.sql" />
     <Build Include="Securables\Schemas.sql" />
-    <Build Include="Securables\SecurableClasses.sql" />
     <Build Include="Securables\ServerRoles.sql" />
-    <Build Include="Securables\ServerRolesByLogins.sql" />
     <Build Include="Securables\Servers.sql" />
     <Build Include="Securables\Sources.sql" />
     <Build Include="Securables\Streams.sql" />
@@ -115,8 +110,18 @@
     <Build Include="spaceLogin.sql" />
     <Build Include="spaceSchema.sql" />
     <Build Include="vw_permissions.sql" />
+    <Build Include="StoreProcedures\GetPermissionsWithParents.sql" />
+    <Build Include="Security\PermissionsBySecurables.sql" />
+    <Build Include="Security\SecurableClasses.sql" />
+    <Build Include="Security\GranularPermissions.sql" />
+    <Build Include="Security\ServerRolesByLogins.sql" />
+    <Build Include="Security\DatabaseRolesByUsers.sql" />
+    <Build Include="Security\LoginsByUsers.sql" />
   </ItemGroup>
   <ItemGroup>
     <RefactorLog Include="Integra.Space.DatabaseScripts.refactorlog" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Integra.Space.DatabaseScripts.publish.xml" />
   </ItemGroup>
 </Project>

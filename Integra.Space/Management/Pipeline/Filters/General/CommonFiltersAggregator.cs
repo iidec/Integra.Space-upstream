@@ -6,27 +6,43 @@
 namespace Integra.Space.Pipeline.Filters
 {
     using System;
+    using System.Collections.Generic;
+    using System.Linq;
 
     /// <summary>
     /// Common filters aggregator class.
     /// </summary>
-    internal class CommonFiltersAggregator : CommandFilter
+    internal class CommonFiltersAggregator : FirstLevelCommandFilter
     {
         /// <inheritdoc />
-        public override PipelineContext Execute(PipelineContext input)
+        public override FirstLevelPipelineContext Execute(FirstLevelPipelineContext context)
         {
-            input.Pipeline = new FilterLock()
-                .AddStep(new ValidateExistence())
-                .AddStep(new ValidateSpecificObjectPermissions())
-                .AddStep(new ValidateObjectTypePermissions())
-                .AddStep(input.Pipeline)
-                .AddStep(new FilterUnlock());
+            Filter<PipelineContext, PipelineContext> filterAux = null;
+            foreach (CommandPipelineNode commandNode in context.Commands)
+            {
+                if (commandNode.Command is Language.QueryCommandForMetadataNode)
+                {
+                    filterAux = new ValidateExistence()
+                        .AddStep(new SecureContextBuilderFilter());
+                }
+                else
+                {
+                    filterAux = new ValidateExistence()
+                        .AddStep(new SecureContextBuilderFilter())
+                        .AddStep(new ValidatePermissions());
+                }
 
-            return input;
+                if (commandNode.Pipeline != null)
+                {
+                    commandNode.Pipeline = filterAux.AddStep(commandNode.Pipeline);
+                }
+            }
+
+            return context;
         }
 
         /// <inheritdoc />
-        public override void OnError(PipelineContext e)
+        public override void OnError(FirstLevelPipelineContext e)
         {
             throw new NotImplementedException();
         }

@@ -14,6 +14,11 @@ namespace Integra.Space.Common
     internal enum ActionCommandEnum
     {
         /// <summary>
+        /// Unspecified command action.
+        /// </summary>
+        Unspecified = 0,
+
+        /// <summary>
         /// Action command drop.
         /// </summary>
         Drop = 1,
@@ -61,7 +66,22 @@ namespace Integra.Space.Common
         /// <summary>
         /// Action command add.
         /// </summary>
-        Add = 256,
+        Add = 512,
+
+        /// <summary>
+        /// Action command use.
+        /// </summary>
+        Use = 1024,
+
+        /// <summary>
+        /// Action take ownership.
+        /// </summary>
+        TakeOwnership = 2048,
+
+        /// <summary>
+        /// Action command query of metadata.
+        /// </summary>
+        ViewDefinition = 4096,
 
         /// <summary>
         /// Commands for add, delete o edit a space object.

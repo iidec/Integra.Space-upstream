@@ -2,6 +2,7 @@ namespace Integra.Space.Database
 {
     using System;
     using System.Collections.Generic;
+    using System.ComponentModel;
     using System.ComponentModel.DataAnnotations;
     using System.ComponentModel.DataAnnotations.Schema;
     using System.Data.Entity.Spatial;
@@ -10,14 +11,14 @@ namespace Integra.Space.Database
     public partial class EndpointAssignedPermissionsToServerRole
     {
         [Key]
-        [Column("lg_id", Order = 0)]
+        [Column("srvrole_id", Order = 1)]
         [DatabaseGenerated(DatabaseGeneratedOption.None)]
-        public System.Guid LoginId { get; set; }
+        public System.Guid ServerRoleId { get; set; }
 
         [Key]
-        [Column("lg_srv_id", Order = 1)]
+        [Column("srvrole_srv_id", Order = 0)]
         [DatabaseGenerated(DatabaseGeneratedOption.None)]
-        public System.Guid LoginServerId { get; set; }
+        public System.Guid ServerRoleServerId { get; set; }
 
         [Key]
         [Column("sc_id", Order = 2)]
@@ -39,9 +40,21 @@ namespace Integra.Space.Database
         [DatabaseGenerated(DatabaseGeneratedOption.None)]
         public System.Guid EndpointServerId { get; set; }
 
+        [Column("granted")]
+        [DefaultValue(false)]
+        public bool Granted { get; set; }
+
+        [Column("denied")]
+        [DefaultValue(false)]
+        public bool Denied { get; set; }
+
+        [Column("with_grant_option")]
+        [DefaultValue(false)]
+        public bool WithGrantOption { get; set; }
+
         public virtual Endpoint Endpoint { get; set; }
 
-        public virtual Login Login { get; set; }
+        public virtual ServerRole ServerRole { get; set; }
 
         public virtual PermissionBySecurable PermissionBySecurable { get; set; }
     }

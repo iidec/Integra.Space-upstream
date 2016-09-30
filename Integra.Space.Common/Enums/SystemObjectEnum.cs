@@ -10,7 +10,6 @@ namespace Integra.Space.Common
     /// <summary>
     /// Space object enumerable.
     /// </summary>
-    [Flags]
     internal enum SystemObjectEnum
     {
         /// <summary>
@@ -24,23 +23,48 @@ namespace Integra.Space.Common
         Stream = 2,
 
         /// <summary>
-        /// Space object user.
+        /// Space object view.
         /// </summary>
-        User = 4,
-
-        /// <summary>
-        /// Space object role
-        /// </summary>
-        Role = 8,
+        View = 4,
 
         /// <summary>
         /// Space object schema
         /// </summary>
-        Schema = 16,
+        Schema = 8,
 
         /// <summary>
-        /// Objects that can assign permissions.
+        /// Space object user.
         /// </summary>
-        PermissionAssignableObjects = User | Role
+        DatabaseUser = 16,
+
+        /// <summary>
+        /// Space object role
+        /// </summary>
+        DatabaseRole = 32,
+
+        /// <summary>
+        /// Space object database.
+        /// </summary>
+        Database = 64,
+
+        /// <summary>
+        /// Space object server role.
+        /// </summary>
+        ServerRole = 128,
+
+        /// <summary>
+        /// Space object login.
+        /// </summary>
+        Login = 256,
+
+        /// <summary>
+        /// Space object endpoint.
+        /// </summary>
+        Endpoint = 512,
+
+        /// <summary>
+        /// Space object server.
+        /// </summary>
+        Server = 1024
     }
 }

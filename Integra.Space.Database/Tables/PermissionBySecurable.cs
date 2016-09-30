@@ -37,7 +37,7 @@ namespace Integra.Space.Database
         [Key]
         [Column("sc_id", Order = 0)]
         [DatabaseGenerated(DatabaseGeneratedOption.None)]
-        public System.Guid SecurablePermissionId { get; set; }
+        public System.Guid SecurableClassId { get; set; }
 
         [Key]
         [Column("gp_id", Order = 1)]
@@ -45,7 +45,7 @@ namespace Integra.Space.Database
         public System.Guid GranularPermissionId { get; set; }
 
         [Column("sc_id_parent")]
-        public System.Guid? ParentSecurablePermissionId { get; set; }
+        public System.Guid? ParentSecurableClassId { get; set; }
 
         [Column("gp_id_parent")]
         public System.Guid? ParentGranularPermissionId { get; set; }
@@ -78,9 +78,11 @@ namespace Integra.Space.Database
 
         public virtual SecurableClass SecurableClass { get; set; }
 
-        public virtual PermissionBySecurable PermissionBySecurable1 { get; set; }
+        [InverseProperty("Children")]
+        public virtual PermissionBySecurable Parent { get; set; }
 
-        public virtual PermissionBySecurable PermissionBySecurable2 { get; set; }
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
+        public virtual ICollection<PermissionBySecurable> Children { get; set; }
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<SchemaAssignedPermissionsToDBRole> SchemaAssignedPermissionsToDBRoles { get; set; }

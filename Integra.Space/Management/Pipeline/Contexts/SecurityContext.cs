@@ -3,12 +3,13 @@
 //     Copyright (c) Integra.Space.Language. All rights reserved.
 // </copyright>
 //-----------------------------------------------------------------------
-namespace Integra.Space.Management.Pipeline.Contexts
+namespace Integra.Space.Pipeline
 {
     using System.Collections.Generic;
+    using System.Diagnostics.Contracts;
     using System.Linq;
     using Database;
-    using Integra.Space.Models;
+    using Ninject;
 
     /// <summary>
     /// Security context class.
@@ -16,32 +17,52 @@ namespace Integra.Space.Management.Pipeline.Contexts
     internal sealed class SecurityContext
     {
         /// <summary>
+        /// The user requesting the command execution.
+        /// </summary>
+        private DatabaseUser user;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="SecurityContext"/> class.
         /// </summary>
-        /// <param name="user">Database user</param>
-        public SecurityContext(DatabaseUser user)
+        /// <param name="login">Login that will execute the command.</param>
+        /// <param name="kernel">DI kernel.</param>
+        public SecurityContext(string login, IKernel kernel)
         {
-            this.User = user;
+            Contract.Assert(!string.IsNullOrWhiteSpace(login));
 
-            using (SpaceDbContext context = new SpaceDbContext())
+            // obtengo el contexto de base de datos
+            SpaceDbContext context = kernel.Get<SpaceDbContext>();
+            
+            // se obtiene el login definido para ejecutar el comando.
+            this.Login = context.Logins.Single(x => x.LoginName == login);
+            
+            // se obtienen los roles del sistema para el login.
+            this.ServerRoles = this.Login.ServerRoles;
+        }
+
+        /// <summary>
+        /// Gets or sets the user requesting the command execution.
+        /// </summary>
+        public DatabaseUser User
+        {
+            get
             {
-                DatabaseUser userAux = context.DatabaseUsers
-                    .Single(x => x.DbUsrId == user.DbUsrId && x.DatabaseId == user.DatabaseId && x.ServerId == user.ServerId);
+                return this.user;
+            }
 
-                this.DatabaseRoles = userAux.DatabaseRoles;
-                this.Logins = userAux.Logins;
+            set
+            {
+                if (this.user == null)
+                {
+                    this.user = value;
+                }
             }
         }
 
         /// <summary>
-        /// Gets the user requesting the command execution.
+        /// Gets or sets the database roles of the user.
         /// </summary>
-        public DatabaseUser User { get; private set; }
-
-        /// <summary>
-        /// Gets the database roles of the user.
-        /// </summary>
-        public ICollection<DatabaseRole> DatabaseRoles { get; private set; }
+        public ICollection<DatabaseRole> DatabaseRoles { get; set; }
 
         /// <summary>
         /// Gets the server roles of the user.
@@ -51,6 +72,6 @@ namespace Integra.Space.Management.Pipeline.Contexts
         /// <summary>
         /// Gets the logins of the user.
         /// </summary>
-        public ICollection<Login> Logins { get; private set; }
+        public Login Login { get; private set; }
     }
 }

@@ -10,19 +10,28 @@ namespace Integra.Space.Pipeline.Filters
     /// <summary>
     /// Pipeline executor filter class.
     /// </summary>
-    internal class PipelineExecutorFilter : CommandFilter
+    internal class PipelineExecutorFilter : FirstLevelCommandFilter
     {
         /// <inheritdoc />
-        public override PipelineContext Execute(PipelineContext input)
+        public override FirstLevelPipelineContext Execute(FirstLevelPipelineContext context)
         {
-            PipelineExecutor cpe = new PipelineExecutor(input.Pipeline);
-            PipelineContext result = cpe.Execute(input);
+            PipelineExecutor cpe = null;
+            foreach (CommandPipelineNode commandNode in context.Commands)
+            {
+                if (commandNode.Pipeline == null)
+                {
+                    continue;
+                }
 
-            return input;
+                cpe = new PipelineExecutor(commandNode.Pipeline);
+                cpe.Execute(new PipelineContext(((Language.CompiledCommand)commandNode.Command).CommandText, commandNode.Command, context.Login, context.Kernel));
+            }
+
+            return context;
         }
 
         /// <inheritdoc />
-        public override void OnError(PipelineContext e)
+        public override void OnError(FirstLevelPipelineContext e)
         {
             throw new NotImplementedException();
         }

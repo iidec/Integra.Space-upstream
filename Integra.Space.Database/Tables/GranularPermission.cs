@@ -26,6 +26,8 @@ namespace Integra.Space.Database
         [StringLength(50)]
         public string GranularPermissionName { get; set; }
 
+        [Column("gp_code")]
+        [Index(IsUnique = true)]
         [StringLength(5)]
         public string GranularPermissionCode { get; set; }
 

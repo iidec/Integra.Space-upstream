@@ -11,5 +11,5 @@
     PRIMARY KEY ([dbr_id], [srv_id], [db_id]),
     CONSTRAINT [FK_DatabaseRoles_DatabaseUsers] FOREIGN KEY ([owner_id], [owner_srv_id], [owner_db_id]) REFERENCES [space].[database_users]([dbusr_id], [srv_id], [db_id]), 
     CONSTRAINT [CK_DatabaseRoles_db_ownership] CHECK ([owner_db_id] = [db_id]),
-	CONSTRAINT [CK_DatabaseRoles_server_ownership] CHECK ([owner_srv_id] = [srv_id]) 
+	CONSTRAINT [CK_DatabaseRoles_server_ownership] CHECK ([owner_srv_id] = [srv_id])
 )

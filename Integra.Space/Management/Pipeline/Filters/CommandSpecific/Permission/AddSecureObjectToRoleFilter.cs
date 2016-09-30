@@ -7,8 +7,9 @@ namespace Integra.Space.Pipeline.Filters
 {
     using System;
     using System.Collections.Generic;
-    using Integra.Space.Models;
-    using Integra.Space.Repos;
+    using System.Linq;
+    using Database;
+    using Language;
     using Ninject;
 
     /// <summary>
@@ -16,53 +17,36 @@ namespace Integra.Space.Pipeline.Filters
     /// </summary>
     internal class AddSecureObjectToRoleFilter : CommandFilter
     {
-        /// <summary>
-        /// Users and roles assigned.
-        /// </summary>
-        private List<UserXRole> usersAndRolesAssigned;
-
         /// <inheritdoc />
         public override PipelineContext Execute(PipelineContext context)
         {
-            IRepository<Role> roles = context.Kernel.Get<IRepository<Role>>();
-            Role role = roles.FindByName(((Language.AddCommandNode)context.Command).ToIdentifier);
+            Schema schema = context.CommandContext.Schema;
+            AddCommandNode command = (AddCommandNode)context.CommandContext.Command;
+            HashSet<CommandObject> roles = command.Roles;
+            HashSet<CommandObject> users = command.Users;
 
-            List<Tuple<string, Common.SystemObjectEnum>> users = ((Language.AddCommandNode)context.Command).UsersAndRoles;
-            IRepository<UserXRole> repo = context.Kernel.Get<IRepository<UserXRole>>();
-            this.usersAndRolesAssigned = new List<UserXRole>();
-            User user;
-            foreach (Tuple<string, Common.SystemObjectEnum> t in users)
+            SpaceDbContext databaseContext = context.Kernel.Get<SpaceDbContext>();
+            DatabaseRole databaseRole = null;
+            DatabaseUser databaseUser = null;
+            foreach (CommandObject role in roles)
             {
-                if (t.Item2 == Common.SystemObjectEnum.User)
+                databaseRole = databaseContext.DatabaseRoles.Single(x => x.ServerId == schema.Database.Server.ServerId && x.DatabaseId == schema.DatabaseId && x.DbRoleName == role.Name);
+                foreach (CommandObject user in users)
                 {
-                    user = context.Kernel.Get<IRepository<User>>().FindByName(t.Item1);
+                    databaseUser = databaseContext.DatabaseUsers.Single(x => x.ServerId == schema.Database.Server.ServerId && x.DatabaseId == schema.DatabaseId && x.DbUsrName == user.Name);
+                    databaseRole.DatabaseUsers.Add(databaseUser);
                 }
-                else
-                {
-                    throw new Exception("A user is required.");
-                }
-
-                UserXRole uxr = new UserXRole(role, user);
-
-                repo.Add(uxr);
-                this.usersAndRolesAssigned.Add(uxr);
             }
 
-            // throw new System.Exception("Simulando error");
+            databaseContext.SaveChanges();
+
             return context;
         }
 
         /// <inheritdoc />
         public override void OnError(PipelineContext context)
         {
-            if (this.usersAndRolesAssigned != null)
-            {
-                UserXRoleCacheRepository repo = (UserXRoleCacheRepository)context.Kernel.Get<IRepository<UserXRole>>();
-                foreach (UserXRole uxr in this.usersAndRolesAssigned)
-                {
-                    repo.Delete(uxr);
-                }
-            }
+            throw new NotImplementedException();
         }
     }
 }

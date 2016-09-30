@@ -11,43 +11,143 @@ namespace Integra.Space.Common
     internal enum PermissionsEnum
     {
         /// <summary>
-        /// Permission alter.
+        /// Permission none.
         /// </summary>
-        Alter = 1,
+        None = 0,
+
+        /// <summary>
+        /// Permission control server.
+        /// </summary>
+        ControlServer = 1,
+
+        /// <summary>
+        /// Permission create view.
+        /// </summary>
+        CreateView = 2,
+
+        /// <summary>
+        /// Permission create source.
+        /// </summary>
+        CreateSource = 3,
+
+        /// <summary>
+        /// Permission create stream.
+        /// </summary>
+        CreateStream = 4,
+
+        /// <summary>
+        /// Permission create schema.
+        /// </summary>
+        CreateSchema = 5,
+
+        /// <summary>
+        /// Permission create role.
+        /// </summary>
+        CreateRole = 6,
+
+        /// <summary>
+        /// Permission create endpoint.
+        /// </summary>
+        CreateEndpoint = 7,
+
+        /// <summary>
+        /// Permission create database.
+        /// </summary>
+        CreateDatabase = 8,
+
+        /// <summary>
+        /// Permission authenticate server.
+        /// </summary>
+        AutheticateServer = 9,
+
+        /// <summary>
+        /// Permission authenticate.
+        /// </summary>
+        Authenticate = 10,
+
+        /// <summary>
+        /// Permission view definition.
+        /// </summary>
+        ViewDefinition = 11,
+
+        /// <summary>
+        /// Permission take ownership.
+        /// </summary>
+        TakeOwnership = 12,
 
         /// <summary>
         /// Permission read.
         /// </summary>
-        Read = 2,
+        Read = 13,
 
         /// <summary>
-        /// Permission create.
+        /// Permission control.
         /// </summary>
-        Create = 4,
+        Control = 14,
 
         /// <summary>
-        /// Permission stop.
+        /// Permission connect.
         /// </summary>
-        Stop = 8,
+        Connect = 15,
 
         /// <summary>
-        /// Permission start.
+        /// Permission alter.
         /// </summary>
-        Start = 16,
+        Alter = 16,
+        
+        /// <summary>
+        /// Permission view any definition.
+        /// </summary>
+        ViewAnyDefinition = 17,
 
         /// <summary>
-        /// Permission drop.
+        /// Permission view any database.
         /// </summary>
-        Drop = 32,
+        ViewAnyDatabase = 18,
 
         /// <summary>
-        /// Permission all.
+        /// Permission connect any database.
         /// </summary>
-        All = 63,
+        ConnectAnyDatabase = 19,
 
         /// <summary>
-        /// Permission owner.
+        /// Permission create any database.
         /// </summary>
-        Owner = 64
+        CreateAnyDatabase = 20,
+
+        /// <summary>
+        /// Permission view any user.
+        /// </summary>
+        AlterAnyUser = 21,
+
+        /// <summary>
+        /// Permission view any schema.
+        /// </summary>
+        AlterAnySchema = 22,
+
+        /// <summary>
+        /// Permission view any role.
+        /// </summary>
+        AlterAnyRole = 23,
+
+        /// <summary>
+        /// Permission view any login.
+        /// </summary>
+        AlterAnyLogin = 24,
+
+        /// <summary>
+        /// Permission view any endpoint.
+        /// </summary>
+        AlterAnyEndpoint = 25,
+
+        /// <summary>
+        /// Permission view any database.
+        /// </summary>
+        AlterAnyDatabase = 26,
+
+        /// <summary>
+        /// Permission status, for start and stop sources and streams.
+        /// </summary>
+        AlterStatus = 27
     }
 }

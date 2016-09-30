@@ -455,4 +455,53 @@
     <Property Name="ParentElementType" Value="SqlTable" />
     <Property Name="NewName" Value="lg_srv_id" />
   </Operation>
+  <Operation Name="Rename Refactor" Key="4406585f-3e4d-4430-b39a-8286d64e0af2" ChangeDateTime="08/03/2016 18:24:25">
+    <Property Name="ElementName" Value="[space].[database_users].[default_schema]" />
+    <Property Name="ElementType" Value="SqlSimpleColumn" />
+    <Property Name="ParentElementName" Value="[space].[database_users]" />
+    <Property Name="ParentElementType" Value="SqlTable" />
+    <Property Name="NewName" Value="default_sch_id" />
+  </Operation>
+  <Operation Name="Rename Refactor" Key="08ff2689-61e2-4092-9fea-629d87061e97" ChangeDateTime="08/04/2016 16:27:21">
+    <Property Name="ElementName" Value="[space].[permissions_by_securables].[soc_id_parent]" />
+    <Property Name="ElementType" Value="SqlSimpleColumn" />
+    <Property Name="ParentElementName" Value="[space].[permissions_by_securables]" />
+    <Property Name="ParentElementType" Value="SqlTable" />
+    <Property Name="NewName" Value="sc_id_parent" />
+  </Operation>
+  <Operation Name="Rename Refactor" Key="64ccec10-8d57-46c5-bd9c-729b53afa834" ChangeDateTime="08/10/2016 15:46:41">
+    <Property Name="ElementName" Value="[dbo].[Securable].[Id]" />
+    <Property Name="ElementType" Value="SqlSimpleColumn" />
+    <Property Name="ParentElementName" Value="[dbo].[Securable]" />
+    <Property Name="ParentElementType" Value="SqlTable" />
+    <Property Name="NewName" Value="sec_id" />
+  </Operation>
+  <Operation Name="Rename Refactor" Key="e37fbd51-9a41-482a-b032-9278bdf1086a" ChangeDateTime="08/10/2016 15:46:44">
+    <Property Name="ElementName" Value="[dbo].[Securable].[secureable_name]" />
+    <Property Name="ElementType" Value="SqlSimpleColumn" />
+    <Property Name="ParentElementName" Value="[dbo].[Securable]" />
+    <Property Name="ParentElementType" Value="SqlTable" />
+    <Property Name="NewName" Value="sec_name" />
+  </Operation>
+  <Operation Name="Rename Refactor" Key="fa579876-a247-410b-bc95-dcd6776e3249" ChangeDateTime="08/10/2016 17:17:32">
+    <Property Name="ElementName" Value="[space].[securables].[sec_type]" />
+    <Property Name="ElementType" Value="SqlSimpleColumn" />
+    <Property Name="ParentElementName" Value="[space].[securables]" />
+    <Property Name="ParentElementType" Value="SqlTable" />
+    <Property Name="NewName" Value="sec_class" />
+  </Operation>
+  <Operation Name="Rename Refactor" Key="a70fad17-279a-45e0-a9bf-743f4c79a0b2" ChangeDateTime="08/16/2016 18:37:02">
+    <Property Name="ElementName" Value="[space].[endpoints_assigned_permissions_to_server_roles].[lg_id]" />
+    <Property Name="ElementType" Value="SqlSimpleColumn" />
+    <Property Name="ParentElementName" Value="[space].[endpoints_assigned_permissions_to_server_roles]" />
+    <Property Name="ParentElementType" Value="SqlTable" />
+    <Property Name="NewName" Value="[srvrole_id]" />
+  </Operation>
+  <Operation Name="Rename Refactor" Key="7ccecb8b-5e7d-4228-86b4-ce052410d390" ChangeDateTime="08/16/2016 18:37:13">
+    <Property Name="ElementName" Value="[space].[endpoints_assigned_permissions_to_server_roles].[lg_srv_id]" />
+    <Property Name="ElementType" Value="SqlSimpleColumn" />
+    <Property Name="ParentElementName" Value="[space].[endpoints_assigned_permissions_to_server_roles]" />
+    <Property Name="ParentElementType" Value="SqlTable" />
+    <Property Name="NewName" Value="[srvrole_srv_id]" />
+  </Operation>
 </Operations>
