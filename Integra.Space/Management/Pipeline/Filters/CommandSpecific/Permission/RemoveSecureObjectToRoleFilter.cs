@@ -1,5 +1,5 @@
 ﻿//-----------------------------------------------------------------------
-// <copyright file="AddSecureObjectToRoleFilter.cs" company="Integra.Space.Language">
+// <copyright file="RemoveSecureObjectToRoleFilter.cs" company="Integra.Space.Language">
 //     Copyright (c) Integra.Space.Language. All rights reserved.
 // </copyright>
 //-----------------------------------------------------------------------
@@ -15,7 +15,7 @@ namespace Integra.Space.Pipeline.Filters
     /// <summary>
     /// Grant permission filter class.
     /// </summary>
-    internal class AddSecureObjectToRoleFilter : CommandFilter
+    internal class RemoveSecureObjectToRoleFilter : CommandFilter
     {
         /// <inheritdoc />
         public override PipelineContext Execute(PipelineContext context)
@@ -34,9 +34,9 @@ namespace Integra.Space.Pipeline.Filters
                 foreach (CommandObject user in users)
                 {
                     databaseUser = databaseContext.DatabaseUsers.Single(x => x.ServerId == schema.Database.Server.ServerId && x.DatabaseId == schema.DatabaseId && x.DbUsrName == user.Name);
-                    if (!databaseRole.DatabaseUsers.Any(x => x.ServerId == databaseUser.ServerId && x.DatabaseId == databaseUser.DatabaseId && x.DbUsrName == databaseUser.DbUsrName))
+                    if (databaseRole.DatabaseUsers.Any(x => x.ServerId == databaseUser.ServerId && x.DatabaseId == databaseUser.DatabaseId && x.DbUsrName == databaseUser.DbUsrName))
                     {
-                        databaseRole.DatabaseUsers.Add(databaseUser);
+                        databaseRole.DatabaseUsers.Remove(databaseUser);
                     }
                 }
             }

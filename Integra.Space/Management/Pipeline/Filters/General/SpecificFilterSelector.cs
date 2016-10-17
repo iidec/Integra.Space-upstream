@@ -36,8 +36,8 @@ namespace Integra.Space.Pipeline.Filters
             // create
             // level 1
             filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.Create, SystemObjectEnum.Source), new CreateSourceFilter());
-            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.Create, SystemObjectEnum.Stream), new QueryParserFilter().AddStep(new CreateStreamFilter()));
-            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.Create, SystemObjectEnum.View), new CreateViewFilter() /* .AddStep(new FilterQueryParser()) */);
+            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.Create, SystemObjectEnum.Stream), new ParseQueryForCreateStreamFilter().AddStep(new CreateStreamFilter()));
+            /* filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.Create, SystemObjectEnum.View), new CreateViewFilter() /* .AddStep(new FilterQueryParser()) ); */
 
             // level 2
             filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.Create, SystemObjectEnum.DatabaseUser), new CreateUserFilter());
@@ -46,17 +46,17 @@ namespace Integra.Space.Pipeline.Filters
 
             // level 3
             filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.Create, SystemObjectEnum.Database), new CreateDatabaseFilter());
-            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.Create, SystemObjectEnum.Endpoint), new CreateEndpointFilter());
+            /* filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.Create, SystemObjectEnum.Endpoint), new CreateEndpointFilter()); */
             filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.Create, SystemObjectEnum.Login), new CreateLoginFilter());
 
             // level 4
-            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.Create, SystemObjectEnum.Server), new CreateServerFilter());
+            /* filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.Create, SystemObjectEnum.Server), new CreateServerFilter()); */
 
             // alter
             // level 1
-            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.Alter, SystemObjectEnum.Stream), new QueryParserFilter().AddStep(new AlterStreamFilter()));
+            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.Alter, SystemObjectEnum.Stream), new ParseQueryForAlterStreamFilter().AddStep(new AlterStreamFilter()));
             filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.Alter, SystemObjectEnum.Source), new AlterSourceFilter());
-            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.Alter, SystemObjectEnum.View), new AlterViewFilter() /* .AddStep(new FilterQueryParser()) */);
+            /* filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.Alter, SystemObjectEnum.View), new AlterViewFilter() /* .AddStep(new FilterQueryParser()) );*/
 
             // level 2
             filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.Alter, SystemObjectEnum.DatabaseUser), new AlterUserFilter());

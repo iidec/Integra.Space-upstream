@@ -12,7 +12,7 @@
     [granted] BIT NOT NULL DEFAULT 0, 
     [denied] BIT NOT NULL DEFAULT 0, 
     [with_grant_option] BIT NOT NULL DEFAULT 0, 
-    PRIMARY KEY ([dbr_id], [dbr_db_id], [dbr_srv_id], [sc_id], [gp_id], [so_id], [so_srv_id], [so_db_id], [so_sch_id]), 
+    PRIMARY KEY ([dbr_id], [dbr_srv_id], [dbr_db_id], [sc_id], [gp_id], [so_id], [so_srv_id], [so_db_id], [so_sch_id]), 
     CONSTRAINT [FK_SourceAssignedPermissionsToDBRoles_Sources] FOREIGN KEY ([so_id], [so_sch_id], [so_db_id], [so_srv_id]) REFERENCES [space].[sources]([so_id], [sch_id], [db_id], [srv_id]), 
     CONSTRAINT [FK_SourceAssignedPermissionsToDBRoles_PermissionsBySecurables] FOREIGN KEY ([sc_id], [gp_id]) REFERENCES [space].[permissions_by_securables]([sc_id], [gp_id]), 
     CONSTRAINT [FK_SourceAssignedPermissionsToDBRoles_DatabaseRoles] FOREIGN KEY ([dbr_id], [dbr_srv_id], [dbr_db_id]) REFERENCES [space].[database_roles]([dbr_id], [srv_id], [db_id])

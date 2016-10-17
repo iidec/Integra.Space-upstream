@@ -48,7 +48,6 @@ namespace Integra.Space.Pipeline.Filters
         public override PipelineContext Execute(PipelineContext context)
         {
             QueryCommandForMetadataNode command = (QueryCommandForMetadataNode)context.CommandContext.Command;
-            Schema schema = context.CommandContext.Schema;
 
             bool printLog = false;
             string streamName = string.Empty;
@@ -89,25 +88,10 @@ namespace Integra.Space.Pipeline.Filters
                 finalResultMetadata = (IObservable<object>)resultFunc.DynamicInvoke(input);
             }
 
-            /*input
-                .ObserveOn(System.Reactive.Concurrency.ThreadPoolScheduler.Instance)
-                .Subscribe(x =>
-                {
-                    Console.WriteLine(x);
-                });
-
-            input
-                .ObserveOn(System.Reactive.Concurrency.ThreadPoolScheduler.Instance)
-                .Subscribe(x =>
-                {
-                    Console.WriteLine(x);
-                });*/
-            
+            /*
             List<dynamic> result = new List<dynamic>();
             finalResultMetadata
                 .Publish().RefCount()
-                /*.ObserveOn(System.Reactive.Concurrency.ThreadPoolScheduler.Instance)*/
-                /*.SubscribeOn(System.Reactive.Concurrency.ThreadPoolScheduler.Instance)*/
                 .Subscribe(x =>
                 {
                     var test1 = ((Array)x.GetType().GetProperty("Result").GetValue(x)).GetValue(0).GetType().GetProperty("servId");
@@ -119,6 +103,7 @@ namespace Integra.Space.Pipeline.Filters
                     });
                     result.Add(xxxx);
                 });
+            */
 
             return context;
         }
@@ -227,7 +212,7 @@ namespace Integra.Space.Pipeline.Filters
         /// </summary>
         /// <param name="login">Login of the user.</param>
         /// <param name="user">Database user.</param>
-        /// <param name="schema">Execution schema.</param>
+        /// <param name="schema">Schema of the object.</param>
         /// <param name="securableClass">Securable class.</param>
         /// <param name="databaseContext">Database context.</param>
         /// <param name="objects">Full set of objects.</param>
@@ -257,26 +242,30 @@ namespace Integra.Space.Pipeline.Filters
         /// <returns>The compiled function.</returns>
         private IObservable<TIn> GetMetadata(PipelineContext context)
         {
-            // acción del comando.
-            ActionCommandEnum action = context.CommandContext.Command.Action;
+            QueryCommandForMetadataNode command = (QueryCommandForMetadataNode)context.CommandContext.Command;
+
+            Login login = context.SecurityContext.Login;
+            string databaseName = login.Database.DatabaseName;
+            if (!string.IsNullOrWhiteSpace(command.DatabaseName))
+            {
+                databaseName = command.DatabaseName;
+            }
 
             // se toma el usuario que esta ejecutando el comando.
-            DatabaseUser user = context.SecurityContext.User;
+            DatabaseUser user = login.DatabaseUsers.Single(x => x.ServerId == login.ServerId && x.Database.DatabaseName == databaseName);
 
             // se obtiene el esquema de ejecución.
-            Space.Database.Schema schema = context.CommandContext.Schema;
+            Space.Database.Schema schema = user.DefaultSchema;
 
             // obtengo el contexto de la base de datos.
             SpaceDbContext databaseContext = context.Kernel.Get<SpaceDbContext>();
-
-            Login login = context.SecurityContext.Login;
 
             SecurableClass securableClass = databaseContext.SecurableClasses.Single(x => x.SecurableName.Equals(this.objectType.ToString(), StringComparison.InvariantCultureIgnoreCase));
 
             DbSet<TIn> fullSetOfObjects = this.GetDbSet(databaseContext);
 
             // validar si pertenece a un role del servidor
-            ServerRoleValidator serverRoleValidator = new ServerRoleValidator(databaseContext, login, action);
+            ServerRoleValidator serverRoleValidator = new ServerRoleValidator(databaseContext, login, command.Action);
             if (serverRoleValidator.BelongsToServerRole())
             {
                 return fullSetOfObjects.ToObservable();
@@ -301,8 +290,6 @@ namespace Integra.Space.Pipeline.Filters
                     .ToObservable(/*System.Reactive.Concurrency.ThreadPoolScheduler.Instance*/)
                     .Publish()
                     .RefCount();
-                    /*.ToObservable(System.Reactive.Concurrency.ThreadPoolScheduler.Instance)*/
-                    /*.Replay(System.Reactive.Concurrency.ThreadPoolScheduler.Instance);*/                    
             }
         }
 

@@ -13,6 +13,11 @@ namespace Integra.Space.Common
         /// <summary>
         /// Name option.
         /// </summary>
-        Name = 1
+        Name = 1,
+
+        /// <summary>
+        /// Status option.
+        /// </summary>
+        Status = 2
     }
 }

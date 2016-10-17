@@ -36,12 +36,12 @@ namespace Integra.Space.Database
         public string DbRoleName { get; set; }
 
         [Key]
-        [Column("db_id", Order = 1)]
+        [Column("db_id", Order = 2)]
         [DatabaseGenerated(DatabaseGeneratedOption.None)]
         public System.Guid DatabaseId { get; set; }
 
         [Key]
-        [Column("srv_id", Order = 2)]
+        [Column("srv_id", Order = 1)]
         [DatabaseGenerated(DatabaseGeneratedOption.None)]
         public System.Guid ServerId { get; set; }
 
@@ -53,6 +53,10 @@ namespace Integra.Space.Database
 
         [Column("owner_srv_id")]
         public System.Guid OwnerServerId { get; set; }
+
+        [Column("is_active")]
+        [System.ComponentModel.DefaultValue(true)]
+        public bool IsActive { get; set; }
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<DatabaseAssignedPermissionsToDBRole> DatabaseAssignedPermissionsToDBRoles { get; set; }

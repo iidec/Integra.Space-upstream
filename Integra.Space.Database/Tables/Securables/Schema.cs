@@ -42,13 +42,13 @@ namespace Integra.Space.Database
         public System.Guid DatabaseId { get; set; }
 
         [Column("owner_id")]
-        public System.Guid OwnerId { get; set; }
+        public System.Guid? OwnerId { get; set; }
 
         [Column("owner_db_id")]
-        public System.Guid OwnerDatabaseId { get; set; }
+        public System.Guid? OwnerDatabaseId { get; set; }
 
         [Column("owner_srv_id")]
-        public System.Guid OwnerServerId { get; set; }
+        public System.Guid? OwnerServerId { get; set; }
         
         public virtual DatabaseUser DatabaseUser { get; set; }
 
@@ -71,7 +71,5 @@ namespace Integra.Space.Database
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<View> Views { get; set; }
-
-        //public virtual Securable securables { get; set; }
     }
 }

@@ -5,29 +5,25 @@
 //-----------------------------------------------------------------------
 namespace Integra.Space.Pipeline.Filters
 {
-    using System;
     using System.Collections.Generic;
     using System.Linq;
     using Database;
-    using Ninject;
 
     /// <summary>
     /// Filter alter user class.
     /// </summary>
-    internal class AlterLoginFilter : AlterEntityFilter
+    internal class AlterLoginFilter : AlterEntityFilter<Language.AlterLoginNode, Common.LoginOptionEnum>
     {
         /// <inheritdoc />
-        protected override void EditEntity(PipelineContext context)
+        protected override void EditEntity(Language.AlterLoginNode command, Dictionary<Common.LoginOptionEnum, object> options, Schema schema, SpaceDbContext databaseContext)
         {
-            Dictionary<Common.LoginOptionEnum, object> options = ((Language.CreateObjectNode<Common.LoginOptionEnum>)context.CommandContext.Command).Options;
-
-            SpaceDbContext databaseContext = context.Kernel.Get<SpaceDbContext>();
-            Login login = databaseContext.Logins.Single(x => x.ServerId == context.CommandContext.Schema.ServerId
-                                            && x.LoginName == ((Language.DDLCommand)context.CommandContext.Command).MainCommandObject.Name);
+            Login login = databaseContext.Logins.Single(x => x.ServerId == schema.ServerId
+                                            && x.LoginName == command.MainCommandObject.Name);
 
             if (options.ContainsKey(Common.LoginOptionEnum.Default_Database))
             {
-                Database database = databaseContext.Databases.Single(x => x.ServerId == context.CommandContext.Schema.ServerId && x.DatabaseName == options[Common.LoginOptionEnum.Default_Database].ToString());
+                string defaultDatabaseName = options[Common.LoginOptionEnum.Default_Database].ToString();
+                Database database = databaseContext.Databases.Single(x => x.ServerId == schema.ServerId && x.DatabaseName == defaultDatabaseName);
                 login.Database = database;
             }
 
@@ -39,6 +35,11 @@ namespace Integra.Space.Pipeline.Filters
             if (options.ContainsKey(Common.LoginOptionEnum.Password))
             {
                 login.LoginPassword = options[Common.LoginOptionEnum.Password].ToString();
+            }
+
+            if (command.Options.ContainsKey(Common.LoginOptionEnum.Status))
+            {
+                login.IsActive = (bool)command.Options[Common.LoginOptionEnum.Status];
             }
 
             databaseContext.SaveChanges();

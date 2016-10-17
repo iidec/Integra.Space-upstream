@@ -9,6 +9,7 @@ namespace Integra.Space.Pipeline.Filters
     using System.Linq;
     using Database;
     using Ninject;
+    using System.Collections.Generic;
 
     /// <summary>
     /// Filter alter user class.
@@ -18,7 +19,6 @@ namespace Integra.Space.Pipeline.Filters
         /// <inheritdoc />
         protected override void EditEntity(PipelineContext context)
         {
-            SpaceDbContext databaseContext = context.Kernel.Get<SpaceDbContext>();
             View view = databaseContext.Views.Single(x => x.ServerId == context.CommandContext.Schema.ServerId
                                             && x.DatabaseId == context.CommandContext.Schema.DatabaseId
                                             && x.SchemaId == context.CommandContext.Schema.SchemaId

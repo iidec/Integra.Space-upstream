@@ -10,6 +10,7 @@
     [owner_db_id] UNIQUEIDENTIFIER NOT NULL, 
     [owner_srv_id] UNIQUEIDENTIFIER NOT NULL, 
     [st_assembly] VARBINARY(MAX) NOT NULL, 
+    [is_active] BIT NOT NULL DEFAULT 1, 
     PRIMARY KEY ([st_id], [sch_id], [db_id], [srv_id]), 
     CONSTRAINT [AK_Streams_so_name] UNIQUE ([st_name]), 
     CONSTRAINT [FK_Streams_Schemas] FOREIGN KEY ([srv_id], [db_id], [sch_id]) REFERENCES [space].[schemas]([srv_id], [db_id], [sch_id]) ,

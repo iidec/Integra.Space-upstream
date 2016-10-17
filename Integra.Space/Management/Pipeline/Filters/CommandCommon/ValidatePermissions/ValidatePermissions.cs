@@ -23,13 +23,7 @@ namespace Integra.Space.Pipeline.Filters
         {
             // acción del comando.
             ActionCommandEnum action = context.CommandContext.Command.Action;
-
-            // se toma el usuario que esta ejecutando el comando.
-            DatabaseUser user = context.SecurityContext.User;
-
-            // se obtiene el esquema de ejecución.
-            Schema schema = context.CommandContext.Schema;
-
+                        
             // obtengo el contexto de la base de datos.
             SpaceDbContext databaseContext = context.Kernel.Get<SpaceDbContext>();
 
@@ -41,32 +35,39 @@ namespace Integra.Space.Pipeline.Filters
             {
                 return context;
             }
-
-            // se obtienen los permisos del usuario
-            IQueryable<ViewPermission> userPermissions = databaseContext.VWPermissions.Where(x => x.PrincipalId == user.DbUsrId
-                                                        && x.DatabaseIdOfPrincipal == user.DatabaseId
-                                                        && x.ServerIdOfPrincipal == user.ServerId);
-
-            // se agregan los permisos del login del usuario.
-            userPermissions = userPermissions.Concat(databaseContext.VWPermissions.Where(x => x.PrincipalId == login.LoginId && x.ServerIdOfPrincipal == login.ServerId));
-
-            // obtengo los roles de base de datos del usuario.
-            context.SecurityContext.DatabaseRoles = databaseContext.DatabaseUsers
-                .Single(x => x.ServerId == user.ServerId && x.DatabaseId == user.DatabaseId && x.DbUsrId == user.DbUsrId)
-                .DatabaseRoles;
-
-            // obtengo los permisos de cada rol de base de datos del usuario y los agrego a la lista de permisos del usuario.
-            foreach (DatabaseRole databaseRole in context.SecurityContext.DatabaseRoles)
-            {
-                IQueryable<ViewPermission> databaseRolePermissions = databaseContext.VWPermissions.Where(x => x.PrincipalId == databaseRole.DbRoleId
-                                                        && x.DatabaseIdOfPrincipal == databaseRole.DatabaseId
-                                                        && x.ServerIdOfPrincipal == databaseRole.ServerId);
-
-                userPermissions = userPermissions.Concat(databaseRolePermissions);
-            }
-
+            
             // estructura para validar los owners
             HashSet<CommandObject> objects = context.CommandContext.Command.CommandObjects;
+            IEnumerable<ViewPermission> userPermissions = Enumerable.Empty<ViewPermission>();
+
+            foreach (CommandObject @object in objects)
+            {
+                // se toma el usuario del objeto que esta ejecutando el comando.
+                DatabaseUser user = @object.GetUser(databaseContext, login);
+
+                // se obtienen los permisos del usuario
+                userPermissions = userPermissions.Concat(databaseContext.VWPermissions.Where(x => x.PrincipalId == user.DbUsrId
+                                                            && x.DatabaseIdOfPrincipal == user.DatabaseId
+                                                            && x.ServerIdOfPrincipal == user.ServerId));
+
+                // se agregan los permisos del login del usuario.
+                userPermissions = userPermissions.Concat(databaseContext.VWPermissions.Where(x => x.PrincipalId == login.LoginId && x.ServerIdOfPrincipal == login.ServerId));
+
+                // obtengo los roles de base de datos del usuario.
+                context.SecurityContext.DatabaseRoles = databaseContext.DatabaseUsers
+                    .Single(x => x.ServerId == user.ServerId && x.DatabaseId == user.DatabaseId && x.DbUsrId == user.DbUsrId)
+                    .DatabaseRoles;
+
+                // obtengo los permisos de cada rol de base de datos del usuario y los agrego a la lista de permisos del usuario.
+                foreach (DatabaseRole databaseRole in context.SecurityContext.DatabaseRoles)
+                {
+                    IQueryable<ViewPermission> databaseRolePermissions = databaseContext.VWPermissions.Where(x => x.PrincipalId == databaseRole.DbRoleId
+                                                            && x.DatabaseIdOfPrincipal == databaseRole.DatabaseId
+                                                            && x.ServerIdOfPrincipal == databaseRole.ServerId);
+
+                    userPermissions = userPermissions.Concat(databaseRolePermissions);
+                }
+            }
 
             // si el comando es grant, deny o revoke se obtienen los objetos de los permisos
             if (action == ActionCommandEnum.Grant || action == ActionCommandEnum.Deny || action == ActionCommandEnum.Revoke)
@@ -75,7 +76,7 @@ namespace Integra.Space.Pipeline.Filters
                 objects.RemoveWhere(x => x.SecurableClass == SystemObjectEnum.Login || x.SecurableClass == SystemObjectEnum.DatabaseUser || x.SecurableClass == SystemObjectEnum.DatabaseRole);
 
                 PermissionNode permission = ((PermissionsCommandNode)context.CommandContext.Command).Permission;
-                if (permission.ObjectType == null || permission.ObjectName == null)
+                if (permission.CommandObject == null)
                 {
                     // se utiliza single porque no tienen que existir permisos repetidos de este tipo.
                     string securableClassName = databaseContext.GranularPermissions
@@ -95,10 +96,10 @@ namespace Integra.Space.Pipeline.Filters
                     switch (objectType)
                     {
                         case SystemObjectEnum.Database:
-                            objects.Add(new CommandObject(objectType, schema.Database.DatabaseName, PermissionsEnum.Control, false));
+                            objects.Add(new CommandObject(objectType, login.Database.DatabaseName, PermissionsEnum.Control, false));
                             break;
                         case SystemObjectEnum.Server:
-                            objects.Add(new CommandObject(objectType, schema.Database.Server.ServerName, PermissionsEnum.ControlServer, false));
+                            objects.Add(new CommandObject(objectType, login.Server.ServerName, PermissionsEnum.ControlServer, false));
                             break;
                         default:
                             throw new Exception(string.Format("System object not allowed for permission {0}.", permission.Permission.ToString()));
@@ -112,7 +113,6 @@ namespace Integra.Space.Pipeline.Filters
                 .Join<PermissionBySecurable, SecurableClass, Guid, PermissionBySecurable>(databaseContext.SecurableClasses, x => x.SecurableClassId, x => x.SecurableClassId, (x, y) => x)
                 .ToList();
 
-            IQueryable<ViewPermission> userPermissionsOfTheContext = null;
             OwnerValidator ownerValidator = null;
             SecurableClass secureClass = null;
             bool isOwnerOfAll = true;
@@ -124,6 +124,8 @@ namespace Integra.Space.Pipeline.Filters
                 {
                     continue;
                 }
+
+                Schema schema = @object.GetSchema(databaseContext, login);
 
                 if (secureClass == null || !secureClass.SecurableName.Equals(@object.SecurableClass.ToString(), StringComparison.InvariantCultureIgnoreCase))
                 {
@@ -146,6 +148,9 @@ namespace Integra.Space.Pipeline.Filters
                     // se obtienen la clase de objeto asegurable.
                     secureClass = pbs.SecurableClass;
                 }
+
+                // se toma el usuario del objeto que esta ejecutando el comando.
+                DatabaseUser user = @object.GetUser(databaseContext, login);
 
                 if (action == ActionCommandEnum.Create)
                 {
@@ -179,7 +184,8 @@ namespace Integra.Space.Pipeline.Filters
             objects.RemoveWhere(x => objetosDeLosQueEsOwner.Contains(x, new CommandObjectComparer()));
 
             // obtengo los permisos del contexto de ejecución para el usuario especificado
-            this.GetContextPermissions(action, databaseContext, schema, objects, userPermissions, out userPermissionsOfTheContext);
+            IQueryable<ViewPermission> userPermissionsOfTheContext = null;
+            this.GetContextPermissions(action, databaseContext, login, objects, userPermissions, out userPermissionsOfTheContext);
 
             // si no tiene ningun permiso sobre el contexto de ejecución se lanza una excepción.
             if (userPermissionsOfTheContext.Count() == 0)
@@ -221,7 +227,7 @@ namespace Integra.Space.Pipeline.Filters
                 // se obtienen los permisos necesarios para ejecutar el comando.
                 CommandPermission requiredPermissions = databaseContext.Database.SqlQuery<CommandPermission>("[space].[get_permissions_with_parents] @granularPermissionName = {0}, @secureClassName = {1}", granularPermission.GranularPermissionName, securableClass.SecurableName).Single();
                 string[] parentPermissions = requiredPermissions.Parents.Split(',');
-
+                
                 // se obtiene el permiso mas especifico necesario, es decir, el de nivel mas bajo, en el arbol de permisos, necesario para ejecutar el comando.          
                 ViewPermission viewPermission = new ViewPermission();
                 viewPermission.GranularPermissionId = requiredPermissions.ChildGPId;
@@ -318,71 +324,83 @@ namespace Integra.Space.Pipeline.Filters
         /// </summary>
         /// <param name="action">Command action.</param>
         /// <param name="databaseContext">Database context</param>
-        /// <param name="schema">Execution context.</param>
+        /// <param name="login">Login of the user.</param>
         /// <param name="objects">Objects of the command.</param>
         /// <param name="userPermissions">User permissions.</param>
         /// <param name="userPermissionsOfTheContext">User context permissions.</param>
-        private void GetContextPermissions(ActionCommandEnum action, SpaceDbContext databaseContext, Schema schema, HashSet<CommandObject> objects, IQueryable<ViewPermission> userPermissions, out IQueryable<ViewPermission> userPermissionsOfTheContext)
+        private void GetContextPermissions(ActionCommandEnum action, SpaceDbContext databaseContext, Login login, HashSet<CommandObject> objects, IEnumerable<ViewPermission> userPermissions, out IQueryable<ViewPermission> userPermissionsOfTheContext)
         {
-            userPermissionsOfTheContext = userPermissions.Where(x =>
-                                       (x.ServerIdOfSecurable == null && x.DatabaseIdOfSecurable == null && x.SchemaIdOfSecurable == null && x.SecurableId == schema.ServerId) // para servers
-                                    || (x.ServerIdOfSecurable == schema.ServerId && x.DatabaseIdOfSecurable == null && x.SchemaIdOfSecurable == null && x.SecurableId == schema.DatabaseId) // base de datos
-                                    || (x.ServerIdOfSecurable == schema.ServerId && x.DatabaseIdOfSecurable == schema.DatabaseId && x.SchemaIdOfSecurable == null && x.SecurableId == schema.SchemaId)); // para esquemas
-
-            // si se va a crear un nuevo objeto se termina el método. No se obtienen los permisos de ese objeto porque no existe.
-            if (action == ActionCommandEnum.Create)
-            {
-                return;
-            }
+            userPermissionsOfTheContext = Enumerable.Empty<ViewPermission>().AsQueryable();
+            List<ViewPermission> userPermissionsList = userPermissions.ToList();
+            Schema schemaOld = null;
 
             foreach (CommandObject @object in objects)
-            {
+            {                
+                Schema schema = @object.GetSchema(databaseContext, login);
+
+                // si el esquema actual es igual al anterior no se agregan los permisos del contexto del objeto para no tener repetidos.
+                if (!(schemaOld != null && schemaOld.ServerId == schema.ServerId && schemaOld.DatabaseId == schema.DatabaseId && schemaOld.SchemaId == schema.SchemaId))
+                {
+                    userPermissionsOfTheContext = userPermissionsOfTheContext.Concat(userPermissionsList.Where(x =>
+                                               (x.ServerIdOfSecurable == null && x.DatabaseIdOfSecurable == null && x.SchemaIdOfSecurable == null && x.SecurableId == schema.ServerId) // para servers
+                                            || (x.ServerIdOfSecurable == schema.ServerId && x.DatabaseIdOfSecurable == null && x.SchemaIdOfSecurable == null && x.SecurableId == schema.DatabaseId) // base de datos
+                                            || (x.ServerIdOfSecurable == schema.ServerId && x.DatabaseIdOfSecurable == schema.DatabaseId && x.SchemaIdOfSecurable == null && x.SecurableId == schema.SchemaId))); // para esquemas
+                }
+
+                // si se va a crear un nuevo objeto se termina el método. No se obtienen los permisos de ese objeto porque no existe.
+                if (action == ActionCommandEnum.Create && @object.IsNew)
+                {
+                    continue;
+                }
+
+                schemaOld = schema;
+
                 Guid entityId;
                 switch (@object.SecurableClass)
                 {
                     case SystemObjectEnum.Server:
                         entityId = databaseContext.Servers.Single(x => x.ServerName == @object.Name).ServerId;
-                        userPermissionsOfTheContext = userPermissionsOfTheContext.Concat(userPermissions.Where(x => x.ServerIdOfSecurable == null && x.DatabaseIdOfSecurable == null && x.SchemaIdOfSecurable == null && x.SecurableId == entityId));
+                        userPermissionsOfTheContext = userPermissionsOfTheContext.Concat(userPermissionsList.Where(x => x.ServerIdOfSecurable == null && x.DatabaseIdOfSecurable == null && x.SchemaIdOfSecurable == null && x.SecurableId == entityId));
                         break;
                     case SystemObjectEnum.Endpoint:
                         entityId = databaseContext.Endpoints.Single(x => x.ServerId == schema.ServerId && x.EnpointName == @object.Name).EndpointId;
-                        userPermissionsOfTheContext = userPermissionsOfTheContext.Concat(userPermissions.Where(x => x.ServerIdOfSecurable == schema.ServerId && x.DatabaseIdOfSecurable == null && x.SchemaIdOfSecurable == null && x.SecurableId == entityId));
+                        userPermissionsOfTheContext = userPermissionsOfTheContext.Concat(userPermissionsList.Where(x => x.ServerIdOfSecurable == schema.ServerId && x.DatabaseIdOfSecurable == null && x.SchemaIdOfSecurable == null && x.SecurableId == entityId));
                         break;
                     case SystemObjectEnum.ServerRole:
                         entityId = databaseContext.ServerRoles.Single(x => x.ServerId == schema.ServerId && x.ServerRoleName == @object.Name).ServerRoleId;
-                        userPermissionsOfTheContext = userPermissionsOfTheContext.Concat(userPermissions.Where(x => x.ServerIdOfSecurable == schema.ServerId && x.DatabaseIdOfSecurable == null && x.SchemaIdOfSecurable == null && x.SecurableId == entityId));
+                        userPermissionsOfTheContext = userPermissionsOfTheContext.Concat(userPermissionsList.Where(x => x.ServerIdOfSecurable == schema.ServerId && x.DatabaseIdOfSecurable == null && x.SchemaIdOfSecurable == null && x.SecurableId == entityId));
                         break;
                     case SystemObjectEnum.Login:
                         entityId = databaseContext.Logins.Single(x => x.ServerId == schema.ServerId && x.LoginName == @object.Name).LoginId;
-                        userPermissionsOfTheContext = userPermissionsOfTheContext.Concat(userPermissions.Where(x => x.ServerIdOfSecurable == schema.ServerId && x.DatabaseIdOfSecurable == null && x.SchemaIdOfSecurable == null && x.SecurableId == entityId));
+                        userPermissionsOfTheContext = userPermissionsOfTheContext.Concat(userPermissionsList.Where(x => x.ServerIdOfSecurable == schema.ServerId && x.DatabaseIdOfSecurable == null && x.SchemaIdOfSecurable == null && x.SecurableId == entityId));
                         break;
                     case SystemObjectEnum.Database:
                         entityId = databaseContext.Databases.Single(x => x.ServerId == schema.ServerId && x.DatabaseName == @object.Name).DatabaseId;
-                        userPermissionsOfTheContext = userPermissionsOfTheContext.Concat(userPermissions.Where(x => x.ServerIdOfSecurable == schema.ServerId && x.DatabaseIdOfSecurable == null && x.SchemaIdOfSecurable == null && x.SecurableId == entityId));
+                        userPermissionsOfTheContext = userPermissionsOfTheContext.Concat(userPermissionsList.Where(x => x.ServerIdOfSecurable == schema.ServerId && x.DatabaseIdOfSecurable == null && x.SchemaIdOfSecurable == null && x.SecurableId == entityId));
                         break;
                     case SystemObjectEnum.DatabaseRole:
                         entityId = databaseContext.DatabaseRoles.Single(x => x.ServerId == schema.ServerId && x.DatabaseId == schema.DatabaseId && x.DbRoleName == @object.Name).DbRoleId;
-                        userPermissionsOfTheContext = userPermissionsOfTheContext.Concat(userPermissions.Where(x => x.ServerIdOfSecurable == schema.ServerId && x.DatabaseIdOfSecurable == schema.DatabaseId && x.SchemaIdOfSecurable == null && x.SecurableId == entityId));
+                        userPermissionsOfTheContext = userPermissionsOfTheContext.Concat(userPermissionsList.Where(x => x.ServerIdOfSecurable == schema.ServerId && x.DatabaseIdOfSecurable == schema.DatabaseId && x.SchemaIdOfSecurable == null && x.SecurableId == entityId));
                         break;
                     case SystemObjectEnum.DatabaseUser:
                         entityId = databaseContext.DatabaseUsers.Single(x => x.ServerId == schema.ServerId && x.DatabaseId == schema.DatabaseId && x.DbUsrName == @object.Name).DbUsrId;
-                        userPermissionsOfTheContext = userPermissionsOfTheContext.Concat(userPermissions.Where(x => x.ServerIdOfSecurable == schema.ServerId && x.DatabaseIdOfSecurable == schema.DatabaseId && x.SchemaIdOfSecurable == null && x.SecurableId == entityId));
+                        userPermissionsOfTheContext = userPermissionsOfTheContext.Concat(userPermissionsList.Where(x => x.ServerIdOfSecurable == schema.ServerId && x.DatabaseIdOfSecurable == schema.DatabaseId && x.SchemaIdOfSecurable == null && x.SecurableId == entityId));
                         break;
                     case SystemObjectEnum.Schema:
                         entityId = databaseContext.Schemas.Single(x => x.ServerId == schema.ServerId && x.DatabaseId == schema.DatabaseId && x.SchemaName == @object.Name).SchemaId;
-                        userPermissionsOfTheContext = userPermissionsOfTheContext.Concat(userPermissions.Where(x => x.ServerIdOfSecurable == schema.ServerId && x.DatabaseIdOfSecurable == schema.DatabaseId && x.SchemaIdOfSecurable == null && x.SecurableId == entityId));
+                        userPermissionsOfTheContext = userPermissionsOfTheContext.Concat(userPermissionsList.Where(x => x.ServerIdOfSecurable == schema.ServerId && x.DatabaseIdOfSecurable == schema.DatabaseId && x.SchemaIdOfSecurable == null && x.SecurableId == entityId));
                         break;
                     case SystemObjectEnum.Source:
                         entityId = databaseContext.Sources.Single(x => x.ServerId == schema.ServerId && x.DatabaseId == schema.DatabaseId && x.SchemaId == schema.SchemaId && x.SourceName == @object.Name).SourceId;
-                        userPermissionsOfTheContext = userPermissionsOfTheContext.Concat(userPermissions.Where(x => x.ServerIdOfSecurable == schema.ServerId && x.DatabaseIdOfSecurable == schema.DatabaseId && x.SchemaIdOfSecurable == schema.SchemaId && x.SecurableId == entityId));
+                        userPermissionsOfTheContext = userPermissionsOfTheContext.Concat(userPermissionsList.Where(x => x.ServerIdOfSecurable == schema.ServerId && x.DatabaseIdOfSecurable == schema.DatabaseId && x.SchemaIdOfSecurable == schema.SchemaId && x.SecurableId == entityId));
                         break;
                     case SystemObjectEnum.Stream:
                         entityId = databaseContext.Streams.Single(x => x.ServerId == schema.ServerId && x.DatabaseId == schema.DatabaseId && x.SchemaId == schema.SchemaId && x.StreamName == @object.Name).StreamId;
-                        userPermissionsOfTheContext = userPermissionsOfTheContext.Concat(userPermissions.Where(x => x.ServerIdOfSecurable == schema.ServerId && x.DatabaseIdOfSecurable == schema.DatabaseId && x.SchemaIdOfSecurable == schema.SchemaId && x.SecurableId == entityId));
+                        userPermissionsOfTheContext = userPermissionsOfTheContext.Concat(userPermissionsList.Where(x => x.ServerIdOfSecurable == schema.ServerId && x.DatabaseIdOfSecurable == schema.DatabaseId && x.SchemaIdOfSecurable == schema.SchemaId && x.SecurableId == entityId));
                         break;
                     case SystemObjectEnum.View:
                         entityId = databaseContext.Views.Single(x => x.ServerId == schema.ServerId && x.DatabaseId == schema.DatabaseId && x.SchemaId == schema.SchemaId && x.ViewName == @object.Name).ViewId;
-                        userPermissionsOfTheContext = userPermissionsOfTheContext.Concat(userPermissions.Where(x => x.ServerIdOfSecurable == schema.ServerId && x.DatabaseIdOfSecurable == schema.DatabaseId && x.SchemaIdOfSecurable == schema.SchemaId && x.SecurableId == entityId));
+                        userPermissionsOfTheContext = userPermissionsOfTheContext.Concat(userPermissionsList.Where(x => x.ServerIdOfSecurable == schema.ServerId && x.DatabaseIdOfSecurable == schema.DatabaseId && x.SchemaIdOfSecurable == schema.SchemaId && x.SecurableId == entityId));
                         break;
                     default:
                         throw new Exception("No space object supported.");

@@ -16,12 +16,13 @@ namespace Integra.Space.Pipeline.Filters
     internal class DropDatabaseFilter : DropEntityFilter
     {
         /// <inheritdoc />
-        protected override void DropEntity(PipelineContext context)
+        protected override void DropEntity(SpaceDbContext databaseContext, Schema schema, string name)
         {
-            SpaceDbContext databaseContext = context.Kernel.Get<SpaceDbContext>();
-            Database database = databaseContext.Databases.Single(x => x.ServerId == context.CommandContext.Schema.ServerId
-                                            && x.DatabaseName == ((Language.DDLCommand)context.CommandContext.Command).MainCommandObject.Name);
+            Database database = databaseContext.Databases.Single(x => x.ServerId == schema.ServerId
+                                            && x.DatabaseName == name);
 
+            database.DatabaseUsers.ToList().ForEach(x => databaseContext.DatabaseUsers.Remove(x));
+            databaseContext.SaveChanges();
             databaseContext.Databases.Remove(database);
             databaseContext.SaveChanges();
         }

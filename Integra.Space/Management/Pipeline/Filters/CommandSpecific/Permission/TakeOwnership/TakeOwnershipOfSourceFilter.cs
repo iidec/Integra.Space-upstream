@@ -9,20 +9,22 @@ namespace Integra.Space.Pipeline.Filters
     using System.Linq;
     using Database;
     using Integra.Space.Language;
-    using Ninject;
 
     /// <summary>
     /// Grant permission filter class.
     /// </summary>
-    internal class TakeOwnershipOfSourceFilter : CommandFilter
+    internal class TakeOwnershipOfSourceFilter : TakeOwnershipFilter
     {
         /// <inheritdoc />
-        public override PipelineContext Execute(PipelineContext context)
+        public override void OnError(PipelineContext context)
         {
-            Schema schema = context.CommandContext.Schema;
-            TakeOwnershipCommandNode command = (TakeOwnershipCommandNode)context.CommandContext.Command;
-            SpaceDbContext databaseContext = context.Kernel.Get<SpaceDbContext>();
-            DatabaseUser user = context.SecurityContext.User;
+            throw new NotImplementedException();
+        }
+
+        /// <inheritdoc />
+        protected override void TakeOwnership(TakeOwnershipCommandNode command, SpaceDbContext databaseContext, Login login, Schema schema)
+        {
+            DatabaseUser user = command.MainCommandObject.GetUser(databaseContext, login);
 
             Source source = databaseContext.Sources.Single(x => x.ServerId == schema.ServerId
                                             && x.DatabaseId == schema.DatabaseId
@@ -35,13 +37,6 @@ namespace Integra.Space.Pipeline.Filters
             source.OwnerId = user.DbUsrId;
 
             databaseContext.SaveChanges();
-            return context;
-        }
-
-        /// <inheritdoc />
-        public override void OnError(PipelineContext context)
-        {
-            throw new NotImplementedException();
         }
     }
 }

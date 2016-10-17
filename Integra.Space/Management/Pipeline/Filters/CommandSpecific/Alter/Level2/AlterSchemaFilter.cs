@@ -5,32 +5,27 @@
 //-----------------------------------------------------------------------
 namespace Integra.Space.Pipeline.Filters
 {
-    using System;
     using System.Collections.Generic;
     using System.Linq;
     using Common;
     using Database;
     using Language;
-    using Ninject;
 
     /// <summary>
     /// Filter alter user class.
     /// </summary>
-    internal class AlterSchemaFilter : AlterEntityFilter
+    internal class AlterSchemaFilter : AlterEntityFilter<AlterSchemaNode, SchemaOptionEnum>
     {
         /// <inheritdoc />
-        protected override void EditEntity(PipelineContext context)
+        protected override void EditEntity(AlterSchemaNode command, Dictionary<SchemaOptionEnum, object> options, Schema schema, SpaceDbContext databaseContext)
         {
-            Dictionary<SchemaOptionEnum, object> options = ((Language.CreateObjectNode<SchemaOptionEnum>)context.CommandContext.Command).Options;
-
-            SpaceDbContext databaseContext = context.Kernel.Get<SpaceDbContext>();
-            Schema schema = databaseContext.Schemas.Single(x => x.ServerId == context.CommandContext.Schema.ServerId
-                                            && x.DatabaseId == context.CommandContext.Schema.DatabaseId
-                                            && x.SchemaName == ((Language.DDLCommand)context.CommandContext.Command).MainCommandObject.Name);
+            Schema schemaToEdit = databaseContext.Schemas.Single(x => x.ServerId == schema.ServerId
+                                            && x.DatabaseId == schema.DatabaseId
+                                            && x.SchemaName == command.MainCommandObject.Name);
             
             if (options.ContainsKey(Common.SchemaOptionEnum.Name))
             {
-                schema.SchemaName = options[Common.SchemaOptionEnum.Name].ToString();
+                schemaToEdit.SchemaName = options[Common.SchemaOptionEnum.Name].ToString();
             }
 
             databaseContext.SaveChanges();

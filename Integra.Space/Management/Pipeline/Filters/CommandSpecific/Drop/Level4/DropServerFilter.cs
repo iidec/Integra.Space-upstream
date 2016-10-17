@@ -16,10 +16,9 @@ namespace Integra.Space.Pipeline.Filters
     internal class DropServerFilter : DropEntityFilter
     {
         /// <inheritdoc />
-        protected override void DropEntity(PipelineContext context)
+        protected override void DropEntity(SpaceDbContext databaseContext, Schema schema, string name)
         {
-            SpaceDbContext databaseContext = context.Kernel.Get<SpaceDbContext>();
-            Server server = databaseContext.Servers.Single(x => x.ServerName == ((Language.DDLCommand)context.CommandContext.Command).MainCommandObject.Name);
+            Server server = databaseContext.Servers.Single(x => x.ServerName == name);
 
             databaseContext.Servers.Remove(server);
             databaseContext.SaveChanges();

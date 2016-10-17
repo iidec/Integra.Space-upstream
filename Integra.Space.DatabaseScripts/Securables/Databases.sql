@@ -5,6 +5,7 @@
     [srv_id] UNIQUEIDENTIFIER NOT NULL, 
     [owner_id] UNIQUEIDENTIFIER NOT NULL, 
     [owner_srv_id] UNIQUEIDENTIFIER NOT NULL, 
+    [is_active] BIT NOT NULL DEFAULT 1, 
     CONSTRAINT [AK_Database_db_name] UNIQUE ([db_name]), 
     CONSTRAINT [FK_Database_Server] FOREIGN KEY ([srv_id]) REFERENCES [space].[servers]([srv_id]), 
     PRIMARY KEY ([srv_id], [db_id]),

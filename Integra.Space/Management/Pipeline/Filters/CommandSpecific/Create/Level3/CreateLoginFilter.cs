@@ -6,46 +6,60 @@
 namespace Integra.Space.Pipeline.Filters
 {
     using System;
+    using System.Collections.Generic;
     using System.Linq;
     using Database;
     using Language;
-    using Ninject;
 
     /// <summary>
     /// Filter create source class.
     /// </summary>
-    internal class CreateLoginFilter : CreateEntityFilter
+    internal class CreateLoginFilter : CreateEntityFilter<CreateLoginNode, Common.LoginOptionEnum>
     {
         /// <inheritdoc />
-        protected override void CreateEntity(PipelineContext context)
+        protected override void CreateEntity(CreateLoginNode command, Dictionary<Common.LoginOptionEnum, object> options, Login login, DatabaseUser user, Schema schema, SpaceDbContext databaseContext)
         {
-            CreateLoginNode loginCommand = (CreateLoginNode)context.CommandContext.Command;
-            Schema schema = context.CommandContext.Schema;
-
-            Login login = new Login();
-            login.ServerId = schema.ServerId;
-            login.LoginId = Guid.NewGuid();
-            login.LoginName = loginCommand.MainCommandObject.Name;
-            login.LoginPassword = loginCommand.Options[Common.LoginOptionEnum.Password].ToString();
-
-            SpaceDbContext databaseContext = context.Kernel.Get<SpaceDbContext>();
+            Login newLogin = new Login();
+            newLogin.ServerId = schema.ServerId;
+            newLogin.LoginId = Guid.NewGuid();
+            newLogin.LoginName = command.MainCommandObject.Name;
+            newLogin.LoginPassword = options[Common.LoginOptionEnum.Password].ToString();
 
             // se le establece la base de datos por defecto
-            if (loginCommand.Options.ContainsKey(Common.LoginOptionEnum.Default_Database))
+            if (command.Options.ContainsKey(Common.LoginOptionEnum.Default_Database))
             {
-                string databaseName = loginCommand.Options[Common.LoginOptionEnum.Default_Database].ToString();
+                string databaseName = options[Common.LoginOptionEnum.Default_Database].ToString();
                 Database defaultDb = databaseContext.Databases.Single(x => x.ServerId == schema.ServerId && x.DatabaseName == databaseName);
-                login.DefaultDatabaseServerId = defaultDb.ServerId;
-                login.DefaultDatabaseId = defaultDb.DatabaseId;
+                newLogin.DefaultDatabaseServerId = defaultDb.ServerId;
+                newLogin.DefaultDatabaseId = defaultDb.DatabaseId;
             }
             else
             {
-                login.DefaultDatabaseServerId = schema.ServerId;
-                login.DefaultDatabaseId = schema.DatabaseId;
+                newLogin.DefaultDatabaseServerId = schema.ServerId;
+                newLogin.DefaultDatabaseId = schema.DatabaseId;
             }
-                        
+
+            newLogin.IsActive = true;
+            if (command.Options.ContainsKey(Common.LoginOptionEnum.Status))
+            {
+                newLogin.IsActive = (bool)command.Options[Common.LoginOptionEnum.Status];
+            }
+
             // almaceno la nueva entidad y guardo los cambios
-            databaseContext.Logins.Add(login);
+            databaseContext.Logins.Add(newLogin);
+            databaseContext.SaveChanges();
+
+            // creo el permiso de conexión 'connect sql' para el login
+            ServerAssignedPermissionsToLogin newPermission = new ServerAssignedPermissionsToLogin();
+            newPermission.Login = newLogin;
+            newPermission.SecurableClassId = databaseContext.SecurableClasses.Single(x => x.SecurableName.Equals(Common.SystemObjectEnum.Server.ToString(), StringComparison.InvariantCultureIgnoreCase)).SecurableClassId;
+            newPermission.GranularPermissionId = databaseContext.GranularPermissions.Single(x => x.GranularPermissionName.Replace(" ", string.Empty).Equals(Common.PermissionsEnum.ConnectSQL.ToString(), StringComparison.InvariantCultureIgnoreCase)).GranularPermissionId;
+            newPermission.WithGrantOption = false;
+            newPermission.ServerId = schema.ServerId;
+            newPermission.Granted = true;
+
+            databaseContext.ServersAssignedPermissionsToLogins.Add(newPermission);
+
             databaseContext.SaveChanges();
         }
     }

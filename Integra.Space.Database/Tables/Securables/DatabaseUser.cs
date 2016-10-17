@@ -28,7 +28,6 @@ namespace Integra.Space.Database
             ViewAssignedPermissionsToUsers = new HashSet<ViewAssignedPermissionsToUser>();
             Views = new HashSet<View>();
             DatabaseRoles1 = new HashSet<DatabaseRole>();
-            Logins = new HashSet<Login>();
         }
 
         [Key]
@@ -41,21 +40,28 @@ namespace Integra.Space.Database
         [Index(IsUnique = true)]
         [StringLength(50)]
         public string DbUsrName { get; set; }
-
-        [Required]
-        [Column("dbusr_enabled")]
-        [DefaultValue(false)]
-        public bool Enabled { get; set; }
-
+        
         [Key]
-        [Column("db_id", Order = 1)]
+        [Column("db_id", Order = 2)]
+        [Index(IsUnique = true)]
         [DatabaseGenerated(DatabaseGeneratedOption.None)]
         public System.Guid DatabaseId { get; set; }
 
         [Key]
-        [Column("srv_id", Order = 2)]
+        [Column("srv_id", Order = 1)]
+        [Index(IsUnique = true)]
         [DatabaseGenerated(DatabaseGeneratedOption.None)]
         public System.Guid ServerId { get; set; }
+        
+        [Column("lg_id")]
+        [Index(IsUnique = true)]
+        [DatabaseGenerated(DatabaseGeneratedOption.None)]
+        public System.Guid LoginId { get; set; }
+        
+        [Column("lg_srv_id")]
+        [Index(IsUnique = true)]
+        [DatabaseGenerated(DatabaseGeneratedOption.None)]
+        public Guid LoginServerId { get; set; }
 
         [Column("default_sch_id")]
         public System.Guid DefaultSchemaId { get; set; }
@@ -65,6 +71,10 @@ namespace Integra.Space.Database
 
         [Column("default_sch_srv_id")]
         public System.Guid DefaultSchemaServerId { get; set; }
+
+        [Column("is_active")]
+        [DefaultValue(true)]
+        public bool IsActive { get; set; }
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<DatabaseAssignedPermissionsToUser> DatabaseAssignedPermissionsToUsers { get; set; }
@@ -116,7 +126,7 @@ namespace Integra.Space.Database
         public virtual ICollection<DatabaseRole> DatabaseRoles1 { get; set; }
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
-        public virtual ICollection<Login> Logins { get; set; }
+        public virtual Login Login { get; set; }
 
         //public virtual Securable securables { get; set; }
     }

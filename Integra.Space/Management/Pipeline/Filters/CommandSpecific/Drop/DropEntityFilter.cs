@@ -5,7 +5,9 @@
 //-----------------------------------------------------------------------
 namespace Integra.Space.Pipeline.Filters
 {
+    using Database;
     using Integra.Space.Pipeline;
+    using Ninject;
 
     /// <summary>
     /// Drop entity class.
@@ -15,7 +17,10 @@ namespace Integra.Space.Pipeline.Filters
         /// <inheritdoc />
         public override PipelineContext Execute(PipelineContext context)
         {
-            this.DropEntity(context);
+            Language.DropObjectNode command = (Language.DropObjectNode)context.CommandContext.Command;
+            SpaceDbContext databaseContext = context.Kernel.Get<SpaceDbContext>();
+            Schema schema = command.MainCommandObject.GetSchema(context.Kernel.Get<SpaceDbContext>(), context.SecurityContext.Login);
+            this.DropEntity(databaseContext, schema, command.MainCommandObject.Name);
             return context;
         }
 
@@ -27,8 +32,10 @@ namespace Integra.Space.Pipeline.Filters
         /// <summary>
         /// Removes the specified entity.
         /// </summary>
-        /// <param name="context">Pipeline context.</param>
-        protected virtual void DropEntity(PipelineContext context)
+        /// <param name="databaseContext">Database context.</param>
+        /// <param name="schema">Schema of the object.</param>
+        /// <param name="name">Object name.</param>
+        protected virtual void DropEntity(SpaceDbContext databaseContext, Schema schema, string name)
         {
         }
     }

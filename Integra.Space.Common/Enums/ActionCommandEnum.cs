@@ -84,6 +84,11 @@ namespace Integra.Space.Common
         ViewDefinition = 4096,
 
         /// <summary>
+        /// Action command remove.
+        /// </summary>
+        Remove = 8192,
+
+        /// <summary>
         /// Commands for add, delete o edit a space object.
         /// </summary>
         CrudCommands = Create | Alter | Drop,

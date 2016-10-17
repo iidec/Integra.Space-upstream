@@ -16,12 +16,11 @@ namespace Integra.Space.Pipeline.Filters
     internal class DropDatabaseRoleFilter : DropEntityFilter
     {
         /// <inheritdoc />
-        protected override void DropEntity(PipelineContext context)
+        protected override void DropEntity(SpaceDbContext databaseContext, Schema schema, string name)
         {
-            SpaceDbContext databaseContext = context.Kernel.Get<SpaceDbContext>();
-            DatabaseRole databaseRole = databaseContext.DatabaseRoles.Single(x => x.ServerId == context.CommandContext.Schema.ServerId
-                                            && x.DatabaseId == context.CommandContext.Schema.DatabaseId
-                                            && x.DbRoleName == ((Language.DDLCommand)context.CommandContext.Command).MainCommandObject.Name);
+            DatabaseRole databaseRole = databaseContext.DatabaseRoles.Single(x => x.ServerId == schema.ServerId
+                                            && x.DatabaseId == schema.DatabaseId
+                                            && x.DbRoleName == name);
 
             databaseContext.DatabaseRoles.Remove(databaseRole);
             databaseContext.SaveChanges();

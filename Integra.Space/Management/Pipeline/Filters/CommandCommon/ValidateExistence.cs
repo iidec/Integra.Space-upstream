@@ -24,17 +24,19 @@ namespace Integra.Space.Pipeline.Filters
             // acción del comando.
             ActionCommandEnum action = context.CommandContext.Command.Action;
 
+            /*
             HashSet<CommandObject> objects = new HashSet<CommandObject>();
             objects.Add(new CommandObject(SystemObjectEnum.Server, context.CommandContext.Schema.Database.Server.ServerName, PermissionsEnum.ControlServer, false));
             objects.Add(new CommandObject(SystemObjectEnum.Database, context.CommandContext.Schema.Database.DatabaseName, PermissionsEnum.Control, false));
             objects.Add(new CommandObject(SystemObjectEnum.Schema, context.CommandContext.Schema.SchemaName, PermissionsEnum.Control, false));
 
             // la acción a validar en este punto debe ser diferente de "create" porque se quiere validar que los objetos del contexto del comando existan.
-            this.Exist(context, objects); 
+            this.Exist(context, objects);
 
             // se eliminan los objetos del contexto del comando para poder validar los objetos del comando con la acción correspondiente del comando.
             objects.Clear();
-            
+            */
+
             // aqui se valida con la acción del comando.
             this.Exist(context, context.CommandContext.Command.CommandObjects);
 
@@ -56,35 +58,36 @@ namespace Integra.Space.Pipeline.Filters
         {
             foreach (CommandObject @object in objects)
             {
+                Schema schema = @object.GetSchema(context.Kernel.Get<SpaceDbContext>(), context.SecurityContext.Login);
                 bool exists = false;
                 switch (@object.SecurableClass)
                 {
                     case SystemObjectEnum.Source:
-                        exists = this.ExistSource(@object.Name, context.Kernel, context.CommandContext.Schema);
+                        exists = this.ExistSource(@object.Name, context.Kernel, schema);
                         break;
                     case SystemObjectEnum.Stream:
-                        exists = this.ExistStream(@object.Name, context.Kernel, context.CommandContext.Schema);
+                        exists = this.ExistStream(@object.Name, context.Kernel, schema);
                         break;
                     case SystemObjectEnum.View:
-                        exists = this.ExistView(@object.Name, context.Kernel, context.CommandContext.Schema);
+                        exists = this.ExistView(@object.Name, context.Kernel, schema);
                         break;
                     case SystemObjectEnum.Schema:
-                        exists = this.ExistSchema(@object.Name, context.Kernel, context.CommandContext.Schema);
+                        exists = this.ExistSchema(@object.Name, context.Kernel, schema);
                         break;
                     case SystemObjectEnum.DatabaseUser:
-                        exists = this.ExistDatabaseUser(@object.Name, context.Kernel, context.CommandContext.Schema);
+                        exists = this.ExistDatabaseUser(@object.Name, context.Kernel, schema);
                         break;
                     case SystemObjectEnum.DatabaseRole:
-                        exists = this.ExistDatabaseRole(@object.Name, context.Kernel, context.CommandContext.Schema);
+                        exists = this.ExistDatabaseRole(@object.Name, context.Kernel, schema);
                         break;
                     case SystemObjectEnum.Database:
-                        exists = this.ExistDatabase(@object.Name, context.Kernel, context.CommandContext.Schema);
+                        exists = this.ExistDatabase(@object.Name, context.Kernel, schema);
                         break;
                     case SystemObjectEnum.Endpoint:
-                        exists = this.ExistEndpoint(@object.Name, context.Kernel, context.CommandContext.Schema);
+                        exists = this.ExistEndpoint(@object.Name, context.Kernel, schema);
                         break;
                     case SystemObjectEnum.Login:
-                        exists = this.ExistLogin(@object.Name, context.Kernel, context.CommandContext.Schema);
+                        exists = this.ExistLogin(@object.Name, context.Kernel, schema);
                         break;
                     case SystemObjectEnum.Server:
                         exists = this.ExistServer(@object.Name, context.Kernel);

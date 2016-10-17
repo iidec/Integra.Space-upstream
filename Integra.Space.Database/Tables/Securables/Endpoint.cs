@@ -38,6 +38,10 @@ namespace Integra.Space.Database
         [Column("owner_srv_id")]
         public System.Guid OwnerServerId { get; set; }
 
+        [Column("is_active")]
+        [System.ComponentModel.DefaultValue(true)]
+        public bool IsActive { get; set; }
+
         public virtual Login Login { get; set; }
 
         public virtual Server Server { get; set; }

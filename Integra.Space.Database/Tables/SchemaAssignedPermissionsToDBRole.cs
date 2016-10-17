@@ -16,12 +16,12 @@ namespace Integra.Space.Database
         public System.Guid DbRoleId { get; set; }
 
         [Key]
-        [Column("dbr_db_id", Order = 1)]
+        [Column("dbr_db_id", Order = 2)]
         [DatabaseGenerated(DatabaseGeneratedOption.None)]
         public System.Guid DbRoleDatabaseId { get; set; }
 
         [Key]
-        [Column("dbr_srv_id", Order = 2)]
+        [Column("dbr_srv_id", Order = 1)]
         [DatabaseGenerated(DatabaseGeneratedOption.None)]
         public System.Guid DbRoleServerId { get; set; }
 

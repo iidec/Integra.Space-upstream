@@ -11,46 +11,61 @@ namespace Integra.Space.Pipeline.Filters
     using Common;
     using Database;
     using Language;
-    using Ninject;
 
     /// <summary>
     /// Filter create user class.
     /// </summary>
-    internal class CreateUserFilter : CreateEntityFilter
+    internal class CreateUserFilter : CreateEntityFilter<CreateUserNode, UserOptionEnum>
     {
         /// <inheritdoc />
-        protected override void CreateEntity(PipelineContext context)
+        protected override void CreateEntity(CreateUserNode command, Dictionary<UserOptionEnum, object> options, Login login, DatabaseUser user, Schema schema, SpaceDbContext databaseContext)
         {
-            Dictionary<UserOptionEnum, object> options = ((Language.CreateObjectNode<UserOptionEnum>)context.CommandContext.Command).Options;
-            Schema schema = context.CommandContext.Schema;
-
-            DatabaseUser user = new DatabaseUser();
-            user.ServerId = context.CommandContext.Schema.ServerId;
-            user.DatabaseId = context.CommandContext.Schema.DatabaseId;
-            user.DbUsrId = Guid.NewGuid();
-            user.DbUsrName = ((Language.DDLCommand)context.CommandContext.Command).MainCommandObject.Name;
-
-            SpaceDbContext databaseContext = context.Kernel.Get<SpaceDbContext>();
+            DatabaseUser newUser = new DatabaseUser();
+            newUser.ServerId = schema.ServerId;
+            newUser.DatabaseId = schema.DatabaseId;
+            newUser.DbUsrId = Guid.NewGuid();
+            newUser.DbUsrName = command.MainCommandObject.Name;
+            newUser.IsActive = true;
 
             if (options.ContainsKey(UserOptionEnum.Default_Schema))
             {
                 string schemaName = options[UserOptionEnum.Default_Schema].ToString();
                 Schema defaultSchema = databaseContext.Schemas.Single(x => x.ServerId == schema.ServerId && x.DatabaseId == schema.DatabaseId && x.SchemaName == schemaName);
 
-                user.DefaultSchemaServerId = defaultSchema.ServerId;
-                user.DefaultSchemaDatabaseId = defaultSchema.DatabaseId;
-                user.DefaultSchemaId = defaultSchema.SchemaId;
+                newUser.DefaultSchemaServerId = defaultSchema.ServerId;
+                newUser.DefaultSchemaDatabaseId = defaultSchema.DatabaseId;
+                newUser.DefaultSchemaId = defaultSchema.SchemaId;
             }
             else
             {
-                user.DefaultSchemaServerId = schema.ServerId;
-                user.DefaultSchemaDatabaseId = schema.DatabaseId;
-                user.DefaultSchemaId = schema.SchemaId;
+                newUser.DefaultSchemaServerId = schema.ServerId;
+                newUser.DefaultSchemaDatabaseId = schema.DatabaseId;
+                newUser.DefaultSchemaId = schema.SchemaId;
+            }
+
+            Login loginForUser = login;
+            if (options.ContainsKey(UserOptionEnum.Login))
+            {
+                string loginName = options[UserOptionEnum.Login].ToString();
+                loginForUser = databaseContext.Logins.Single(x => x.ServerId == schema.ServerId && x.LoginName == loginName);
+            }
+
+            if (databaseContext.DatabaseUsers.Any(x => x.LoginServerId == loginForUser.ServerId && x.LoginId == loginForUser.LoginId && x.ServerId == newUser.ServerId && x.DatabaseId == newUser.DatabaseId))
+            {
+                throw new Exception(string.Format("The login '{0}' already have a user at the database '{1}'.", loginForUser.LoginName, newUser.Database.DatabaseName));
+            }
+
+            newUser.Login = loginForUser;
+
+            newUser.IsActive = true;
+            if (command.Options.ContainsKey(Common.UserOptionEnum.Status))
+            {
+                newUser.IsActive = (bool)command.Options[Common.UserOptionEnum.Status];
             }
 
             // almaceno la nueva entidad y guardo los cambios
-            databaseContext.DatabaseUsers.Add(user);
-            databaseContext.SaveChanges();            
+            databaseContext.DatabaseUsers.Add(newUser);
+            databaseContext.SaveChanges();
         }
     }
 }

@@ -16,13 +16,12 @@ namespace Integra.Space.Pipeline.Filters
     internal class DropViewFilter : DropEntityFilter
     {
         /// <inheritdoc />
-        protected override void DropEntity(PipelineContext context)
+        protected override void DropEntity(SpaceDbContext databaseContext, Schema schema, string name)
         {
-            SpaceDbContext databaseContext = context.Kernel.Get<SpaceDbContext>();
-            View view = databaseContext.Views.Single(x => x.ServerId == context.CommandContext.Schema.ServerId
-                                            && x.DatabaseId == context.CommandContext.Schema.DatabaseId
-                                            && x.SchemaId == context.CommandContext.Schema.SchemaId
-                                            && x.ViewName == ((Language.DDLCommand)context.CommandContext.Command).MainCommandObject.Name);
+            View view = databaseContext.Views.Single(x => x.ServerId == schema.ServerId
+                                            && x.DatabaseId == schema.DatabaseId
+                                            && x.SchemaId == schema.SchemaId
+                                            && x.ViewName == name);
 
             databaseContext.Views.Remove(view);
             databaseContext.SaveChanges();

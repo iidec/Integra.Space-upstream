@@ -17,46 +17,22 @@ namespace Integra.Space.Pipeline
     internal sealed class SecurityContext
     {
         /// <summary>
-        /// The user requesting the command execution.
-        /// </summary>
-        private DatabaseUser user;
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="SecurityContext"/> class.
         /// </summary>
-        /// <param name="login">Login that will execute the command.</param>
+        /// <param name="loginName">Login that will execute the command.</param>
         /// <param name="kernel">DI kernel.</param>
-        public SecurityContext(string login, IKernel kernel)
+        public SecurityContext(string loginName, IKernel kernel)
         {
-            Contract.Assert(!string.IsNullOrWhiteSpace(login));
+            Contract.Assert(!string.IsNullOrWhiteSpace(loginName));
 
             // obtengo el contexto de base de datos
             SpaceDbContext context = kernel.Get<SpaceDbContext>();
             
             // se obtiene el login definido para ejecutar el comando.
-            this.Login = context.Logins.Single(x => x.LoginName == login);
+            this.Login = context.Logins.Single(x => x.LoginName == loginName);
             
             // se obtienen los roles del sistema para el login.
             this.ServerRoles = this.Login.ServerRoles;
-        }
-
-        /// <summary>
-        /// Gets or sets the user requesting the command execution.
-        /// </summary>
-        public DatabaseUser User
-        {
-            get
-            {
-                return this.user;
-            }
-
-            set
-            {
-                if (this.user == null)
-                {
-                    this.user = value;
-                }
-            }
         }
 
         /// <summary>

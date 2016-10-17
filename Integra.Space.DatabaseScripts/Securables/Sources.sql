@@ -8,6 +8,7 @@
     [owner_id] UNIQUEIDENTIFIER NOT NULL, 
     [owner_db_id] UNIQUEIDENTIFIER NOT NULL, 
     [owner_srv_id] UNIQUEIDENTIFIER NOT NULL, 
+    [is_active] BIT NOT NULL DEFAULT 1, 
     PRIMARY KEY ([so_id], [sch_id], [db_id], [srv_id]), 
     CONSTRAINT [AK_Sources_so_name] UNIQUE ([so_name]), 
     CONSTRAINT [FK_Sources_Schemas] FOREIGN KEY ([srv_id], [db_id], [sch_id]) REFERENCES [space].[schemas]([srv_id], [db_id], [sch_id]),

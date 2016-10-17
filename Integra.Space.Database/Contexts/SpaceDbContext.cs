@@ -61,72 +61,72 @@ namespace Integra.Space.Database
             modelBuilder.Entity<DatabaseRole>()
                 .HasMany(e => e.DatabaseAssignedPermissionsToDBRoles)
                 .WithRequired(e => e.DatabaseRole)
-                .HasForeignKey(e => new { e.DbRole_id, e.DbRoleDatabaseId, e.DbRoleServerId })
+                .HasForeignKey(e => new { e.DbRole_id, e.DbRoleServerId, e.DbRoleDatabaseId })
                 .WillCascadeOnDelete(false);
 
             modelBuilder.Entity<DatabaseRole>()
                 .HasMany(e => e.DBRolesAssignedPermissionsToDBRoles)
                 .WithRequired(e => e.DatabaseRole)
-                .HasForeignKey(e => new { e.DbRoleId, e.DbRoleDatabaseId, e.DbRoleServerId })
+                .HasForeignKey(e => new { e.DbRoleId, e.DbRoleServerId, e.DbRoleDatabaseId })
                 .WillCascadeOnDelete(false);
 
             modelBuilder.Entity<DatabaseRole>()
                 .HasMany(e => e.DBRolesAssignedPermissionsToDBRolesOn)
                 .WithRequired(e => e.DatabaseRole1)
-                .HasForeignKey(e => new { e.OnDbRoleServerId, e.OnDbRoleDatabaseId, e.OnDbRoleId })
+                .HasForeignKey(e => new { e.OnDbRoleId, e.OnDbRoleServerId, e.OnDbRoleDatabaseId })
                 .WillCascadeOnDelete(false);
 
             modelBuilder.Entity<DatabaseRole>()
                 .HasMany(e => e.DBRolesAssignedPermissionsToUsers)
                 .WithRequired(e => e.DatabaseRole)
-                .HasForeignKey(e => new { e.DbRoleServerId, e.DbRoleDatabaseId, e.DbRoleId })
+                .HasForeignKey(e => new { e.DbRoleId, e.DbRoleServerId, e.DbRoleDatabaseId })
                 .WillCascadeOnDelete(false);
 
             modelBuilder.Entity<DatabaseRole>()
                 .HasMany(e => e.SchemaAssignedPermissionsToDBRoles)
                 .WithRequired(e => e.DatabaseRole)
-                .HasForeignKey(e => new { e.DbRoleId, e.DbRoleDatabaseId, e.DbRoleServerId })
+                .HasForeignKey(e => new { e.DbRoleId, e.DbRoleServerId, e.DbRoleDatabaseId })
                 .WillCascadeOnDelete(false);
 
             modelBuilder.Entity<DatabaseRole>()
                 .HasMany(e => e.SourceAssignedPermissionsToDBRoles)
                 .WithRequired(e => e.DatabaseRole)
-                .HasForeignKey(e => new { e.DbRoleId, e.DbRoleDatabaseId, e.DbRoleServerId })
+                .HasForeignKey(e => new { e.DbRoleId, e.DbRoleServerId, e.DbRoleDatabaseId })
                 .WillCascadeOnDelete(false);
 
             modelBuilder.Entity<DatabaseRole>()
                 .HasMany(e => e.StreamAssignedPermissionsToDBRoles)
                 .WithRequired(e => e.DatabaseRole)
-                .HasForeignKey(e => new { e.DbRoleId, e.DbRoleDatabaseId, e.DbRoleServerId })
+                .HasForeignKey(e => new { e.DbRoleId, e.DbRoleServerId, e.DbRoleDatabaseId })
                 .WillCascadeOnDelete(false);
 
             modelBuilder.Entity<DatabaseRole>()
                 .HasMany(e => e.UserAssignedPermissionsToDBRoles)
                 .WithRequired(e => e.DatabaseRole)
-                .HasForeignKey(e => new { e.DbRoleId, e.DbRoleDatabaseId, e.DbRoleServerId })
+                .HasForeignKey(e => new { e.DbRoleId, e.DbRoleServerId, e.DbRoleDatabaseId })
                 .WillCascadeOnDelete(false);
 
             modelBuilder.Entity<DatabaseRole>()
                 .HasMany(e => e.ViewAssignedPermissionsToDBRoles)
                 .WithRequired(e => e.DatabaseRole)
-                .HasForeignKey(e => new { e.DbRoleId, e.DbRoleDatabaseId, e.DbRoleServerId })
+                .HasForeignKey(e => new { e.DbRoleId, e.DbRoleServerId, e.DbRoleDatabaseId })
                 .WillCascadeOnDelete(false);
 
             modelBuilder.Entity<DatabaseRole>()
                 .HasMany(e => e.DatabaseUsers)
                 .WithMany(e => e.DatabaseRoles1)
-                .Map(m => m.ToTable("database_roles_by_users", "space").MapLeftKey(new[] { "dbr_id", "dbr_db_id", "dbr_srv_id" }).MapRightKey(new[] { "dbusr_id", "dbusr_db_id", "dbusr_srv_id" }));
+                .Map(m => m.ToTable("database_roles_by_users", "space").MapLeftKey(new[] { "dbr_id", "dbr_srv_id", "dbr_db_id" }).MapRightKey(new[] { "dbusr_id", "dbusr_srv_id", "dbusr_db_id" }));
 
             modelBuilder.Entity<DatabaseUser>()
                 .HasMany(e => e.DatabaseAssignedPermissionsToUsers)
                 .WithRequired(e => e.DatabaseUser)
-                .HasForeignKey(e => new { e.DbUsrId, e.DbUsrDatabaseId, e.DbUsrServerId })
+                .HasForeignKey(e => new { e.DbUsrId, e.DbUsrServerId, e.DbUsrDatabaseId })
                 .WillCascadeOnDelete(false);
 
             modelBuilder.Entity<DatabaseUser>()
                 .HasMany(e => e.DatabaseRoles)
                 .WithRequired(e => e.DatabaseUser)
-                .HasForeignKey(e => new { e.OwnerId, e.OwnerDatabaseId, e.OwnerServerId })
+                .HasForeignKey(e => new { e.OwnerId, e.OwnerServerId, e.OwnerDatabaseId })
                 .WillCascadeOnDelete(false);
 
             modelBuilder.Entity<Login>()
@@ -144,7 +144,7 @@ namespace Integra.Space.Database
             modelBuilder.Entity<DatabaseUser>()
                 .HasMany(e => e.DBRolesAssignedPermissionsToUsers)
                 .WithRequired(e => e.DatabaseUser)
-                .HasForeignKey(e => new { e.DbUsrId, e.DbUsrDatabaseId, e.DbUsrServerId })
+                .HasForeignKey(e => new { e.DbUsrId, e.DbUsrServerId, e.DbUsrDatabaseId })
                 .WillCascadeOnDelete(false);
 
             modelBuilder.Entity<Login>()
@@ -156,73 +156,74 @@ namespace Integra.Space.Database
             modelBuilder.Entity<DatabaseUser>()
                 .HasMany(e => e.SchemaAssignedPermissionsToUsers)
                 .WithRequired(e => e.DatabaseUser)
-                .HasForeignKey(e => new { e.DbUsrId, e.DbUsrDatabaseId, e.DbUsrServerId })
+                .HasForeignKey(e => new { e.DbUsrId, e.DbUsrServerId, e.DbUsrDatabaseId })
                 .WillCascadeOnDelete(false);
 
             modelBuilder.Entity<DatabaseUser>()
                 .HasMany(e => e.Schemas)
                 .WithRequired(e => e.DatabaseUser)
-                .HasForeignKey(e => new { e.OwnerId, e.OwnerDatabaseId, e.OwnerServerId })
+                .HasForeignKey(e => new { e.OwnerId, e.OwnerServerId, e.OwnerDatabaseId})
                 .WillCascadeOnDelete(false);
 
             modelBuilder.Entity<DatabaseUser>()
                 .HasMany(e => e.SourceAssignedPermissionsToUsers)
                 .WithRequired(e => e.DatabaseUser)
-                .HasForeignKey(e => new { e.DbUserId, e.DbUserDatabaseId, e.DbUsrServerId })
+                .HasForeignKey(e => new { e.DbUserId, e.DbUsrServerId, e.DbUserDatabaseId })
                 .WillCascadeOnDelete(false);
 
             modelBuilder.Entity<DatabaseUser>()
                 .HasMany(e => e.Sources)
                 .WithRequired(e => e.DatabaseUser)
-                .HasForeignKey(e => new { e.OwnerId, e.OwnerDatabaseId, e.OwnerServerId })
+                .HasForeignKey(e => new { e.OwnerId, e.OwnerServerId, e.OwnerDatabaseId })
                 .WillCascadeOnDelete(false);
 
             modelBuilder.Entity<DatabaseUser>()
                 .HasMany(e => e.StreamAssignedPermissionsToUsers)
                 .WithRequired(e => e.DatabaseUser)
-                .HasForeignKey(e => new { e.DbUsrId, e.DbUsrDatabaseId, e.DbUsrServerId })
+                .HasForeignKey(e => new { e.DbUsrId, e.DbUsrServerId, e.DbUsrDatabaseId })
                 .WillCascadeOnDelete(false);
 
             modelBuilder.Entity<DatabaseUser>()
                 .HasMany(e => e.Streams)
                 .WithRequired(e => e.DatabaseUser)
-                .HasForeignKey(e => new { e.OwnerId, e.OwnerDatabaseId, e.OwnerServerId })
+                .HasForeignKey(e => new { e.OwnerId, e.OwnerServerId, e.OwnerDatabaseId})
                 .WillCascadeOnDelete(false);
 
             modelBuilder.Entity<DatabaseUser>()
                 .HasMany(e => e.UserAssignedPermissionsToDBRoles)
                 .WithRequired(e => e.DatabaseUser)
-                .HasForeignKey(e => new { e.DbUsrServerId, e.DbUsrDatabaseId, e.DbUsrId })
+                .HasForeignKey(e => new { e.DbUsrId , e.DbUsrServerId, e.DbUsrDatabaseId})
                 .WillCascadeOnDelete(false);
 
             modelBuilder.Entity<DatabaseUser>()
                 .HasMany(e => e.UserAssignedPermissionsToUsers)
                 .WithRequired(e => e.DatabaseUser)
-                .HasForeignKey(e => new { e.DbUsrId, e.DbUsrDatabaseId, e.DbUsrServerId })
+                .HasForeignKey(e => new { e.DbUsrId, e.DbUsrServerId, e.DbUsrDatabaseId})
                 .WillCascadeOnDelete(false);
 
             modelBuilder.Entity<DatabaseUser>()
                 .HasMany(e => e.UserAssignedPermissionsToUsers1)
                 .WithRequired(e => e.DatabaseUser1)
-                .HasForeignKey(e => new { e.OnDbUsrServerId, e.OnDbUsrDatabaseId, e.OnDbUsrId })
+                .HasForeignKey(e => new { e.OnDbUsrId, e.OnDbUsrServerId, e.OnDbUsrDatabaseId })
                 .WillCascadeOnDelete(false);
 
             modelBuilder.Entity<DatabaseUser>()
                 .HasMany(e => e.ViewAssignedPermissionsToUsers)
                 .WithRequired(e => e.DatabaseUser)
-                .HasForeignKey(e => new { e.DbUsrId, e.DbUsrDatabaseId, e.DbUsrServerId })
+                .HasForeignKey(e => new { e.DbUsrId, e.DbUsrServerId, e.DbUsrDatabaseId })
                 .WillCascadeOnDelete(false);
 
             modelBuilder.Entity<DatabaseUser>()
                 .HasMany(e => e.Views)
                 .WithRequired(e => e.DatabaseUser)
-                .HasForeignKey(e => new { e.OwnerId, e.OwnerDatabaseId, e.OwnerServerId })
+                .HasForeignKey(e => new { e.OwnerId, e.OwnerServerId, e.OwnerDatabaseId})
                 .WillCascadeOnDelete(false);
-
-            modelBuilder.Entity<DatabaseUser>()
-                .HasMany(e => e.Logins)
-                .WithMany(e => e.DatabaseUsers)
-                .Map(m => m.ToTable("logins_by_users", "space").MapLeftKey(new[] { "dbusr_id", "dbusr_db_id", "dbusr_srv_id" }).MapRightKey(new[] { "lg_srv_id", "lg_id" }));
+            
+            modelBuilder.Entity<Login>()
+                .HasMany(e => e.DatabaseUsers)
+                .WithRequired(e => e.Login)
+                .HasForeignKey(e => new { e.LoginServerId, e.LoginId })
+                .WillCascadeOnDelete(false);
 
             modelBuilder.Entity<Database>()
                 .HasMany(e => e.DatabaseAssignedPermissionsToDBRoles)
@@ -245,13 +246,13 @@ namespace Integra.Space.Database
             modelBuilder.Entity<Database>()
                 .HasMany(e => e.DatabaseRoles)
                 .WithRequired(e => e.Database)
-                .HasForeignKey(e => new { e.DatabaseId, e.ServerId })
+                .HasForeignKey(e => new { e.ServerId, e.DatabaseId })
                 .WillCascadeOnDelete(false);
 
             modelBuilder.Entity<Database>()
                 .HasMany(e => e.DatabaseUsers)
                 .WithRequired(e => e.Database)
-                .HasForeignKey(e => new { e.DatabaseId, e.ServerId })
+                .HasForeignKey(e => new { e.ServerId, e.DatabaseId })
                 .WillCascadeOnDelete(false);
 
             modelBuilder.Entity<Database>()
@@ -304,7 +305,7 @@ namespace Integra.Space.Database
             modelBuilder.Entity<Login>()
                 .HasMany(e => e.ServersAssignedPermissionsToLogins)
                 .WithRequired(e => e.Login)
-                .HasForeignKey(e => new { e.LoginId, e.LoginServerId })
+                .HasForeignKey(e => new { e.LoginServerId, e.LoginId })
                 .WillCascadeOnDelete(false);
             
             modelBuilder.Entity<Login>()

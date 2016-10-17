@@ -7,43 +7,58 @@ namespace Integra.Space.Pipeline.Filters
 {
     using System;
     using System.Collections.Generic;
-    using System.Linq;
+    using System.IO;
     using Common;
     using Database;
-    using Ninject;
 
     /// <summary>
     /// Filter create source class.
     /// </summary>
-    internal class CreateStreamFilter : CreateEntityFilter
+    internal class CreateStreamFilter : CreateEntityFilter<Language.CreateStreamNode, StreamOptionEnum>
     {
         /// <inheritdoc />
-        protected override void CreateEntity(PipelineContext context)
+        protected override void CreateEntity(Language.CreateStreamNode command, Dictionary<StreamOptionEnum, object> options, Login login, DatabaseUser user, Schema schema, SpaceDbContext databaseContext)
         {
-            Language.CreateStreamNode command = (Language.CreateStreamNode)context.CommandContext.Command;
-            Dictionary<StreamOptionEnum, object> options = command.Options;
-            Schema schema = context.CommandContext.Schema;
-            string query = command.Query;
-            if (!string.IsNullOrWhiteSpace(query))
+            if (!string.IsNullOrWhiteSpace(command.Query))
             {
-                Stream stream = new Stream();
+                Space.Database.Stream stream = new Space.Database.Stream();
                 stream.ServerId = schema.ServerId;
                 stream.DatabaseId = schema.DatabaseId;
                 stream.SchemaId = schema.SchemaId;
                 stream.StreamId = Guid.NewGuid();
                 stream.StreamName = command.MainCommandObject.Name;
-                stream.Query = query;
+                stream.Query = command.Query;
 
                 // se le establece como propietario al usuario que lo esta creando.
-                stream.OwnerServerId = context.SecurityContext.User.ServerId;
-                stream.OwnerDatabaseId = context.SecurityContext.User.DatabaseId;
-                stream.OwnerId = context.SecurityContext.User.DbUsrId;
+                stream.OwnerServerId = user.ServerId;
+                stream.OwnerDatabaseId = user.DatabaseId;
+                stream.OwnerId = user.DbUsrId;
 
-                // especifíco el assembly.
-                stream.Assembly = System.IO.File.ReadAllBytes(context.Assembly.Location);
+                // especifico el assembly.
+                string assemblyPath = System.IO.Path.Combine(Environment.CurrentDirectory, "TempQueryAssemblies", schema.Database.Server.ServerName, schema.Database.DatabaseName, schema.SchemaName, command.MainCommandObject.Name + Language.Runtime.SpaceAssemblyBuilder.FILEEXTENSION);
+                if (File.Exists(assemblyPath))
+                {
+                    try
+                    {
+                        stream.Assembly = File.ReadAllBytes(assemblyPath);
+                    }
+                    catch (Exception e)
+                    {
+                        throw new Exception(string.Format("Can't read the bytes of the assembly of the stream '{0}' at the schema '{1}', database '{2}' and server '{3}'", stream.StreamName, stream.Schema.SchemaName, stream.Schema.Database.DatabaseName, stream.Schema.Database.Server.ServerName), e);
+                    }
+                }
+                else
+                {
+                    throw new FileNotFoundException(string.Format("The assembly of the stream '{0}' at the schema '{1}', database '{2}' and server '{3}' was not found.", stream.StreamName, stream.Schema.SchemaName, stream.Schema.Database.DatabaseName, stream.Schema.Database.Server.ServerName));
+                }
+
+                stream.IsActive = true;
+                if (command.Options.ContainsKey(Common.StreamOptionEnum.Status))
+                {
+                    stream.IsActive = (bool)command.Options[Common.StreamOptionEnum.Status];
+                }
 
                 // almaceno la nueva entidad y guardo los cambios
-                SpaceDbContext databaseContext = context.Kernel.Get<SpaceDbContext>();
                 databaseContext.Streams.Add(stream);
                 databaseContext.SaveChanges();
             }

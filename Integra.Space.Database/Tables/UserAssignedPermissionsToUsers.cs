@@ -16,12 +16,12 @@ namespace Integra.Space.Database
         public System.Guid DbUsrId { get; set; }
 
         [Key]
-        [Column("dbusr_db_id", Order = 1)]
+        [Column("dbusr_db_id", Order = 2)]
         [DatabaseGenerated(DatabaseGeneratedOption.None)]
         public System.Guid DbUsrDatabaseId { get; set; }
 
         [Key]
-        [Column("dbusr_srv_id", Order = 2)]
+        [Column("dbusr_srv_id", Order = 1)]
         [DatabaseGenerated(DatabaseGeneratedOption.None)]
         public System.Guid DbUsrServerId { get; set; }
 
@@ -36,17 +36,17 @@ namespace Integra.Space.Database
         public System.Guid GranularPermissionId { get; set; }
 
         [Key]
-        [Column("on_dbusr_srv_id", Order = 5)]
+        [Column("on_dbusr_srv_id", Order = 6)]
         [DatabaseGenerated(DatabaseGeneratedOption.None)]
         public System.Guid OnDbUsrServerId { get; set; }
 
         [Key]
-        [Column("on_dbusr_db_id", Order = 6)]
+        [Column("on_dbusr_db_id", Order = 7)]
         [DatabaseGenerated(DatabaseGeneratedOption.None)]
         public System.Guid OnDbUsrDatabaseId { get; set; }
 
         [Key]
-        [Column("on_dbusr_id", Order = 7)]
+        [Column("on_dbusr_id", Order = 5)]
         [DatabaseGenerated(DatabaseGeneratedOption.None)]
         public System.Guid OnDbUsrId { get; set; }
 

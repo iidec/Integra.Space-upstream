@@ -17,25 +17,34 @@ namespace Integra.Space.Pipeline.Filters
     internal class PermissionOnServerFilter : PermissionFilter
     {
         /// <inheritdoc />
-        protected override void SavePermissionForUser(CommandObject principal, PipelineContext context, Schema schema, PermissionsCommandNode command, PermissionNode permission)
+        protected override void SavePermissionForUser(SpaceDbContext databaseContext, Login login, Schema schemaOfPrincipal, Schema schemaOfSecurable, PermissionsCommandNode command, PermissionNode permission, DatabaseUser user)
         {
-            SpaceDbContext databaseContext = context.Kernel.Get<SpaceDbContext>();
-            Login login = databaseContext.Logins.Single(x => x.ServerId == schema.Database.Server.ServerId && x.LoginName == principal.Name);
+            throw new InvalidOperationException("Cannot assign a server permission to a database user.");
+        }
 
+        /// <inheritdoc />
+        protected override void SavePermissionForRole(SpaceDbContext databaseContext, Login login, Schema schemaOfPrincipal, Schema schemaOfSecurable, PermissionsCommandNode command, PermissionNode permission, DatabaseRole role)
+        {
+            throw new InvalidOperationException("Cannot assign a server permission to a database role.");
+        }
+
+        /// <inheritdoc />
+        protected override void SavePermissionForLogin(SpaceDbContext databaseContext, Login login, Schema schemaOfPrincipal, Schema schemaOfSecurable, PermissionsCommandNode command, PermissionNode permission, Login principal)
+        {
             ServerAssignedPermissionsToLogin newPermission = new ServerAssignedPermissionsToLogin();
-            newPermission.Login = login;
-            newPermission.SecurableClassId = databaseContext.SecurableClasses.Single(x => x.SecurableName.Equals(permission.ObjectType.ToString(), StringComparison.InvariantCultureIgnoreCase)).SecurableClassId;
+            newPermission.Login = principal;
+            newPermission.SecurableClassId = databaseContext.SecurableClasses.Single(x => x.SecurableName.Equals(permission.CommandObject.SecurableClass.ToString(), StringComparison.InvariantCultureIgnoreCase)).SecurableClassId;
             newPermission.GranularPermissionId = databaseContext.GranularPermissions.Single(x => x.GranularPermissionName.Replace(" ", string.Empty).Equals(permission.Permission.ToString(), StringComparison.InvariantCultureIgnoreCase)).GranularPermissionId;
             newPermission.WithGrantOption = command.PermissionOption;
 
-            if (permission.ObjectName == null)
+            if (permission.CommandObject == null)
             {
-                command.Permission.ObjectName = context.CommandContext.Schema.Database.DatabaseName;
-                newPermission.Server = context.CommandContext.Schema.Database.Server;
+                // command.Permission.ObjectName = login.Database.Server.ServerName; // context.CommandContext.Schema.Database.DatabaseName;
+                newPermission.Server = schemaOfSecurable.Database.Server; // context.CommandContext.Schema.Database.Server;
             }
             else
             {
-                newPermission.Server = databaseContext.Servers.Single(x => x.ServerId == schema.ServerId);
+                newPermission.Server = databaseContext.Servers.Single(x => x.ServerId == schemaOfSecurable.ServerId);
             }
 
             Func<ServerAssignedPermissionsToLogin, bool> predicate = x => x.LoginServerId == newPermission.Login.ServerId
@@ -84,12 +93,6 @@ namespace Integra.Space.Pipeline.Filters
             }
 
             databaseContext.SaveChanges();
-        }
-
-        /// <inheritdoc />
-        protected override void SavePermissionForRole(CommandObject role, PipelineContext context, Schema schema, PermissionsCommandNode command, PermissionNode permission)
-        {
-            throw new InvalidOperationException("Cannot assign a server permission to a role.");
         }
     }
 }

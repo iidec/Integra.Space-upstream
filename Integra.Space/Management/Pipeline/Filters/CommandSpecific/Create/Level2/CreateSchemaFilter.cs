@@ -7,36 +7,29 @@ namespace Integra.Space.Pipeline.Filters
 {
     using System;
     using System.Collections.Generic;
-    using System.Linq;
     using Common;
     using Database;
-    using Ninject;
 
     /// <summary>
     /// Filter create source class.
     /// </summary>
-    internal class CreateSchemaFilter : CreateEntityFilter
+    internal class CreateSchemaFilter : CreateEntityFilter<Language.CreateSchemaNode, SchemaOptionEnum>
     {
         /// <inheritdoc />
-        protected override void CreateEntity(PipelineContext context)
+        protected override void CreateEntity(Language.CreateSchemaNode command, Dictionary<SchemaOptionEnum, object> options, Login login, DatabaseUser user, Schema schema, SpaceDbContext databaseContext)
         {
-            Dictionary<SchemaOptionEnum, object> options = ((Language.CreateSchemaNode)context.CommandContext.Command).Options;
-            Schema executionSchema = context.CommandContext.Schema;
+            Schema newSchema = new Schema();
+            newSchema.ServerId = schema.ServerId;
+            newSchema.DatabaseId = schema.DatabaseId;
+            newSchema.SchemaId = Guid.NewGuid();
+            newSchema.SchemaName = command.MainCommandObject.Name;
 
-            Schema schema = new Schema();
-            schema.ServerId = context.CommandContext.Schema.ServerId;
-            schema.DatabaseId = context.CommandContext.Schema.DatabaseId;
-            schema.SchemaId = Guid.NewGuid();
-            schema.SchemaName = ((Language.DDLCommand)context.CommandContext.Command).MainCommandObject.Name;
-                        
-            DatabaseUser user = context.SecurityContext.User;
-            schema.OwnerServerId = user.ServerId;
-            schema.OwnerDatabaseId = user.DatabaseId;
-            schema.OwnerId = user.DbUsrId;
+            newSchema.OwnerServerId = user.ServerId;
+            newSchema.OwnerDatabaseId = user.DatabaseId;
+            newSchema.OwnerId = user.DbUsrId;
 
             // almaceno la nueva entidad y guardo los cambios
-            SpaceDbContext databaseContext = context.Kernel.Get<SpaceDbContext>();
-            databaseContext.Schemas.Add(schema);
+            databaseContext.Schemas.Add(newSchema);
             databaseContext.SaveChanges();
         }
     }

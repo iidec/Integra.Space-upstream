@@ -116,7 +116,7 @@
     <Build Include="Security\GranularPermissions.sql" />
     <Build Include="Security\ServerRolesByLogins.sql" />
     <Build Include="Security\DatabaseRolesByUsers.sql" />
-    <Build Include="Security\LoginsByUsers.sql" />
+    <Build Include="Security\HierarchyPermissions.sql" />
   </ItemGroup>
   <ItemGroup>
     <RefactorLog Include="Integra.Space.DatabaseScripts.refactorlog" />

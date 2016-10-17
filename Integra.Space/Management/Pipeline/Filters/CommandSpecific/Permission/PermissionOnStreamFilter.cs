@@ -17,17 +17,14 @@ namespace Integra.Space.Pipeline.Filters
     internal class PermissionOnStreamFilter : PermissionFilter
     {
         /// <inheritdoc />
-        protected override void SavePermissionForUser(CommandObject user, PipelineContext context, Schema schema, PermissionsCommandNode command, PermissionNode permission)
+        protected override void SavePermissionForUser(SpaceDbContext databaseContext, Login login, Schema schemaOfPrincipal, Schema schemaOfSecurable, PermissionsCommandNode command, PermissionNode permission, DatabaseUser user)
         {
-            SpaceDbContext databaseContext = context.Kernel.Get<SpaceDbContext>();
-            DatabaseUser databaseUser = databaseContext.DatabaseUsers.Single(x => x.ServerId == schema.Database.Server.ServerId && x.DatabaseId == schema.DatabaseId && x.DbUsrName == user.Name);
-
             StreamAssignedPermissionsToUser newPermission = new StreamAssignedPermissionsToUser();
-            newPermission.SecurableClassId = databaseContext.SecurableClasses.Single(x => x.SecurableName.Equals(permission.ObjectType.ToString(), StringComparison.InvariantCultureIgnoreCase)).SecurableClassId;
+            newPermission.SecurableClassId = databaseContext.SecurableClasses.Single(x => x.SecurableName.Equals(permission.CommandObject.SecurableClass.ToString(), StringComparison.InvariantCultureIgnoreCase)).SecurableClassId;
             newPermission.GranularPermissionId = databaseContext.GranularPermissions.Single(x => x.GranularPermissionName.Replace(" ", string.Empty).Equals(permission.Permission.ToString(), StringComparison.InvariantCultureIgnoreCase)).GranularPermissionId;
             newPermission.WithGrantOption = command.PermissionOption;
-            newPermission.DatabaseUser = databaseUser;
-            newPermission.Stream = databaseContext.Streams.Single(x => x.ServerId == schema.ServerId && x.DatabaseId == schema.DatabaseId && x.SchemaId == schema.SchemaId && x.StreamName == permission.ObjectName);
+            newPermission.DatabaseUser = user;
+            newPermission.Stream = databaseContext.Streams.Single(x => x.ServerId == schemaOfSecurable.ServerId && x.DatabaseId == schemaOfSecurable.DatabaseId && x.SchemaId == schemaOfSecurable.SchemaId && x.StreamName == permission.CommandObject.Name);
             
             Func<StreamAssignedPermissionsToUser, bool> predicate = x => x.DbUsrServerId == newPermission.DatabaseUser.ServerId
                                                                              && x.DbUsrDatabaseId == newPermission.DatabaseUser.DatabaseId
@@ -82,17 +79,14 @@ namespace Integra.Space.Pipeline.Filters
         }
 
         /// <inheritdoc />
-        protected override void SavePermissionForRole(CommandObject role, PipelineContext context, Schema schema, PermissionsCommandNode command, PermissionNode permission)
+        protected override void SavePermissionForRole(SpaceDbContext databaseContext, Login login, Schema schemaOfPrincipal, Schema schemaOfSecurable, PermissionsCommandNode command, PermissionNode permission, DatabaseRole role)
         {
-            SpaceDbContext databaseContext = context.Kernel.Get<SpaceDbContext>();
-            DatabaseRole databaseRole = databaseContext.DatabaseRoles.Single(x => x.ServerId == schema.Database.Server.ServerId && x.DatabaseId == schema.DatabaseId && x.DbRoleName == role.Name);
-
             StreamAssignedPermissionsToDBRole newPermission = new StreamAssignedPermissionsToDBRole();
-            newPermission.SecurableClassId = databaseContext.SecurableClasses.Single(x => x.SecurableName.Equals(permission.ObjectType.ToString(), StringComparison.InvariantCultureIgnoreCase)).SecurableClassId;
+            newPermission.SecurableClassId = databaseContext.SecurableClasses.Single(x => x.SecurableName.Equals(permission.CommandObject.SecurableClass.ToString(), StringComparison.InvariantCultureIgnoreCase)).SecurableClassId;
             newPermission.GranularPermissionId = databaseContext.GranularPermissions.Single(x => x.GranularPermissionName.Replace(" ", string.Empty).Equals(permission.Permission.ToString(), StringComparison.InvariantCultureIgnoreCase)).GranularPermissionId;
             newPermission.WithGrantOption = command.PermissionOption;
-            newPermission.DatabaseRole = databaseRole;
-            newPermission.Stream = databaseContext.Streams.Single(x => x.ServerId == schema.ServerId && x.DatabaseId == schema.DatabaseId && x.SchemaId == schema.SchemaId && x.StreamName == permission.ObjectName);
+            newPermission.DatabaseRole = role;
+            newPermission.Stream = databaseContext.Streams.Single(x => x.ServerId == schemaOfSecurable.ServerId && x.DatabaseId == schemaOfSecurable.DatabaseId && x.SchemaId == schemaOfSecurable.SchemaId && x.StreamName == permission.CommandObject.Name);
 
             Func<StreamAssignedPermissionsToDBRole, bool> predicate = x => x.DbRoleServerId == newPermission.DatabaseRole.ServerId
                                                                              && x.DbRoleDatabaseId == newPermission.DatabaseRole.DatabaseId
@@ -144,6 +138,12 @@ namespace Integra.Space.Pipeline.Filters
             }
 
             databaseContext.SaveChanges();
+        }
+
+        /// <inheritdoc />
+        protected override void SavePermissionForLogin(SpaceDbContext databaseContext, Login login, Schema schemaOfPrincipal, Schema schemaOfSecurable, PermissionsCommandNode command, PermissionNode permission, Login principal)
+        {
+            throw new NotImplementedException();
         }
     }
 }

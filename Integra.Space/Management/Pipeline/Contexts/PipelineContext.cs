@@ -102,11 +102,6 @@ namespace Integra.Space.Pipeline
             {
                 this.pipeline = value;
             }
-        }
-
-        /// <summary>
-        /// Gets or sets the assembly of a query compilation.
-        /// </summary>
-        public System.Reflection.Assembly Assembly { get; set; }
+        }        
     }
 }

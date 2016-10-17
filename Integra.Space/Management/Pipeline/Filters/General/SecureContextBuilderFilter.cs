@@ -21,6 +21,7 @@ namespace Integra.Space.Pipeline.Filters
         /// <inheritdoc />
         public override PipelineContext Execute(PipelineContext context)
         {
+            /*
             SystemCommand command = context.CommandContext.Command;
 
             SpaceDbContext databaseContext = context.Kernel.Get<SpaceDbContext>();
@@ -28,9 +29,11 @@ namespace Integra.Space.Pipeline.Filters
             // obtener esquema
             Database db = context.CommandContext.Schema.Database;
 
-            // obtengo el usuario que quiere ejecutar el comando. El usuario tambien se calcula en la clase CommandContext.
+            // obtengo el usuario que quiere ejecutar el comando. El usuario tambien se calcula en la clase CommandContext.            
             DatabaseUser user = context.SecurityContext.Login.DatabaseUsers.Where(x => x.DatabaseId == db.DatabaseId && x.ServerId == db.ServerId).Single();
             context.SecurityContext.User = user;
+            */
+
             return context;
         }
 

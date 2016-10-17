@@ -23,6 +23,11 @@ namespace Integra.Space.Common
         /// <summary>
         /// Name option.
         /// </summary>
-        Name = 3
+        Name = 3,
+
+        /// <summary>
+        /// Status option.
+        /// </summary>
+        Status = 4
     }
 }

@@ -10,32 +10,45 @@ namespace Integra.Space.Pipeline.Filters
     using System.Linq;
     using Common;
     using Database;
-    using Ninject;
 
     /// <summary>
     /// Filter create source class.
     /// </summary>
-    internal class CreateRoleFilter : CreateEntityFilter
+    internal class CreateRoleFilter : CreateEntityFilter<Language.CreateRoleNode, RoleOptionEnum>
     {
         /// <inheritdoc />
-        protected override void CreateEntity(PipelineContext context)
+        protected override void CreateEntity(Language.CreateRoleNode command, Dictionary<RoleOptionEnum, object> options, Login login, DatabaseUser user, Schema schema, SpaceDbContext databaseContext)
         {
-            Dictionary<RoleOptionEnum, object> options = ((Language.CreateRoleNode)context.CommandContext.Command).Options;
-            Schema schema = context.CommandContext.Schema;
-
             DatabaseRole role = new DatabaseRole();
-            role.ServerId = context.CommandContext.Schema.ServerId;
-            role.DatabaseId = context.CommandContext.Schema.DatabaseId;
+            role.ServerId = schema.ServerId;
+            role.DatabaseId = schema.DatabaseId;
             role.DbRoleId = Guid.NewGuid();
-            role.DbRoleName = ((Language.DDLCommand)context.CommandContext.Command).MainCommandObject.Name;
+            role.DbRoleName = command.MainCommandObject.Name;
 
-            DatabaseUser user = context.SecurityContext.User;
             role.OwnerServerId = user.ServerId;
             role.OwnerDatabaseId = user.DatabaseId;
             role.OwnerId = user.DbUsrId;
 
+            role.IsActive = true;
+            if (command.Options.ContainsKey(Common.RoleOptionEnum.Status))
+            {
+                role.IsActive = (bool)command.Options[Common.RoleOptionEnum.Status];
+            }
+
+            if (command.Options.ContainsKey(RoleOptionEnum.Add))
+            {
+                HashSet<Language.CommandObject> users = (HashSet<Language.CommandObject>)command.Options[RoleOptionEnum.Add];
+                DatabaseUser databaseUser = null;
+                Schema schemaOfTheUser = null;
+                foreach (Language.CommandObject userToAdd in users)
+                {
+                    schemaOfTheUser = userToAdd.GetSchema(databaseContext, login);
+                    databaseUser = databaseContext.DatabaseUsers.Single(x => x.ServerId == schemaOfTheUser.Database.Server.ServerId && x.DatabaseId == schemaOfTheUser.DatabaseId && x.DbUsrName == userToAdd.Name);
+                    role.DatabaseUsers.Add(databaseUser);
+                }
+            }
+
             // almaceno la nueva entidad y guardo los cambios
-            SpaceDbContext databaseContext = context.Kernel.Get<SpaceDbContext>();
             databaseContext.DatabaseRoles.Add(role);
             databaseContext.SaveChanges();
         }

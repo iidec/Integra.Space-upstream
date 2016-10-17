@@ -8,7 +8,7 @@
     [granted] BIT NOT NULL DEFAULT 0, 
     [denied] BIT NOT NULL DEFAULT 0, 
     [with_grant_option] BIT NOT NULL DEFAULT 0, 
-    CONSTRAINT [PK_ServersAssignedPermissionsToLogins] PRIMARY KEY ([lg_id], [lg_srv_id], [sc_id], [gp_id], [srv_id]),
+    CONSTRAINT [PK_ServersAssignedPermissionsToLogins] PRIMARY KEY ([lg_srv_id], [lg_id], [sc_id], [gp_id], [srv_id]),
 	CONSTRAINT [FK_ServersAssignedPermissionsToLogins_PermissionsBySecurables] FOREIGN KEY ([sc_id], [gp_id]) REFERENCES [space].[permissions_by_securables]([sc_id], [gp_id]), 
     CONSTRAINT [FK_ServersAssignedPermissionsToLogins_Logins] FOREIGN KEY ([lg_srv_id], [lg_id]) REFERENCES [space].[logins]([srv_id], [lg_id]), 
     CONSTRAINT [FK_ServersAssignedPermissionsToLogins_Servers] FOREIGN KEY ([srv_id]) REFERENCES [space].[servers]([srv_id])

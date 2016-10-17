@@ -42,6 +42,10 @@ namespace Integra.Space.Database
         [Column("owner_srv_id")]
         public System.Guid OwnerServerId { get; set; }
 
+        [Column("is_active")]
+        [System.ComponentModel.DefaultValue(true)]
+        public bool IsActive { get; set; }
+
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<DatabaseAssignedPermissionsToDBRole> DatabaseAssignedPermissionsToDBRoles { get; set; }
 

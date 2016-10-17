@@ -7,8 +7,6 @@ namespace Integra.Space.Pipeline.Filters
 {
     using System.Linq;
     using Database;
-    using Integra.Space.Pipeline;
-    using Ninject;
 
     /// <summary>
     /// Drop entity class.
@@ -16,13 +14,12 @@ namespace Integra.Space.Pipeline.Filters
     internal class DropSourceFilter : DropEntityFilter
     {
         /// <inheritdoc />
-        protected override void DropEntity(PipelineContext context)
+        protected override void DropEntity(SpaceDbContext databaseContext, Schema schema, string name)
         {
-            SpaceDbContext databaseContext = context.Kernel.Get<SpaceDbContext>();
-            Source source = databaseContext.Sources.Single(x => x.ServerId == context.CommandContext.Schema.ServerId
-                                            && x.DatabaseId == context.CommandContext.Schema.DatabaseId
-                                            && x.SchemaId == context.CommandContext.Schema.SchemaId
-                                            && x.SourceName == ((Language.DDLCommand)context.CommandContext.Command).MainCommandObject.Name);
+            Source source = databaseContext.Sources.Single(x => x.ServerId == schema.ServerId
+                                            && x.DatabaseId == schema.DatabaseId
+                                            && x.SchemaId == schema.SchemaId
+                                            && x.SourceName == name);
 
             databaseContext.Sources.Remove(source);
             databaseContext.SaveChanges();

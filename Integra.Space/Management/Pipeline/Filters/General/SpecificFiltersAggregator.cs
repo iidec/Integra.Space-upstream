@@ -59,13 +59,14 @@ namespace Integra.Space.Pipeline.Filters
                 PlanNode fromNode = Language.Runtime.NodesFinder.FindNode(dmlCommand.ExecutionPlan, new PlanNodeTypeEnum[] { PlanNodeTypeEnum.ObservableFrom }).First();
                 Type typeItemSource = ((Type)fromNode.Properties["SourceType"]).GetGenericArguments()[0];
 
-                if (typeItemSource == typeof(Server))
+                SystemObjectEnum objectType;
+                if (Enum.TryParse(typeItemSource.Name, true, out objectType))
                 {
-                    commandNode.Pipeline = SpecificFilterSelector.GetSpecificFilter(new SpecificFilterKey(action, SystemObjectEnum.Server));
+                    commandNode.Pipeline = SpecificFilterSelector.GetSpecificFilter(new SpecificFilterKey(action, objectType));
                 }
-                else if (typeItemSource == typeof(Stream))
+                else
                 {
-                    commandNode.Pipeline = SpecificFilterSelector.GetSpecificFilter(new SpecificFilterKey(action, SystemObjectEnum.Stream));
+                    throw new Exception(string.Format("The system type '{0}' does not exist.", typeItemSource.Name));
                 }
             }
         }
@@ -77,13 +78,15 @@ namespace Integra.Space.Pipeline.Filters
         /// <param name="commandNode">Compile command node.</param>
         private void AddSpecificFiltersToDDLCommand(FirstLevelPipelineContext context, CommandPipelineNode commandNode)
         {
+            /* NOTA: el comando use <database> no tiene acciones específicas. */
             ActionCommandEnum action = commandNode.Command.Action;
             DDLCommand ddlCommand = (DDLCommand)commandNode.Command;
             if (action == ActionCommandEnum.Grant || action == ActionCommandEnum.Deny || action == ActionCommandEnum.Revoke)
             {
                 PermissionsCommandNode command = (PermissionsCommandNode)ddlCommand;
                 SpaceDbContext databaseContext = context.Kernel.Get<SpaceDbContext>();
-                if (command.Permission.ObjectType == null || command.Permission.ObjectName == null)
+                SystemObjectEnum objectType;
+                if (command.Permission.CommandObject == null)
                 {
                     string securableClassName = databaseContext.GranularPermissions
                         .Single(gp => gp.GranularPermissionName.Replace(" ", string.Empty).Equals(command.Permission.Permission.ToString(), StringComparison.InvariantCultureIgnoreCase))
@@ -92,27 +95,33 @@ namespace Integra.Space.Pipeline.Filters
                         .SecurableClass
                         .SecurableName;
 
-                    SystemObjectEnum objectType;
                     if (!Enum.TryParse(securableClassName, true, out objectType))
                     {
                         throw new Exception("Securable class not defined.");
                     }
 
+                    // se obtiene el login para obtener el server o base de datos por defecto.
+                    Login login = context.Kernel.Get<SpaceDbContext>().Logins.Single(x => x.LoginName == context.Login);
+
                     // si es un permiso donde no se especifica el objeto se debe tomar del contexto del comando.
                     switch (objectType)
                     {
                         case SystemObjectEnum.Database:
-                            command.Permission.ObjectType = (SystemObjectEnum)Enum.Parse(typeof(SystemObjectEnum), "database", true);
+                            command.Permission.CommandObject = new CommandObject(objectType, login.Database.DatabaseName, PermissionsEnum.Control, false);
                             break;
                         case SystemObjectEnum.Server:
-                            command.Permission.ObjectType = (SystemObjectEnum)Enum.Parse(typeof(SystemObjectEnum), "server", true);
+                            command.Permission.CommandObject = new CommandObject(objectType, login.Server.ServerName, PermissionsEnum.Control, false);
                             break;
                         default:
                             throw new Exception(string.Format("System object not allowed for permission {0}.", command.Permission.Permission.ToString()));
                     }
                 }
+                else
+                {
+                    objectType = command.Permission.CommandObject.SecurableClass;
+                }
 
-                commandNode.Pipeline = SpecificFilterSelector.GetSpecificFilter(command.Permission.ObjectType.Value);
+                commandNode.Pipeline = SpecificFilterSelector.GetSpecificFilter(objectType);
             }
             else if (action == ActionCommandEnum.Create || action == ActionCommandEnum.Alter || action == ActionCommandEnum.Drop)
             {
@@ -125,6 +134,10 @@ namespace Integra.Space.Pipeline.Filters
             else if (action == ActionCommandEnum.Add)
             {
                 commandNode.Pipeline = new AddSecureObjectToRoleFilter();
+            }
+            else if (action == ActionCommandEnum.Remove)
+            {
+                commandNode.Pipeline = new RemoveSecureObjectToRoleFilter();
             }
         }
     }

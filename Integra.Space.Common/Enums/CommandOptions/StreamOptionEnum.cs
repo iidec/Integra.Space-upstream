@@ -18,6 +18,11 @@ namespace Integra.Space.Common
         /// <summary>
         /// Query option
         /// </summary>
-        Query = 2
+        Query = 2,
+
+        /// <summary>
+        /// Status option.
+        /// </summary>
+        Status = 3
     }
 }

@@ -11,12 +11,12 @@ namespace Integra.Space.Database
     public partial class ServerAssignedPermissionsToLogin
     {
         [Key]
-        [Column("lg_id", Order = 0)]
+        [Column("lg_id", Order = 1)]
         [DatabaseGenerated(DatabaseGeneratedOption.None)]
         public System.Guid LoginId { get; set; }
 
         [Key]
-        [Column("lg_srv_id", Order = 1)]
+        [Column("lg_srv_id", Order = 0)]
         [DatabaseGenerated(DatabaseGeneratedOption.None)]
         public System.Guid LoginServerId { get; set; }
 

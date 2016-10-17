@@ -16,11 +16,10 @@ namespace Integra.Space.Pipeline.Filters
     internal class DropEndpointFilter : DropEntityFilter
     {
         /// <inheritdoc />
-        protected override void DropEntity(PipelineContext context)
+        protected override void DropEntity(SpaceDbContext databaseContext, Schema schema, string name)
         {
-            SpaceDbContext databaseContext = context.Kernel.Get<SpaceDbContext>();
-            Endpoint endpoint = databaseContext.Endpoints.Single(x => x.ServerId == context.CommandContext.Schema.ServerId
-                                            && x.EnpointName == ((Language.DDLCommand)context.CommandContext.Command).MainCommandObject.Name);
+            Endpoint endpoint = databaseContext.Endpoints.Single(x => x.ServerId == schema.ServerId
+                                            && x.EnpointName == name);
 
             databaseContext.Endpoints.Remove(endpoint);
             databaseContext.SaveChanges();

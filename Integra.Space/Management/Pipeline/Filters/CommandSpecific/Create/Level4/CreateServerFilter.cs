@@ -6,7 +6,6 @@
 namespace Integra.Space.Pipeline.Filters
 {
     using System;
-    using System.Linq;
     using Database;
     using Ninject;
 

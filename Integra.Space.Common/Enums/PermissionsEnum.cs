@@ -148,6 +148,11 @@ namespace Integra.Space.Common
         /// <summary>
         /// Permission status, for start and stop sources and streams.
         /// </summary>
-        AlterStatus = 27
+        AlterStatus = 27,
+
+        /// <summary>
+        /// Connect SQL for logins.
+        /// </summary>
+        ConnectSQL = 28
     }
 }
