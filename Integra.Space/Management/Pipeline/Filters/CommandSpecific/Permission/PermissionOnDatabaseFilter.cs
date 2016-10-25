@@ -20,8 +20,9 @@ namespace Integra.Space.Pipeline.Filters
         {
             DatabaseAssignedPermissionsToUser newPermission = new DatabaseAssignedPermissionsToUser();
             newPermission.DatabaseUser = user;
-            newPermission.SecurableClassId = databaseContext.SecurableClasses.Single(x => x.SecurableName.Equals(permission.CommandObject.SecurableClass.ToString(), StringComparison.InvariantCultureIgnoreCase)).SecurableClassId;
-            newPermission.GranularPermissionId = databaseContext.GranularPermissions.Single(x => x.GranularPermissionName.Replace(" ", string.Empty).Equals(permission.Permission.ToString(), StringComparison.InvariantCultureIgnoreCase)).GranularPermissionId;
+            SecurableClass securableClass = databaseContext.SecurableClasses.Single(x => x.SecurableName.Equals(permission.CommandObject.SecurableClass.ToString(), StringComparison.InvariantCultureIgnoreCase));
+            GranularPermission granularPermission = databaseContext.GranularPermissions.Single(x => x.GranularPermissionName.Replace(" ", string.Empty).Equals(permission.Permission.ToString(), StringComparison.InvariantCultureIgnoreCase));
+            newPermission.PermissionBySecurable = databaseContext.PermissionsBySecurables.Single(x => x.GranularPermissionId == granularPermission.GranularPermissionId && x.SecurableClassId == securableClass.SecurableClassId);
             newPermission.WithGrantOption = command.PermissionOption;
 
             if (permission.CommandObject == null)
@@ -39,8 +40,8 @@ namespace Integra.Space.Pipeline.Filters
                                                                              && x.DbUsrId == newPermission.DatabaseUser.DbUsrId
                                                                              && x.DatabaseServerId == newPermission.Database.ServerId
                                                                              && x.DatabaseId == newPermission.Database.DatabaseId
-                                                                             && x.GranularPermissionId == newPermission.GranularPermissionId
-                                                                             && x.SecurableClassId == newPermission.SecurableClassId;
+                                                                             && x.GranularPermissionId == newPermission.PermissionBySecurable.GranularPermissionId
+                                                                             && x.SecurableClassId == newPermission.PermissionBySecurable.SecurableClassId;
 
             if (!databaseContext.DatabaseAssignedPermissionsToUsers.Any(predicate))
             {

@@ -21,8 +21,7 @@ namespace Integra.Space.Pipeline.Filters
         protected override void CreateEntity(CreateUserNode command, Dictionary<UserOptionEnum, object> options, Login login, DatabaseUser user, Schema schema, SpaceDbContext databaseContext)
         {
             DatabaseUser newUser = new DatabaseUser();
-            newUser.ServerId = schema.ServerId;
-            newUser.DatabaseId = schema.DatabaseId;
+            newUser.Database = schema.Database;
             newUser.DbUsrId = Guid.NewGuid();
             newUser.DbUsrName = command.MainCommandObject.Name;
             newUser.IsActive = true;
@@ -65,6 +64,22 @@ namespace Integra.Space.Pipeline.Filters
 
             // almaceno la nueva entidad y guardo los cambios
             databaseContext.DatabaseUsers.Add(newUser);
+            databaseContext.SaveChanges();
+
+            PermissionBySecurable pbs = databaseContext.PermissionsBySecurables.Single(x => x.GranularPermission.GranularPermissionName.Equals(PermissionsEnum.Connect.ToString(), StringComparison.InvariantCultureIgnoreCase)
+                                                                                            && x.SecurableClass.SecurableName.Equals(SystemObjectEnum.Database.ToString(), StringComparison.InvariantCultureIgnoreCase));
+            DatabaseAssignedPermissionsToUser permission = new DatabaseAssignedPermissionsToUser()
+            {
+                Database = newUser.Database,
+                DatabaseUser = newUser,
+                PermissionBySecurable = pbs,
+                Granted = true,
+                Denied = false,
+                WithGrantOption = false
+            };
+
+            // almaceno la nueva entidad y guardo los cambios
+            databaseContext.DatabaseAssignedPermissionsToUsers.Add(permission);
             databaseContext.SaveChanges();
         }
     }

@@ -101,7 +101,10 @@
   </Choose>
   <ItemGroup>
     <Compile Include="CommandTests.cs" />
+    <Compile Include="RevokeCommandTests.cs" />
+    <Compile Include="DenyCommandTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="GrantCommandTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Integra.Space.Common\Integra.Space.Common.csproj">

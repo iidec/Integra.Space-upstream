@@ -11,7 +11,7 @@ AS
     SELECT FirtGeneration.sc_id, FirtGeneration.gp_id,  FirtGeneration.sc_id_parent, FirtGeneration.gp_id_parent
 			,sc.sc_name, gp.gp_name			
 			, CAST('' AS NVARCHAR(MAX))
-        FROM space.permissions_by_securables AS FirtGeneration
+        FROM space.hierarchy_permissions AS FirtGeneration
 		inner join space.granular_permissions as gp on gp.gp_id = FirtGeneration.gp_id 
 		inner join space.[securable_classes] as sc on sc.sc_id = FirtGeneration.sc_id 
         WHERE FirtGeneration.sc_id_parent is null
@@ -25,7 +25,7 @@ AS
 		THEN(CAST(Parent.ChildGpId AS VARCHAR(MAX)) + ' ' + CAST(Parent.ChildScId AS VARCHAR(MAX)))
         ELSE(Parent.Parents + ',' + CAST(Parent.ChildGpId AS VARCHAR(MAX)) + ' ' + CAST(Parent.ChildScId AS VARCHAR(MAX)))
     END AS NVARCHAR(MAX))
-        FROM space.permissions_by_securables AS NextGeneration
+        FROM space.hierarchy_permissions AS NextGeneration
 		inner join space.granular_permissions as gp on gp.gp_id = NextGeneration.gp_id
 		inner join space.[securable_classes] as sc on sc.sc_id = NextGeneration.sc_id  
         INNER JOIN Hierarchy AS Parent ON NextGeneration.sc_id_parent = Parent.ChildSCId 

@@ -236,7 +236,7 @@ namespace Integra.Space.UnitTests
         }
 
         #endregion take ownership
-        
+
         #region add
 
         [TestMethod]
@@ -514,6 +514,8 @@ namespace Integra.Space.UnitTests
         }
 
         #endregion remove
+
+        #region create
 
         #region create login
 
@@ -875,7 +877,7 @@ namespace Integra.Space.UnitTests
                 }
             }
         }
-        
+
         [TestMethod]
         public void CreateUserWithStatusOn()
         {
@@ -1033,7 +1035,7 @@ namespace Integra.Space.UnitTests
                         Assert.IsTrue(role.IsActive);
                         tran.Rollback();
                     }
-                    catch(Exception e)
+                    catch (Exception e)
                     {
                         tran.Rollback();
                         Assert.Fail($"Error al crear el rol de base de datos '{roleName}'. Mensaje: {e.Message}");
@@ -1179,7 +1181,7 @@ namespace Integra.Space.UnitTests
         #endregion create role
 
         #region create schema
-        
+
         [TestMethod]
         public void CreateSchema()
         {
@@ -1306,7 +1308,7 @@ namespace Integra.Space.UnitTests
         #endregion create source
 
         #region create stream
-        
+
         [TestMethod]
         public void CreateStream()
         {
@@ -1425,6 +1427,10 @@ namespace Integra.Space.UnitTests
         }
 
         #endregion create stream
+
+        #endregion create
+
+        #region alter
 
         #region alter login
 
@@ -2276,7 +2282,7 @@ namespace Integra.Space.UnitTests
         #endregion alter schema
 
         #region alter source
-        
+
         [TestMethod]
         public void AlterSourceWithName()
         {
@@ -2492,6 +2498,8 @@ namespace Integra.Space.UnitTests
 
         #endregion alter stream
 
+        #endregion alter
+
         #region drop
 
         [TestMethod]
@@ -2544,7 +2552,7 @@ namespace Integra.Space.UnitTests
                         Assert.IsFalse(exists);
                         tran.Rollback();
                     }
-                    catch(Exception e)
+                    catch (Exception e)
                     {
                         tran.Rollback();
                         Assert.Fail($"Error al eliminar la base de datos '{databaseName}'. Mensaje: {e.Message}");
@@ -2707,136 +2715,7 @@ namespace Integra.Space.UnitTests
             }
         }
         #endregion drop
-
-        #region grant
-
-        #region grant alter
-
-        [TestMethod]
-        public void GrantAlterOnDatabase()
-        {
-            loginName = "AdminLogin";
-            string databaseName = "Database123456789";
-            string userName = "newUser";
-            string otherLogin = "AdminLogin2";
-            string command = $"create database {databaseName}; use {databaseName}; create user {userName} with login = {otherLogin}; grant alter on database {databaseName} to user {userName}";
-            IKernel kernel = new StandardKernel();
-
-            using (SpaceDbContext dbContext = new SpaceDbContext())
-            {
-                using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
-                {
-                    kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
-                    FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
-                    Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseName);
-                    DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == databaseName && x.DbUsrName == userName);
-
-                    bool exists = dbContext.DatabaseAssignedPermissionsToUsers.Any(x => x.DatabaseServerId == database.ServerId && x.DatabaseId == database.DatabaseId
-                                                                        && x.DbUsrServerId == user.ServerId && x.DbUsrDatabaseId == user.DatabaseId && x.DbUsrId == user.DbUsrId
-                                                                        && x.Granted);
-                    Assert.IsTrue(exists);
-
-                    tran.Rollback();
-                }
-            }
-        }
-
-        [TestMethod]
-        public void GrantAlterOnDatabaseRole()
-        {
-            loginName = "AdminLogin";
-            string roleName = "roleAux";
-            string userName = "UserAux";
-            string command = $"create role {roleName}; grant alter on role {roleName} to user {userName}";
-            IKernel kernel = new StandardKernel();
-
-            using (SpaceDbContext dbContext = new SpaceDbContext())
-            {
-                using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
-                {
-                    kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
-                    FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
-                    DatabaseRole role = dbContext.DatabaseRoles.Single(x => x.Database.DatabaseName == "Database1" && x.DbRoleName == roleName);
-                    DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == "Database1" && x.DbUsrName == userName);
-
-                    bool exists = dbContext.DBRolesAssignedPermissionsToUsers.Any(x => x.DbRoleServerId == role.ServerId && x.DbRoleDatabaseId == role.DatabaseId && x.DbRoleId == role.DbRoleId
-                                                                        && x.DbUsrServerId == user.ServerId && x.DbUsrDatabaseId == user.DatabaseId && x.DbUsrId == user.DbUsrId
-                                                                        && x.Granted);
-                    Assert.IsTrue(exists);
-
-                    tran.Rollback();
-                }
-            }
-        }
-
-        [TestMethod]
-        public void GrantAlterOnDatabaseUser()
-        {
-            string userName = "newUser";
-            string loginUserName = "AdminLogin2";
-            string existingUserName = "UserAux";
-            string command = $"create user {userName} with login = {loginUserName}; grant alter on user {existingUserName} to user {userName}";
-            this.loginName = "AdminLogin";
-
-            IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
-            {
-                using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
-                {
-                    kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
-                    FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
-                    try
-                    {
-                        DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == "Database1" && x.DbUsrName == userName);
-
-                        bool exists = dbContext.UserAssignedPermissionsToUsers.Any(x => x.DbUsrServerId == user.ServerId && x.DbUsrDatabaseId == user.DatabaseId && x.DbUsrId == user.DbUsrId
-                                                                            && x.OnDbUsrServerId == user.ServerId && x.OnDbUsrDatabaseId == user.DatabaseId && x.OnDbUsrId == user.DbUsrId
-                                                                            && x.Granted);
-
-                        tran.Rollback();
-                    }
-                    catch
-                    {
-                        tran.Rollback();
-                        Assert.Fail($"Error al crear la base de datos '{userName}'.");
-                    }
-                }
-            }
-        }
         
-        public void GrantAlterOnLogin()
-        {
-            string existingLogin = "LoginAux";
-            string newLogin = "AdminLogin12345";
-            string command = $"create login {newLogin} with password = \"pass1234\"; grant alter on login {newLogin} to user {existingLogin}";
-            this.loginName = "AdminLogin";
-
-            IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
-            {
-                using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
-                {
-                    kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
-                    FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
-                    try
-                    {
-                        DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == "Database1" && x.DbUsrName == existingLogin);
-                        
-                        tran.Rollback();
-                    }
-                    catch
-                    {
-                        tran.Rollback();
-                        Assert.Fail($"Error al crear la base de datos '{existingLogin}'.");
-                    }
-                }
-            }
-        }
-
-        #endregion grant alter
-
-        #endregion grant
-
         #region otros
 
         [TestMethod]
@@ -2854,7 +2733,7 @@ namespace Integra.Space.UnitTests
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
 
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
-                    
+
                     Console.WriteLine();
                     tran.Rollback();
                 }
@@ -2894,7 +2773,7 @@ namespace Integra.Space.UnitTests
                 }
             }
         }
-        
+
         [TestMethod]
         public void TestCreateStream()
         {
@@ -2968,34 +2847,7 @@ namespace Integra.Space.UnitTests
                 }
             }
         }
-
-        [TestMethod]
-        public void TestCreateUser()
-        {
-            string newUserName = "User123";
-            string command = "create user " + newUserName + " with default_schema = Schema1";
-            IKernel kernel = new StandardKernel();
-
-            using (SpaceDbContext dbContext = new SpaceDbContext())
-            {
-                using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
-                {
-                    kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
-
-                    FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
-
-                    Server server = dbContext.Servers.Single(x => x.ServerName == "Server1");
-                    Database.Database db = dbContext.Databases.Single(x => x.DatabaseName == "Database1");
-                    Database.DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.ServerId == server.ServerId && x.DatabaseId == db.DatabaseId && x.DbUsrName == newUserName);
-                    Assert.IsNotNull(user);
-                    Assert.AreEqual<string>(newUserName, user.DbUsrName);
-
-                    Console.WriteLine();
-                    tran.Rollback();
-                }
-            }
-        }
-
+        
         [TestMethod]
         public void TestCreateDatabase()
         {
@@ -3045,7 +2897,7 @@ namespace Integra.Space.UnitTests
                     FirstLevelPipelineContext result2 = this.ProcessCommand(secondCommand, kernel);
                     Server server = dbContext.Servers.Single(x => x.ServerName == "Server1");
                     Database.Database db = dbContext.Databases.Single(x => x.DatabaseName == "Database1");
-                    Database.Login login = dbContext.Logins.Single(x => x.ServerId == server.ServerId && x.LoginName== newloginName);
+                    Database.Login login = dbContext.Logins.Single(x => x.ServerId == server.ServerId && x.LoginName == newloginName);
                     Assert.IsNotNull(login);
                     Assert.AreEqual<string>(newloginName, login.LoginName);
 

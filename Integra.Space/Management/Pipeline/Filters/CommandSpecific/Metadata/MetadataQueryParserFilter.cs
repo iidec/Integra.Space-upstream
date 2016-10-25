@@ -173,13 +173,20 @@ namespace Integra.Space.Pipeline.Filters
 
             // se obtienen los permisos necesarios para ejecutar el comando.
             GranularPermission granularPermission = databaseContext.GranularPermissions.Single(x => x.GranularPermissionName.Replace(" ", string.Empty).Equals(PermissionsEnum.ViewDefinition.ToString(), StringComparison.InvariantCultureIgnoreCase));
-            CommandPermission requiredPermissions = databaseContext.Database.SqlQuery<CommandPermission>("[space].[get_permissions_with_parents] @granularPermissionName = {0}, @secureClassName = {1}", granularPermission.GranularPermissionName, securableClass.SecurableName).Single();
-            string[] parentPermissions = requiredPermissions.Parents.Split(',');
+            
+            // se obtienen la jerarquía de permisos en base al tipo de objeto y al permiso granular.
+            HashSet<string> hashSetParentPermissions = new HashSet<string>();
+            IEnumerable<CommandPermission> requiredPermissions = databaseContext.Database.SqlQuery<CommandPermission>("[space].[get_permissions_with_parents] @granularPermissionName = {0}, @secureClassName = {1}", granularPermission.GranularPermissionName, securableClass.SecurableName);
+
+            if (requiredPermissions.Count() == 0)
+            {
+                throw new Exception("Invalid permissions.");
+            }
 
             // se obtiene el permiso mas especifico necesario, es decir, el de nivel mas bajo, en el arbol de permisos, necesario para ejecutar el comando.          
             ViewPermission viewPermission = new ViewPermission();
-            viewPermission.GranularPermissionId = requiredPermissions.ChildGPId;
-            viewPermission.SecurableClassId = requiredPermissions.ChildSCId;
+            viewPermission.GranularPermissionId = requiredPermissions.First().ChildGPId; // granularPermission.GranularPermissionId;
+            viewPermission.SecurableClassId = requiredPermissions.First().ChildSCId; // securableClass.SecurableClassId;
 
             // se crea la lista de permisos necesarios para ejecutar el comando. El usuario debe tener por lo menos uno de ellos para poder ejecutar el comando.
             List<ViewPermission> listOfPermissions = new List<ViewPermission>();
@@ -187,9 +194,18 @@ namespace Integra.Space.Pipeline.Filters
             // se agrega el permiso mas especifico a la lista
             listOfPermissions.Add(viewPermission);
 
+            foreach (CommandPermission requieredPermission in requiredPermissions)
+            {
+                string[] parentPermissions = requieredPermission.Parents.Split(',');
+                foreach (string parentPermission in parentPermissions)
+                {
+                    hashSetParentPermissions.Add(parentPermission);
+                }
+            }
+
             // se obtienen todos los identificadores de los permisos padres.
             // (mas adelante podría retornarse un json desde el sp aunque puede hacer que el performance se reduzca por la deserialización).
-            foreach (string parentPermission in parentPermissions)
+            foreach (string parentPermission in hashSetParentPermissions)
             {
                 viewPermission = new ViewPermission();
 

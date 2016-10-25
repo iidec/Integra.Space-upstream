@@ -139,6 +139,10 @@ namespace Integra.Space.Pipeline.Filters
             {
                 commandNode.Pipeline = new RemoveSecureObjectToRoleFilter();
             }
+            else if (action == ActionCommandEnum.Use)
+            {
+                commandNode.Pipeline = new UseFilter();
+            }
         }
     }
 }

@@ -32,6 +32,8 @@ namespace Integra.Space.Database
             UserAssignedPermissionsToUsers = new HashSet<UserAssignedPermissionsToUsers>();
             ViewAssignedPermissionsToDBRoles = new HashSet<ViewAssignedPermissionsToDBRole>();
             ViewAssignedPermissionsToUsers = new HashSet<ViewAssignedPermissionsToUser>();
+            HierarchyPermissionsForChilds = new HashSet<HierarchyPermissions>();
+            HierarchyPermissionsForParents = new HashSet<HierarchyPermissions>();
         }
 
         [Key]
@@ -43,12 +45,6 @@ namespace Integra.Space.Database
         [Column("gp_id", Order = 1)]
         [DatabaseGenerated(DatabaseGeneratedOption.None)]
         public System.Guid GranularPermissionId { get; set; }
-
-        [Column("sc_id_parent")]
-        public System.Guid? ParentSecurableClassId { get; set; }
-
-        [Column("gp_id_parent")]
-        public System.Guid? ParentGranularPermissionId { get; set; }
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<DatabaseAssignedPermissionsToDBRole> DatabaseAssignedPermissionsToDBRoles { get; set; }
@@ -77,12 +73,6 @@ namespace Integra.Space.Database
         public virtual ICollection<LoginAssignedPermissionsToServerRole> LoginsAssignedPermissionsToServerRoles { get; set; }
 
         public virtual SecurableClass SecurableClass { get; set; }
-
-        [InverseProperty("Children")]
-        public virtual PermissionBySecurable Parent { get; set; }
-
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
-        public virtual ICollection<PermissionBySecurable> Children { get; set; }
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<SchemaAssignedPermissionsToDBRole> SchemaAssignedPermissionsToDBRoles { get; set; }
@@ -119,5 +109,11 @@ namespace Integra.Space.Database
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<ViewAssignedPermissionsToUser> ViewAssignedPermissionsToUsers { get; set; }
+
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
+        public virtual ICollection<HierarchyPermissions> HierarchyPermissionsForChilds { get; set; }
+
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
+        public virtual ICollection<HierarchyPermissions> HierarchyPermissionsForParents { get; set; }
     }
 }

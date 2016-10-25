@@ -35,12 +35,12 @@ namespace Integra.Space.Pipeline.Filters
             newPermission.GranularPermissionId = databaseContext.GranularPermissions.Single(x => x.GranularPermissionName.Replace(" ", string.Empty).Equals(permission.Permission.ToString(), StringComparison.InvariantCultureIgnoreCase)).GranularPermissionId;
             newPermission.WithGrantOption = command.PermissionOption;
             newPermission.Login = principal;
-            newPermission.Login = databaseContext.Logins.Single(x => x.ServerId == schemaOfSecurable.ServerId && x.LoginName == permission.CommandObject.Name);
+            newPermission.LoginOn = databaseContext.Logins.Single(x => x.ServerId == schemaOfSecurable.ServerId && x.LoginName == permission.CommandObject.Name);
 
             Func<LoginAssignedPermissionsToLogin, bool> predicate = x => x.LoginServerId == newPermission.Login.ServerId
                                                                              && x.LoginId == newPermission.Login.LoginId
-                                                                             && x.OnLoginServerId == newPermission.Login.ServerId
-                                                                             && x.OnLoginId == newPermission.Login.LoginId
+                                                                             && x.OnLoginServerId == newPermission.LoginOn.ServerId
+                                                                             && x.OnLoginId == newPermission.LoginOn.LoginId
                                                                              && x.GranularPermissionId == newPermission.GranularPermissionId
                                                                              && x.SecurableClassId == newPermission.SecurableClassId;
 

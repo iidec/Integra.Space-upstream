@@ -136,6 +136,7 @@
     <Compile Include="Management\Pipeline\Filters\CommandSpecific\Permission\TakeOwnership\TakeOwnershipOfStreamFilter.cs" />
     <Compile Include="Management\Pipeline\Filters\CommandSpecific\Stream\ParseQueryForAlterStreamFilter.cs" />
     <Compile Include="Management\Pipeline\Filters\CommandSpecific\Stream\ParseQueryForCreateStreamFilter.cs" />
+    <Compile Include="Management\Pipeline\Filters\CommandSpecific\Use\UseFilter.cs" />
     <Compile Include="Management\Pipeline\Filters\FirstLevelCommandFilter.cs" />
     <Compile Include="Management\Pipeline\Filters\CommandFilter.cs" />
     <Compile Include="Management\Pipeline\Filters\FirstLevelCommandPipeline.cs" />

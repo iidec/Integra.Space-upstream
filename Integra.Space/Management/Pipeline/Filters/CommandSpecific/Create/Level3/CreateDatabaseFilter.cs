@@ -47,11 +47,13 @@ namespace Integra.Space.Pipeline.Filters
             databaseContext.Schemas.Add(newSchema);
             databaseContext.SaveChanges();
 
+            Login sa = databaseContext.Logins.Single(l => l.ServerId == schema.ServerId && l.LoginName == "sa");
+
             DatabaseUser dboUser = new DatabaseUser()
             {
                 DbUsrId = Guid.NewGuid(),
                 DbUsrName = "dbo",
-                Login = login,
+                Login = sa,
                 IsActive = true,
                 DefaultSchema = newSchema,
                 Database = database
@@ -63,7 +65,7 @@ namespace Integra.Space.Pipeline.Filters
 
             SecurableClass securableClass = databaseContext.SecurableClasses.Single(x => x.SecurableName.Equals("database", StringComparison.InvariantCultureIgnoreCase));
             GranularPermission granularPermission = databaseContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("control", StringComparison.InvariantCultureIgnoreCase));
-            DatabaseAssignedPermissionsToUser newPermission = new DatabaseAssignedPermissionsToUser()
+            DatabaseAssignedPermissionsToUser newPermissionForDBO = new DatabaseAssignedPermissionsToUser()
             {
                 Database = database,
                 DatabaseUser = dboUser,
@@ -73,8 +75,33 @@ namespace Integra.Space.Pipeline.Filters
                 WithGrantOption = true
             };
 
-            databaseContext.DatabaseAssignedPermissionsToUsers.Add(newPermission);
+            databaseContext.DatabaseAssignedPermissionsToUsers.Add(newPermissionForDBO);
+            databaseContext.SaveChanges();
 
+            DatabaseUser userForTheLogin = new DatabaseUser()
+            {
+                DbUsrId = Guid.NewGuid(),
+                DbUsrName = login.LoginName,
+                Login = login,
+                IsActive = true,
+                DefaultSchema = newSchema,
+                Database = database
+            };
+
+            databaseContext.DatabaseUsers.Add(userForTheLogin);
+            databaseContext.SaveChanges();
+
+            DatabaseAssignedPermissionsToUser newPermissionForUserLogin = new DatabaseAssignedPermissionsToUser()
+            {
+                Database = database,
+                DatabaseUser = userForTheLogin,
+                GranularPermissionId = granularPermission.GranularPermissionId,
+                SecurableClassId = securableClass.SecurableClassId,
+                Granted = true,
+                WithGrantOption = true
+            };
+
+            databaseContext.DatabaseAssignedPermissionsToUsers.Add(newPermissionForUserLogin);
             databaseContext.SaveChanges();
         }
     }

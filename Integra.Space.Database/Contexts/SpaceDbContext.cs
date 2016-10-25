@@ -42,6 +42,7 @@ namespace Integra.Space.Database
         public virtual DbSet<LoginAssignedPermissionsToLogin> LoginsAssignedPermissionsToLogins { get; set; }
         public virtual DbSet<LoginAssignedPermissionsToServerRole> LoginsAssignedPermissionsToServerRoles { get; set; }
         public virtual DbSet<PermissionBySecurable> PermissionsBySecurables { get; set; }
+        public virtual DbSet<HierarchyPermissions> HierarchyPermissions { get; set; }
         public virtual DbSet<SchemaAssignedPermissionsToDBRole> SchemasAssignedPermissionsToDbRoles { get; set; }
         public virtual DbSet<SchemaAssignedPermissionsToUser> SchemaAssignedPermissionsToUsers { get; set; }
         public virtual DbSet<ServerAssignedPermissionsToLogin> ServersAssignedPermissionsToLogins { get; set; }
@@ -317,6 +318,18 @@ namespace Integra.Space.Database
                 .HasMany(e => e.DatabaseAssignedPermissionsToDBRoles)
                 .WithRequired(e => e.PermissionBySecurable)
                 .HasForeignKey(e => new { e.SecurableClassId, e.GranularPermissionId })
+                .WillCascadeOnDelete(false);
+
+            modelBuilder.Entity<PermissionBySecurable>()
+                .HasMany(e => e.HierarchyPermissionsForChilds)
+                .WithRequired(e => e.Permission)
+                .HasForeignKey(e => new { e.SecurableClassId, e.GranularPermissionId })
+                .WillCascadeOnDelete(false);
+
+            modelBuilder.Entity<PermissionBySecurable>()
+                .HasMany(e => e.HierarchyPermissionsForParents)
+                .WithRequired(e => e.ParentPermission)
+                .HasForeignKey(e => new { e.ParentSecurableClassId, e.ParentGranularPermissionId })
                 .WillCascadeOnDelete(false);
 
             modelBuilder.Entity<PermissionBySecurable>()

@@ -23,7 +23,7 @@ namespace Integra.Space.Pipeline.Filters
         {
             // acción del comando.
             ActionCommandEnum action = context.CommandContext.Command.Action;
-                        
+
             // obtengo el contexto de la base de datos.
             SpaceDbContext databaseContext = context.Kernel.Get<SpaceDbContext>();
 
@@ -35,13 +35,20 @@ namespace Integra.Space.Pipeline.Filters
             {
                 return context;
             }
-            
+
             // estructura para validar los owners
             HashSet<CommandObject> objects = context.CommandContext.Command.CommandObjects;
-            IEnumerable<ViewPermission> userPermissions = Enumerable.Empty<ViewPermission>();
+            IEnumerable<ViewPermission> userPermissions = databaseContext.VWPermissions.Where(x => x.PrincipalId == login.LoginId
+                                                            && x.ServerIdOfPrincipal == login.ServerId); // Enumerable.Empty<ViewPermission>();
 
+            // obtengo los permisos del usuario y de los roles de base de datos a los que pertenece
             foreach (CommandObject @object in objects)
             {
+                if (@object.GranularPermission == PermissionsEnum.None)
+                {
+                    continue;
+                }
+
                 // se toma el usuario del objeto que esta ejecutando el comando.
                 DatabaseUser user = @object.GetUser(databaseContext, login);
 
@@ -224,14 +231,19 @@ namespace Integra.Space.Pipeline.Filters
                     securableClass = permissionBySecurable.SecurableClass;
                 }
 
-                // se obtienen los permisos necesarios para ejecutar el comando.
-                CommandPermission requiredPermissions = databaseContext.Database.SqlQuery<CommandPermission>("[space].[get_permissions_with_parents] @granularPermissionName = {0}, @secureClassName = {1}", granularPermission.GranularPermissionName, securableClass.SecurableName).Single();
-                string[] parentPermissions = requiredPermissions.Parents.Split(',');
-                
+                // se obtienen la jerarquía de permisos en base al tipo de objeto y al permiso granular.
+                HashSet<string> hashSetParentPermissions = new HashSet<string>();
+                IEnumerable<CommandPermission> requiredPermissions = databaseContext.Database.SqlQuery<CommandPermission>("[space].[get_permissions_with_parents] @granularPermissionName = {0}, @secureClassName = {1}", granularPermission.GranularPermissionName, securableClass.SecurableName);
+
+                if (requiredPermissions.Count() == 0)
+                {
+                    throw new Exception("Invalid permissions.");
+                }
+
                 // se obtiene el permiso mas especifico necesario, es decir, el de nivel mas bajo, en el arbol de permisos, necesario para ejecutar el comando.          
                 ViewPermission viewPermission = new ViewPermission();
-                viewPermission.GranularPermissionId = requiredPermissions.ChildGPId;
-                viewPermission.SecurableClassId = requiredPermissions.ChildSCId;
+                viewPermission.GranularPermissionId = requiredPermissions.First().ChildGPId; // granularPermission.GranularPermissionId;
+                viewPermission.SecurableClassId = requiredPermissions.First().ChildSCId; // securableClass.SecurableClassId;
 
                 // se crea la lista de permisos necesarios para ejecutar el comando. El usuario debe tener por lo menos uno de ellos para poder ejecutar el comando.
                 List<ViewPermission> listOfPermissions = new List<ViewPermission>();
@@ -239,9 +251,18 @@ namespace Integra.Space.Pipeline.Filters
                 // se agrega el permiso mas especifico a la lista
                 listOfPermissions.Add(viewPermission);
 
+                foreach (CommandPermission requieredPermission in requiredPermissions)
+                {
+                    string[] parentPermissions = requieredPermission.Parents.Split(',');
+                    foreach (string parentPermission in parentPermissions)
+                    {
+                        hashSetParentPermissions.Add(parentPermission);
+                    }
+                }
+
                 // se obtienen todos los identificadores de los permisos padres.
                 // (mas adelante podría retornarse un json desde el sp aunque puede hacer que el performance se reduzca por la deserialización).
-                foreach (string parentPermission in parentPermissions)
+                foreach (string parentPermission in hashSetParentPermissions)
                 {
                     viewPermission = new ViewPermission();
 
@@ -335,7 +356,7 @@ namespace Integra.Space.Pipeline.Filters
             Schema schemaOld = null;
 
             foreach (CommandObject @object in objects)
-            {                
+            {
                 Schema schema = @object.GetSchema(databaseContext, login);
 
                 // si el esquema actual es igual al anterior no se agregan los permisos del contexto del objeto para no tener repetidos.
@@ -348,7 +369,7 @@ namespace Integra.Space.Pipeline.Filters
                 }
 
                 // si se va a crear un nuevo objeto se termina el método. No se obtienen los permisos de ese objeto porque no existe.
-                if (action == ActionCommandEnum.Create && @object.IsNew)
+                if (@object.IsNew)
                 {
                     continue;
                 }

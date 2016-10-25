@@ -52,6 +52,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Tables\HierarchyPermissions.cs" />
     <Compile Include="Tables\Securables\Database.cs" />
     <Compile Include="Tables\DatabaseAssignedPermissionsToDBRole.cs" />
     <Compile Include="Tables\DatabaseAssignedPermissionsToUser.cs" />

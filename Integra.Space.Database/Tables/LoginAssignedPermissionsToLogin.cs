@@ -26,7 +26,7 @@ namespace Integra.Space.Database
         public System.Guid SecurableClassId { get; set; }
 
         [Key]
-        [Column("gc_id", Order = 3)]
+        [Column("gp_id", Order = 3)]
         [DatabaseGenerated(DatabaseGeneratedOption.None)]
         public System.Guid GranularPermissionId { get; set; }
 
