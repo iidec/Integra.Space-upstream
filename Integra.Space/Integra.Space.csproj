@@ -103,6 +103,7 @@
     <Compile Include="Management\Pipeline\Filters\CommandSpecific\Alter\Level2\AlterRoleFilter.cs" />
     <Compile Include="Management\Pipeline\Filters\CommandSpecific\Alter\Level2\AlterSchemaFilter.cs" />
     <Compile Include="Management\Pipeline\Filters\CommandSpecific\Alter\Level3\AlterDatabaseFilter.cs" />
+    <Compile Include="Management\Pipeline\Filters\CommandSpecific\Metadata\TruncateFilter.cs" />
     <Compile Include="Management\Pipeline\Filters\CommandSpecific\Metadata\ServerRoleMetadataQueryFilter.cs" />
     <Compile Include="Management\Pipeline\Filters\CommandSpecific\Metadata\EndpointMetadataQueryFilter.cs" />
     <Compile Include="Management\Pipeline\Filters\CommandSpecific\Metadata\LoginMetadataQueryFilter.cs" />
@@ -165,7 +166,6 @@
     <Compile Include="Management\Pipeline\Filters\CommandSpecific\Drop\Level4\DropServerFilter.cs" />
     <Compile Include="Management\Pipeline\Filters\CommandSpecific\Permission\AddSecureObjectToRoleFilter.cs" />
     <Compile Include="Management\Pipeline\Filters\CommandSpecific\Permission\PermissionFilter.cs" />
-    <Compile Include="Management\Pipeline\Filters\General\SecureContextBuilderFilter.cs" />
     <Compile Include="Management\Pipeline\Filters\General\PipelineExecutorFilter.cs" />
     <Compile Include="Management\Pipeline\Filters\General\SpecificFilterKey.cs" />
     <Compile Include="Management\Pipeline\Executor\PipelineExecutor.cs" />

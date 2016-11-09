@@ -771,7 +771,7 @@ namespace Integra.Space.UnitTests
                                           $@"t1.@event.Message.#1.#0 as c1, " +
                                           $@"t2.@event.Message.#1.#0 as c3 ";
 
-            string command = $"create source {sourceNameTest}; create stream {oldStreamName} {{ {eql} }}; grant connect on database {databaseName} to user {userName}; grant alter on stream {oldStreamName}, read on source {sourceNameTest} to user {userName}";
+            string command = $"create source {sourceNameTest} (column1 int, column2 decimal, column3 string); create stream {oldStreamName} {{ {eql} }}; grant connect on database {databaseName} to user {userName}; grant alter on stream {oldStreamName}, read on source {sourceNameTest} to user {userName}";
             string command2 = $"use Database1; alter stream {oldStreamName} with name = {newStreamName}";
 
             IKernel kernel = new StandardKernel();
@@ -810,7 +810,7 @@ namespace Integra.Space.UnitTests
             string newSourceName = "newSource";
             string userName = "UserAux";
             string databaseName = "Database1";
-            string command = $"create source {oldSourceName}; grant connect on database {databaseName}, alter on source {oldSourceName} to user {userName}";
+            string command = $"create source {oldSourceName} (column1 int, column2 decimal, column3 string); grant connect on database {databaseName}, alter on source {oldSourceName} to user {userName}";
             string command2 = $"use Database1; alter source {oldSourceName} with name = {newSourceName}";
 
             IKernel kernel = new StandardKernel();
@@ -1124,7 +1124,7 @@ namespace Integra.Space.UnitTests
                                           $@"t1.@event.Message.#1.#0 as c1, " +
                                           $@"t2.@event.Message.#1.#0 as c3 ";
 
-            string command = $"create source {sourceNameTest}; create stream {oldStreamName} {{ {eql} }}; grant connect on database {databaseName} to user {userName}; grant alter any schema, read on source {sourceNameTest} to user {userName}";
+            string command = $"create source {sourceNameTest} (column1 int, column2 decimal, column3 string); create stream {oldStreamName} {{ {eql} }}; grant connect on database {databaseName} to user {userName}; grant alter any schema, read on source {sourceNameTest} to user {userName}";
             string command2 = $"use Database1; alter stream {oldStreamName} with name = {newStreamName}";
 
             IKernel kernel = new StandardKernel();
@@ -1163,7 +1163,7 @@ namespace Integra.Space.UnitTests
             string newSourceName = "newSource";
             string userName = "UserAux";
             string databaseName = "Database1";
-            string command = $"create source {oldSourceName}; grant connect on database {databaseName}, alter any schema to user {userName}";
+            string command = $"create source {oldSourceName} (column1 int, column2 decimal, column3 string); grant connect on database {databaseName}, alter any schema to user {userName}";
             string command2 = $"use Database1; alter source {oldSourceName} with name = {newSourceName}";
 
             IKernel kernel = new StandardKernel();
@@ -1420,7 +1420,7 @@ namespace Integra.Space.UnitTests
                                           $@"t1.@event.Message.#1.#0 as c1, " +
                                           $@"t2.@event.Message.#1.#0 as c3 ";
 
-            string command = $"create source {sourceNameTest}; create stream {oldStreamName} {{ {eql} }}; grant connect on database {databaseName} to user {userName}; grant control on stream {oldStreamName}, read on source {sourceNameTest} to user {userName}";
+            string command = $"create source {sourceNameTest} (column1 int, column2 decimal, column3 string); create stream {oldStreamName} {{ {eql} }}; grant connect on database {databaseName} to user {userName}; grant control on stream {oldStreamName}, read on source {sourceNameTest} to user {userName}";
             string command2 = $"use Database1; alter stream {oldStreamName} with name = {newStreamName}";
 
             IKernel kernel = new StandardKernel();
@@ -1459,7 +1459,7 @@ namespace Integra.Space.UnitTests
             string newSourceName = "newSource";
             string userName = "UserAux";
             string databaseName = "Database1";
-            string command = $"create source {oldSourceName}; grant connect on database {databaseName}, control on source {oldSourceName} to user {userName}";
+            string command = $"create source {oldSourceName} (column1 int, column2 decimal, column3 string); grant connect on database {databaseName}, control on source {oldSourceName} to user {userName}";
             string command2 = $"use Database1; alter source {oldSourceName} with name = {newSourceName}";
 
             IKernel kernel = new StandardKernel();
@@ -1602,7 +1602,7 @@ namespace Integra.Space.UnitTests
             string oldSourceName = "oldSourceName";
             string userName = "UserAux";
             string databaseName = "Database1";
-            string command = $"create source {oldSourceName}; grant connect on database {databaseName}, take ownership on source {oldSourceName} to user {userName}";
+            string command = $"create source {oldSourceName} (column1 int, column2 decimal, column3 string); grant connect on database {databaseName}, take ownership on source {oldSourceName} to user {userName}";
             string command2 = $"use {databaseName}; take ownership on source {oldSourceName}";
             string schemaName = "schema1";
 
@@ -1649,7 +1649,7 @@ namespace Integra.Space.UnitTests
                                           $@"t1.@event.Message.#1.#0 as c1, " +
                                           $@"t2.@event.Message.#1.#0 as c3 ";
 
-            string command = $"use {databaseName}; create source {sourceNameTest}; create stream {oldStreamName} {{ {eql} }}; grant connect on database {databaseName} to user {userName}; grant take ownership on stream {oldStreamName}, read on source {sourceNameTest} to user {userName}";
+            string command = $"use {databaseName}; create source {sourceNameTest} (column1 int, column2 decimal, column3 string); create stream {oldStreamName} {{ {eql} }}; grant connect on database {databaseName} to user {userName}; grant take ownership on stream {oldStreamName}, read on source {sourceNameTest} to user {userName}";
             string command2 = $"use {databaseName}; take ownership on stream {oldStreamName}";
 
             IKernel kernel = new StandardKernel();
@@ -2793,7 +2793,7 @@ namespace Integra.Space.UnitTests
             string sourceName = "newSource";
             string otherLogin = "LoginAux";
             string command = "grant create source to user UserAux";
-            string command2 = $"create source {sourceName}";
+            string command2 = $"create source {sourceName} (column1 int, column2 decimal, column3 string)";
 
             IKernel kernel = new StandardKernel();
             using (SpaceDbContext dbContext = new SpaceDbContext())
@@ -2830,7 +2830,7 @@ namespace Integra.Space.UnitTests
             string sourceName = "newSource";
             string otherLogin = "LoginAux";
             string command = "grant create source to user UserAux";
-            string command2 = $"create source {sourceName} with status = on";
+            string command2 = $"create source {sourceName} (column1 int, column2 decimal, column3 string) with status = on";
 
             IKernel kernel = new StandardKernel();
             using (SpaceDbContext dbContext = new SpaceDbContext())
@@ -2867,7 +2867,7 @@ namespace Integra.Space.UnitTests
             string sourceName = "newSource";
             string otherLogin = "LoginAux";
             string command = "grant create source to user UserAux";
-            string command2 = $"create source {sourceName} with status = off";
+            string command2 = $"create source {sourceName} (column1 int, column2 decimal, column3 string) with status = off";
 
             IKernel kernel = new StandardKernel();
             using (SpaceDbContext dbContext = new SpaceDbContext())

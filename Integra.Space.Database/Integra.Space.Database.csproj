@@ -77,10 +77,11 @@
     <Compile Include="Tables\SchemaAssignedPermissionsToUser.cs" />
     <Compile Include="Tables\SecurableClass.cs" />
     <Compile Include="Tables\Securables\Server.cs" />
+    <Compile Include="Tables\Securables\Source\SourceColumn.cs" />
     <Compile Include="Tables\ServerAssignedPermissionsToLogin.cs" />
     <Compile Include="Tables\ServerAssignedPermissionsToServerRole.cs" />
     <Compile Include="Tables\Securables\ServerRole.cs" />
-    <Compile Include="Tables\Securables\Source.cs" />
+    <Compile Include="Tables\Securables\Source\Source.cs" />
     <Compile Include="Tables\SourceAssignedPermissionsToDBRole.cs" />
     <Compile Include="Tables\SourceAssignedPermissionsToUser.cs" />
     <Compile Include="Contexts\SpaceDbContext.cs" />

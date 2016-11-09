@@ -65,6 +65,11 @@ namespace Integra.Space.Common
         /// <summary>
         /// Space object server.
         /// </summary>
-        Server = 1024
+        Server = 1024,
+
+        /// <summary>
+        /// Space object: source column.
+        /// </summary>
+        SourceColumn = 2048
     }
 }

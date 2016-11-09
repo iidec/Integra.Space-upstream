@@ -26,6 +26,7 @@ namespace Integra.Space.Database
         public virtual DbSet<DatabaseUser> DatabaseUsers { get; set; }
         public virtual DbSet<Schema> Schemas { get; set; }
         public virtual DbSet<Source> Sources { get; set; }
+        public virtual DbSet<SourceColumn> SourceColumns { get; set; }
         public virtual DbSet<Stream> Streams { get; set; }
         public virtual DbSet<View> Views { get; set; }
 
@@ -550,6 +551,12 @@ namespace Integra.Space.Database
                 .HasMany(e => e.SourceAssignedPermissionsToUsers)
                 .WithRequired(e => e.Source)
                 .HasForeignKey(e => new { e.SourceId, e.SourceServerId, e.SourceDatabaseId, e.SourceSchemaId })
+                .WillCascadeOnDelete(false);
+
+            modelBuilder.Entity<Source>()
+                .HasMany(e => e.Columns)
+                .WithRequired(e => e.Source)
+                .HasForeignKey(e => new { e.SourceId, e.ServerId, e.DatabaseId, e.SchemaId })
                 .WillCascadeOnDelete(false);
 
             modelBuilder.Entity<Stream>()

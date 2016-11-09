@@ -504,4 +504,18 @@
     <Property Name="ParentElementType" Value="SqlTable" />
     <Property Name="NewName" Value="[srvrole_srv_id]" />
   </Operation>
+  <Operation Name="Rename Refactor" Key="7430f412-211f-4421-92f8-939e7d779643" ChangeDateTime="10/27/2016 19:30:42">
+    <Property Name="ElementName" Value="[space].[sources].[cache_duration]" />
+    <Property Name="ElementType" Value="SqlSimpleColumn" />
+    <Property Name="ParentElementName" Value="[space].[sources]" />
+    <Property Name="ParentElementType" Value="SqlTable" />
+    <Property Name="NewName" Value="cache_durability" />
+  </Operation>
+  <Operation Name="Rename Refactor" Key="ad29f0bb-b744-44ab-8c30-848954dc7d6f" ChangeDateTime="10/27/2016 19:47:19">
+    <Property Name="ElementName" Value="[dbo].[source_columns].[Id]" />
+    <Property Name="ElementType" Value="SqlSimpleColumn" />
+    <Property Name="ParentElementName" Value="[dbo].[source_columns]" />
+    <Property Name="ParentElementType" Value="SqlTable" />
+    <Property Name="NewName" Value="src_id" />
+  </Operation>
 </Operations>

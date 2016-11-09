@@ -62,6 +62,9 @@ namespace Integra.Space.Pipeline.Filters
                 bool exists = false;
                 switch (@object.SecurableClass)
                 {
+                    case SystemObjectEnum.SourceColumn:
+                        exists = this.ExistSourceColumn(@object.GranularObjectName, @object.Name, context.Kernel, schema);
+                        break;
                     case SystemObjectEnum.Source:
                         exists = this.ExistSource(@object.Name, context.Kernel, schema);
                         break;
@@ -105,6 +108,22 @@ namespace Integra.Space.Pipeline.Filters
                     throw new Exception(string.Format("The {0} '{1}' does not exist.", @object.SecurableClass, @object.Name));
                 }
             }
+        }
+
+        /// <summary>
+        /// Gets a value indicating whether the entity exists.
+        /// </summary>
+        /// <param name="columnName">Name of the source column.</param>
+        /// <param name="entityName">Entity name.</param>
+        /// <param name="kernel">DI kernel.</param>
+        /// <param name="schema">Execution schema.</param>
+        /// <returns>Returns a value indicating whether the entity exists.</returns>
+        private bool ExistSourceColumn(string columnName, string entityName, IKernel kernel, Schema schema)
+        {
+            SpaceDbContext context = kernel.Get<SpaceDbContext>();
+            Source source = context.Sources.Single(x => x.SchemaId == schema.SchemaId && x.DatabaseId == schema.DatabaseId && x.ServerId == schema.ServerId && x.SourceName == entityName);
+            bool exists = context.SourceColumns.Any(x => x.SchemaId == schema.SchemaId && x.DatabaseId == schema.DatabaseId && x.ServerId == schema.ServerId && x.SourceId == source.SourceId && x.ColumnName == columnName);
+            return exists;
         }
 
         /// <summary>

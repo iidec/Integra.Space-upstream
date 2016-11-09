@@ -89,6 +89,11 @@ namespace Integra.Space.Common
         Remove = 8192,
 
         /// <summary>
+        /// Action command truncate.
+        /// </summary>
+        Truncate = 16384,
+
+        /// <summary>
         /// Commands for add, delete o edit a space object.
         /// </summary>
         CrudCommands = Create | Alter | Drop,

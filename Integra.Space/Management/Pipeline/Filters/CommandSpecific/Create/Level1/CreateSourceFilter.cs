@@ -23,7 +23,9 @@ namespace Integra.Space.Pipeline.Filters
             source.SchemaId = schema.SchemaId;
             source.SourceId = Guid.NewGuid();
             source.SourceName = command.MainCommandObject.Name;
-            
+            source.CacheDurability = 60;
+            source.CacheSize = 100;
+
             // se le establece como propietario al usuario que lo esta creando
             source.OwnerServerId = user.ServerId;
             source.OwnerDatabaseId = user.DatabaseId;
@@ -35,8 +37,40 @@ namespace Integra.Space.Pipeline.Filters
                 source.IsActive = (bool)command.Options[Common.SourceOptionEnum.Status];
             }
 
+            if (command.Options.ContainsKey(Common.SourceOptionEnum.Cache_Durability))
+            {
+                source.CacheDurability = (uint)(int)command.Options[Common.SourceOptionEnum.Cache_Durability];
+            }
+
+            if (command.Options.ContainsKey(Common.SourceOptionEnum.Cache_Size))
+            {
+                source.CacheSize = (uint)(int)command.Options[Common.SourceOptionEnum.Cache_Size];
+            }
+
+            if (command.Options.ContainsKey(Common.SourceOptionEnum.Persistent))
+            {
+                source.Persistent = (bool)command.Options[Common.SourceOptionEnum.Persistent];
+            }
+
             // almaceno la nueva entidad y guardo los cambios
             databaseContext.Sources.Add(source);
+            databaseContext.SaveChanges();
+
+            foreach (KeyValuePair<string, Type> kvp in command.Columns)
+            {
+                SourceColumn column = new SourceColumn();
+                column.ColumnId = Guid.NewGuid();
+                column.SourceId = source.SourceId;
+                column.SchemaId = source.SchemaId;
+                column.DatabaseId = source.DatabaseId;
+                column.ServerId = source.ServerId;
+                column.ColumnName = kvp.Key;
+                column.ColumnType = kvp.Value.AssemblyQualifiedName;
+
+                databaseContext.SourceColumns.Add(column);
+            }
+
+            // almaceno las columnas de la fuente.
             databaseContext.SaveChanges();
         }
     }

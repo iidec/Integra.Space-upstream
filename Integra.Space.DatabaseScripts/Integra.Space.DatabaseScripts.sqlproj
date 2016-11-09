@@ -73,6 +73,7 @@
     <Folder Include="ServerPermissions\Servers" />
     <Folder Include="StoreProcedures" />
     <Folder Include="ServerPermissions\Database" />
+    <Folder Include="Securables\Sources" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="DatabasePermissions\DatabaseRoles\DBRolesAssignedPermissionsToDBRoles.sql" />
@@ -97,7 +98,6 @@
     <Build Include="Securables\Schemas.sql" />
     <Build Include="Securables\ServerRoles.sql" />
     <Build Include="Securables\Servers.sql" />
-    <Build Include="Securables\Sources.sql" />
     <Build Include="Securables\Streams.sql" />
     <Build Include="Securables\Views.sql" />
     <Build Include="Security\Permissions.sql" />
@@ -118,6 +118,8 @@
     <Build Include="Security\ServerRolesByLogins.sql" />
     <Build Include="Security\DatabaseRolesByUsers.sql" />
     <Build Include="Security\HierarchyPermissions.sql" />
+    <Build Include="Securables\Sources\Sources.sql" />
+    <Build Include="Securables\Sources\SourceColumns.sql" />
   </ItemGroup>
   <ItemGroup>
     <RefactorLog Include="Integra.Space.DatabaseScripts.refactorlog" />

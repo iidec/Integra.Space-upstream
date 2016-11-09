@@ -22,13 +22,11 @@ namespace Integra.Space.Pipeline.Filters
             {
                 if (commandNode.Command is Language.QueryCommandForMetadataNode)
                 {
-                    filterAux = new ValidateExistence()
-                        .AddStep(new SecureContextBuilderFilter());
+                    filterAux = new ValidateExistence();
                 }
                 else
                 {
                     filterAux = new ValidateExistence()
-                        .AddStep(new SecureContextBuilderFilter())
                         .AddStep(new ValidatePermissions());
                 }
 

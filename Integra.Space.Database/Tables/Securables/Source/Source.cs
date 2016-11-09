@@ -14,6 +14,7 @@ namespace Integra.Space.Database
         {
             SourceAssignedPermissionsToDBRoles = new HashSet<SourceAssignedPermissionsToDBRole>();
             SourceAssignedPermissionsToUsers = new HashSet<SourceAssignedPermissionsToUser>();
+            Columns = new HashSet<SourceColumn>();
         }
 
         [Key]
@@ -55,6 +56,18 @@ namespace Integra.Space.Database
         [System.ComponentModel.DefaultValue(true)]
         public bool IsActive { get; set; }
 
+        [Column("cache_durability")]
+        [System.ComponentModel.DefaultValue(60)]
+        public uint CacheDurability { get; set; }
+
+        [Column("cache_size")]
+        [System.ComponentModel.DefaultValue(100)]
+        public uint CacheSize { get; set; }
+
+        [Column("persistent")]
+        [System.ComponentModel.DefaultValue(false)]
+        public bool Persistent { get; set; }
+
         public virtual DatabaseUser DatabaseUser { get; set; }
 
         public virtual Schema Schema { get; set; }
@@ -65,6 +78,7 @@ namespace Integra.Space.Database
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<SourceAssignedPermissionsToUser> SourceAssignedPermissionsToUsers { get; set; }
 
-        //public virtual Securable securables { get; set; }
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
+        public virtual ICollection<SourceColumn> Columns { get; set; }
     }
 }

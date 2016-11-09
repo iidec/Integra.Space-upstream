@@ -69,6 +69,10 @@ namespace Integra.Space.Pipeline.Filters
                     throw new Exception(string.Format("The system type '{0}' does not exist.", typeItemSource.Name));
                 }
             }
+            else if (action == ActionCommandEnum.Truncate)
+            {
+                commandNode.Pipeline = SpecificFilterSelector.GetSpecificFilter(new SpecificFilterKey(action, commandNode.Command.CommandObjects.Single().SecurableClass));
+            }
         }
 
         /// <summary>

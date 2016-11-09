@@ -119,6 +119,9 @@ namespace Integra.Space.Pipeline.Filters
             filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.ViewDefinition, SystemObjectEnum.Source), new SourceMetadataQueryFilter());
             filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.ViewDefinition, SystemObjectEnum.Stream), new StreamMetadataQueryFilter());
             filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.ViewDefinition, SystemObjectEnum.View), new ViewMetadataQueryFilter());
+
+            // truncate source
+            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.Truncate, SystemObjectEnum.Source), new TruncateFilter());
         }
 
         /// <summary>

@@ -1219,7 +1219,7 @@ namespace Integra.Space.UnitTests
         public void CreateSource()
         {
             string sourceName = "newSource";
-            string command = $"create source {sourceName}";
+            string command = $"create source {sourceName} (column1 int, column2 decimal, column3 string)";
             this.loginName = "AdminLogin";
 
             IKernel kernel = new StandardKernel();
@@ -1233,6 +1233,9 @@ namespace Integra.Space.UnitTests
                     {
                         Source source = dbContext.Sources.Single(x => x.SourceName == sourceName);
                         Assert.AreEqual(sourceName, source.SourceName);
+                        Assert.IsTrue(dbContext.SourceColumns.Any(x => x.ColumnName == "column1"));
+                        Assert.IsTrue(dbContext.SourceColumns.Any(x => x.ColumnName == "column2"));
+                        Assert.IsTrue(dbContext.SourceColumns.Any(x => x.ColumnName == "column3"));
                         Assert.IsTrue(source.IsActive);
                         tran.Rollback();
                     }
@@ -1249,7 +1252,7 @@ namespace Integra.Space.UnitTests
         public void CreateSourceWithStatusOn()
         {
             string sourceName = "newSource";
-            string command = $"create source {sourceName} with status = on";
+            string command = $"create source {sourceName} (column1 int, column2 decimal, column3 string) with status = on";
             this.loginName = "AdminLogin";
 
             IKernel kernel = new StandardKernel();
@@ -1279,7 +1282,7 @@ namespace Integra.Space.UnitTests
         public void CreateSourceWithStatusOff()
         {
             string sourceName = "newSource";
-            string command = $"create source {sourceName} with status = off";
+            string command = $"create source {sourceName} (column1 int, column2 decimal, column3 string) with status = off";
             this.loginName = "AdminLogin";
 
             IKernel kernel = new StandardKernel();
@@ -1294,6 +1297,111 @@ namespace Integra.Space.UnitTests
                         Source source = dbContext.Sources.Single(x => x.SourceName == sourceName);
                         Assert.AreEqual(sourceName, source.SourceName);
                         Assert.IsFalse(source.IsActive);
+                        tran.Rollback();
+                    }
+                    catch (Exception e)
+                    {
+                        tran.Rollback();
+                        Assert.Fail($"Error al crear el rol de base de datos '{sourceName}'. Mensaje: {e.Message}");
+                    }
+                }
+            }
+        }
+
+        [TestMethod]
+        public void CreateSourceWithCacheSize()
+        {
+            string sourceName = "newSource";
+            string command = $"create source {sourceName} (column1 int, column2 decimal, column3 string) with cache_size = 200";
+            this.loginName = "AdminLogin";
+
+            IKernel kernel = new StandardKernel();
+            using (SpaceDbContext dbContext = new SpaceDbContext())
+            {
+                using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
+                {
+                    kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
+                    FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
+                    try
+                    {
+                        Source source = dbContext.Sources.Single(x => x.SourceName == sourceName);
+                        Assert.IsTrue(dbContext.SourceColumns.Any(x => x.ColumnName == "column1"));
+                        Assert.IsTrue(dbContext.SourceColumns.Any(x => x.ColumnName == "column2"));
+                        Assert.IsTrue(dbContext.SourceColumns.Any(x => x.ColumnName == "column3"));
+                        Assert.AreEqual(sourceName, source.SourceName);
+                        Assert.AreEqual<uint>(200, source.CacheSize);
+                        Assert.AreEqual<uint>(60, source.CacheDurability);
+                        Assert.IsTrue(source.IsActive);
+                        tran.Rollback();
+                    }
+                    catch (Exception e)
+                    {
+                        tran.Rollback();
+                        Assert.Fail($"Error al crear el rol de base de datos '{sourceName}'. Mensaje: {e.Message}");
+                    }
+                }
+            }
+        }
+
+        [TestMethod]
+        public void CreateSourceWithCacheDurability()
+        {
+            string sourceName = "newSource";
+            string command = $"create source {sourceName} (column1 int, column2 decimal, column3 string) with cache_durability = 70";
+            this.loginName = "AdminLogin";
+
+            IKernel kernel = new StandardKernel();
+            using (SpaceDbContext dbContext = new SpaceDbContext())
+            {
+                using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
+                {
+                    kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
+                    FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
+                    try
+                    {
+                        Source source = dbContext.Sources.Single(x => x.SourceName == sourceName);
+                        Assert.IsTrue(dbContext.SourceColumns.Any(x => x.ColumnName == "column1"));
+                        Assert.IsTrue(dbContext.SourceColumns.Any(x => x.ColumnName == "column2"));
+                        Assert.IsTrue(dbContext.SourceColumns.Any(x => x.ColumnName == "column3"));
+                        Assert.AreEqual(sourceName, source.SourceName);
+                        Assert.AreEqual<uint>(100, source.CacheSize);
+                        Assert.AreEqual<uint>(70, source.CacheDurability);
+                        Assert.IsTrue(source.IsActive);
+                        tran.Rollback();
+                    }
+                    catch (Exception e)
+                    {
+                        tran.Rollback();
+                        Assert.Fail($"Error al crear el rol de base de datos '{sourceName}'. Mensaje: {e.Message}");
+                    }
+                }
+            }
+        }
+
+        [TestMethod]
+        public void CreateSourceWithCacheDurabilityCacheSize()
+        {
+            string sourceName = "newSource";
+            string command = $"create source {sourceName} (column1 int, column2 decimal, column3 string) with cache_durability = 70, cache_size = 200";
+            this.loginName = "AdminLogin";
+
+            IKernel kernel = new StandardKernel();
+            using (SpaceDbContext dbContext = new SpaceDbContext())
+            {
+                using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
+                {
+                    kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
+                    FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
+                    try
+                    {
+                        Source source = dbContext.Sources.Single(x => x.SourceName == sourceName);
+                        Assert.IsTrue(dbContext.SourceColumns.Any(x => x.ColumnName == "column1"));
+                        Assert.IsTrue(dbContext.SourceColumns.Any(x => x.ColumnName == "column2"));
+                        Assert.IsTrue(dbContext.SourceColumns.Any(x => x.ColumnName == "column3"));
+                        Assert.AreEqual(sourceName, source.SourceName);
+                        Assert.AreEqual<uint>(200, source.CacheSize);
+                        Assert.AreEqual<uint>(70, source.CacheDurability);
+                        Assert.IsTrue(source.IsActive);
                         tran.Rollback();
                     }
                     catch (Exception e)
@@ -2288,7 +2396,7 @@ namespace Integra.Space.UnitTests
         {
             string oldSourceName = "oldSourceName";
             string newSourceName = "newSource";
-            string command = $"create source {oldSourceName}; alter source {oldSourceName} with name = {newSourceName}";
+            string command = $"create source {oldSourceName} (column1 string, column2 int, column3 decimal); alter source {oldSourceName} with name = {newSourceName}";
             this.loginName = "AdminLogin";
 
             IKernel kernel = new StandardKernel();
@@ -2302,6 +2410,9 @@ namespace Integra.Space.UnitTests
                     {
                         Source source = dbContext.Sources.Single(x => x.SourceName == newSourceName);
                         Assert.AreEqual(newSourceName, source.SourceName);
+                        Assert.IsTrue(dbContext.SourceColumns.Any(x => x.ColumnName == "column1"));
+                        Assert.IsTrue(dbContext.SourceColumns.Any(x => x.ColumnName == "column2"));
+                        Assert.IsTrue(dbContext.SourceColumns.Any(x => x.ColumnName == "column3"));
                         Assert.IsTrue(source.IsActive);
                         tran.Rollback();
                     }
@@ -2315,10 +2426,109 @@ namespace Integra.Space.UnitTests
         }
 
         [TestMethod]
+        public void AlterSourceAddColumns()
+        {
+            string sourceName = "oldSourceName";
+            string command = $"create source {sourceName} (column1 string, column2 int, column3 decimal); alter source {sourceName} add columnX string, columnY int, columnZ decimal";
+            this.loginName = "AdminLogin";
+
+            IKernel kernel = new StandardKernel();
+            using (SpaceDbContext dbContext = new SpaceDbContext())
+            {
+                using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
+                {
+                    kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
+                    FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
+                    try
+                    {
+                        Source source = dbContext.Sources.Single(x => x.SourceName == sourceName);
+                        Assert.AreEqual(sourceName, source.SourceName);
+                        Assert.IsTrue(dbContext.SourceColumns.Any(x => x.ColumnName == "column1"));
+                        Assert.IsTrue(dbContext.SourceColumns.Any(x => x.ColumnName == "column2"));
+                        Assert.IsTrue(dbContext.SourceColumns.Any(x => x.ColumnName == "column3"));
+                        Assert.IsTrue(dbContext.SourceColumns.Any(x => x.ColumnName == "columnX"));
+                        Assert.IsTrue(dbContext.SourceColumns.Any(x => x.ColumnName == "columnY"));
+                        Assert.IsTrue(dbContext.SourceColumns.Any(x => x.ColumnName == "columnZ"));
+                        Assert.IsTrue(source.IsActive);
+                        tran.Rollback();
+                    }
+                    catch (Exception e)
+                    {
+                        tran.Rollback();
+                        Assert.Fail($"Error al crear el rol de base de datos '{sourceName}'. Mensaje: {e.Message}");
+                    }
+                }
+            }
+        }
+
+        [TestMethod]
+        public void AlterSourceRemoveColumns()
+        {
+            string sourceName = "oldSourceName";
+            string command = $"create source {sourceName} (column1 string, column2 int, column3 decimal, columnX string, columnY int, columnZ decimal); alter source {sourceName} remove columnX string, columnY int, columnZ decimal";
+            this.loginName = "AdminLogin";
+
+            IKernel kernel = new StandardKernel();
+            using (SpaceDbContext dbContext = new SpaceDbContext())
+            {
+                using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
+                {
+                    kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
+                    FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
+                    try
+                    {
+                        Source source = dbContext.Sources.Single(x => x.SourceName == sourceName);
+                        Assert.AreEqual(sourceName, source.SourceName);
+                        Assert.IsTrue(dbContext.SourceColumns.Any(x => x.ColumnName == "column1"));
+                        Assert.IsTrue(dbContext.SourceColumns.Any(x => x.ColumnName == "column2"));
+                        Assert.IsTrue(dbContext.SourceColumns.Any(x => x.ColumnName == "column3"));
+                        Assert.IsFalse(dbContext.SourceColumns.Any(x => x.ColumnName == "columnX"));
+                        Assert.IsFalse(dbContext.SourceColumns.Any(x => x.ColumnName == "columnY"));
+                        Assert.IsFalse(dbContext.SourceColumns.Any(x => x.ColumnName == "columnZ"));
+                        Assert.IsTrue(source.IsActive);
+                        tran.Rollback();
+                    }
+                    catch (Exception e)
+                    {
+                        tran.Rollback();
+                        Assert.Fail($"Error al crear el rol de base de datos '{sourceName}'. Mensaje: {e.Message}");
+                    }
+                }
+            }
+        }
+
+        [TestMethod]
+        public void AlterSourceRemoveAllColumns()
+        {
+            string sourceName = "oldSourceName";
+            string command = $"create source {sourceName} (columnX string, columnY int, columnZ decimal); alter source {sourceName} remove columnX string, columnY int, columnZ decimal";
+            this.loginName = "AdminLogin";
+
+            IKernel kernel = new StandardKernel();
+            using (SpaceDbContext dbContext = new SpaceDbContext())
+            {
+                using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
+                {
+                    kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
+                    try
+                    {
+                        FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
+                        tran.Rollback();
+                        Assert.Fail("Dejó eliminar todas las columnas de la fuente");
+                    }
+                    catch (Exception e)
+                    {
+                        tran.Rollback();
+                    }
+                }
+            }
+        }
+
+        [TestMethod]
         public void AlterSourceWithStatusOn()
         {
             string sourceName = "newSource";
-            string command = $"create source {sourceName} with status = off; alter source {sourceName} with status = on";
+            string command = $"create source {sourceName} (column1 string, column2 int, column3 decimal) with status = off; alter source {sourceName} with status = on";
             this.loginName = "AdminLogin";
 
             IKernel kernel = new StandardKernel();
@@ -2348,7 +2558,7 @@ namespace Integra.Space.UnitTests
         public void AlterSourceWithStatusOff()
         {
             string sourceName = "newSource";
-            string command = $"create source {sourceName} with status = on; alter source {sourceName} with status = off";
+            string command = $"create source {sourceName} (column1 string, column2 int, column3 decimal) with status = on; alter source {sourceName} with status = off";
             this.loginName = "AdminLogin";
 
             IKernel kernel = new StandardKernel();
@@ -2362,6 +2572,177 @@ namespace Integra.Space.UnitTests
                     {
                         Source source = dbContext.Sources.Single(x => x.SourceName == sourceName);
                         Assert.AreEqual(sourceName, source.SourceName);
+                        Assert.IsFalse(source.IsActive);
+                        tran.Rollback();
+                    }
+                    catch (Exception e)
+                    {
+                        tran.Rollback();
+                        Assert.Fail($"Error al crear el rol de base de datos '{sourceName}'. Mensaje: {e.Message}");
+                    }
+                }
+            }
+        }
+
+        [TestMethod]
+        public void AlterSourceWithPersistentOn()
+        {
+            string sourceName = "newSource";
+            string command = $"create source {sourceName} (column1 string, column2 int, column3 decimal) with persistent = off; alter source {sourceName} with persistent = on";
+            this.loginName = "AdminLogin";
+
+            IKernel kernel = new StandardKernel();
+            using (SpaceDbContext dbContext = new SpaceDbContext())
+            {
+                using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
+                {
+                    kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
+                    FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
+                    try
+                    {
+                        Source source = dbContext.Sources.Single(x => x.SourceName == sourceName);
+                        Assert.AreEqual(sourceName, source.SourceName);
+                        Assert.IsTrue(dbContext.SourceColumns.Any(x => x.ColumnName == "column1"));
+                        Assert.IsTrue(dbContext.SourceColumns.Any(x => x.ColumnName == "column2"));
+                        Assert.IsTrue(dbContext.SourceColumns.Any(x => x.ColumnName == "column3"));
+                        Assert.IsTrue(source.IsActive);
+                        Assert.IsTrue(source.Persistent);
+                        tran.Rollback();
+                    }
+                    catch (Exception e)
+                    {
+                        tran.Rollback();
+                        Assert.Fail($"Error al crear el rol de base de datos '{sourceName}'. Mensaje: {e.Message}");
+                    }
+                }
+            }
+        }
+
+        [TestMethod]
+        public void AlterSourceWithPersistentOff()
+        {
+            string sourceName = "newSource";
+            string command = $"create source {sourceName} (column1 string, column2 int, column3 decimal) with persistent = on; alter source {sourceName} with persistent = off";
+            this.loginName = "AdminLogin";
+
+            IKernel kernel = new StandardKernel();
+            using (SpaceDbContext dbContext = new SpaceDbContext())
+            {
+                using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
+                {
+                    kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
+                    FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
+                    try
+                    {
+                        Source source = dbContext.Sources.Single(x => x.SourceName == sourceName);
+                        Assert.AreEqual(sourceName, source.SourceName);
+                        Assert.IsTrue(dbContext.SourceColumns.Any(x => x.ColumnName == "column1"));
+                        Assert.IsTrue(dbContext.SourceColumns.Any(x => x.ColumnName == "column2"));
+                        Assert.IsTrue(dbContext.SourceColumns.Any(x => x.ColumnName == "column3"));
+                        Assert.IsTrue(source.IsActive);
+                        Assert.IsFalse(source.Persistent);
+                        tran.Rollback();
+                    }
+                    catch (Exception e)
+                    {
+                        tran.Rollback();
+                        Assert.Fail($"Error al crear el rol de base de datos '{sourceName}'. Mensaje: {e.Message}");
+                    }
+                }
+            }
+        }
+
+        [TestMethod]
+        public void AlterSourceWithCacheSize()
+        {
+            string sourceName = "newSource";
+            string command = $"create source {sourceName} (column1 string, column2 int, column3 decimal) with status = on, cache_size = 100; alter source {sourceName} with status = off, cache_size = 200";
+            this.loginName = "AdminLogin";
+
+            IKernel kernel = new StandardKernel();
+            using (SpaceDbContext dbContext = new SpaceDbContext())
+            {
+                using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
+                {
+                    kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
+                    FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
+                    try
+                    {
+                        Source source = dbContext.Sources.Single(x => x.SourceName == sourceName);
+                        Assert.AreEqual(sourceName, source.SourceName);
+                        Assert.IsTrue(dbContext.SourceColumns.Any(x => x.ColumnName == "column1"));
+                        Assert.IsTrue(dbContext.SourceColumns.Any(x => x.ColumnName == "column2"));
+                        Assert.IsTrue(dbContext.SourceColumns.Any(x => x.ColumnName == "column3"));
+                        Assert.AreEqual<uint>(source.CacheSize, 200);
+                        Assert.IsFalse(source.IsActive);
+                        tran.Rollback();
+                    }
+                    catch (Exception e)
+                    {
+                        tran.Rollback();
+                        Assert.Fail($"Error al crear el rol de base de datos '{sourceName}'. Mensaje: {e.Message}");
+                    }
+                }
+            }
+        }
+
+        [TestMethod]
+        public void AlterSourceWithCacheDurability()
+        {
+            string sourceName = "newSource";
+            string command = $"create source {sourceName} (column1 string, column2 int, column3 decimal) with status = on, cache_durability = 100; alter source {sourceName} with status = off, cache_durability = 70";
+            this.loginName = "AdminLogin";
+
+            IKernel kernel = new StandardKernel();
+            using (SpaceDbContext dbContext = new SpaceDbContext())
+            {
+                using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
+                {
+                    kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
+                    FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
+                    try
+                    {
+                        Source source = dbContext.Sources.Single(x => x.SourceName == sourceName);
+                        Assert.AreEqual(sourceName, source.SourceName);
+                        Assert.IsTrue(dbContext.SourceColumns.Any(x => x.ColumnName == "column1"));
+                        Assert.IsTrue(dbContext.SourceColumns.Any(x => x.ColumnName == "column2"));
+                        Assert.IsTrue(dbContext.SourceColumns.Any(x => x.ColumnName == "column3"));
+                        Assert.AreEqual<uint>(source.CacheDurability, 70);
+                        Assert.IsFalse(source.IsActive);
+                        tran.Rollback();
+                    }
+                    catch (Exception e)
+                    {
+                        tran.Rollback();
+                        Assert.Fail($"Error al crear el rol de base de datos '{sourceName}'. Mensaje: {e.Message}");
+                    }
+                }
+            }
+        }
+
+        [TestMethod]
+        public void AlterSourceWithCacheSizeCacheDurability()
+        {
+            string sourceName = "newSource";
+            string command = $"create source {sourceName} (column1 string, column2 int, column3 decimal) with status = on, cache_size = 100, cache_durability = 100; alter source {sourceName} with status = off, cache_size = 200, cache_durability = 70";
+            this.loginName = "AdminLogin";
+
+            IKernel kernel = new StandardKernel();
+            using (SpaceDbContext dbContext = new SpaceDbContext())
+            {
+                using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
+                {
+                    kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
+                    FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
+                    try
+                    {
+                        Source source = dbContext.Sources.Single(x => x.SourceName == sourceName);
+                        Assert.AreEqual(sourceName, source.SourceName);
+                        Assert.IsTrue(dbContext.SourceColumns.Any(x => x.ColumnName == "column1"));
+                        Assert.IsTrue(dbContext.SourceColumns.Any(x => x.ColumnName == "column2"));
+                        Assert.IsTrue(dbContext.SourceColumns.Any(x => x.ColumnName == "column3"));
+                        Assert.AreEqual<uint>(source.CacheSize, 200);
+                        Assert.AreEqual<uint>(source.CacheDurability, 70);
                         Assert.IsFalse(source.IsActive);
                         tran.Rollback();
                     }
@@ -2653,7 +3034,7 @@ namespace Integra.Space.UnitTests
         public void DropSource()
         {
             string sourceName = "newSource";
-            string command = $"create source {sourceName}; drop source {sourceName}";
+            string command = $"create source {sourceName} (column1 int, column2 decimal, column3 string); drop source {sourceName}";
             this.loginName = "AdminLogin";
 
             IKernel kernel = new StandardKernel();
@@ -2715,7 +3096,40 @@ namespace Integra.Space.UnitTests
             }
         }
         #endregion drop
-        
+
+        #region
+
+        [TestMethod]
+        public void TruncateSource()
+        {
+            string sourceName = "newSource";
+            string command = $"create source {sourceName} (column1 int, column2 decimal, column3 string); truncate source {sourceName}";
+            this.loginName = "AdminLogin";
+
+            IKernel kernel = new StandardKernel();
+            using (SpaceDbContext dbContext = new SpaceDbContext())
+            {
+                using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
+                {
+                    kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
+                    try
+                    {
+                        FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
+                        bool exists = dbContext.Sources.Any(x => x.SourceName == sourceName);
+                        Assert.IsTrue(exists);
+                        tran.Rollback();
+                    }
+                    catch (Exception e)
+                    {
+                        tran.Rollback();
+                        Assert.Fail($"Error al crear el rol de base de datos '{sourceName}'. Mensaje: {e.Message}");
+                    }
+                }
+            }
+        }
+
+        #endregion
+
         #region otros
 
         [TestMethod]
@@ -2779,7 +3193,7 @@ namespace Integra.Space.UnitTests
         {
             string userNameThatCreateTheStream = "UserAux";
             string sourceNameTest = "source1234";
-            string firstCommand = $"create source {sourceNameTest}; grant create stream, read on source {sourceNameTest} to user {userNameThatCreateTheStream}";
+            string firstCommand = $"create source {sourceNameTest} (column1 int, column2 decimal, column3 string); grant create stream, read on source {sourceNameTest} to user {userNameThatCreateTheStream}";
 
             string newStreamName = "Stream1234";
             string eql = $@"cross 
@@ -2913,7 +3327,7 @@ namespace Integra.Space.UnitTests
             string newSource = "SourceInicial_nueva";
             string userNameThatCreateTheSource = "UserAux";
             string firstCommand = $"grant create source to user {userNameThatCreateTheSource}";
-            string secondCommand = "create source " + newSource;
+            string secondCommand = $"create source {newSource} (column1 int, column2 decimal, column3 string)";
             IKernel kernel = new StandardKernel();
 
             using (SpaceDbContext dbContext = new SpaceDbContext())
