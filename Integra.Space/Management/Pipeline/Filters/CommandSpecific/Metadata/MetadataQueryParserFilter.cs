@@ -55,7 +55,7 @@ namespace Integra.Space.Pipeline.Filters
             bool debugMode = false;
             bool measureElapsedTime = false;
             bool isTestMode = false;
-            CompileContext compileContext = new CompileContext()
+            CompilerConfiguration compileContext = new CompilerConfiguration()
             {
                 PrintLog = printLog,
                 QueryName = streamName,

@@ -19,7 +19,7 @@ namespace Integra.Space.Pipeline.Filters
     internal class AlterUserFilter : AlterEntityFilter<AlterUserNode, UserOptionEnum>
     {
         /// <inheritdoc />
-        protected override void EditEntity(AlterUserNode command, Dictionary<UserOptionEnum, object> options, Schema schema, SpaceDbContext databaseContext)
+        protected override void EditEntity(AlterUserNode command, Dictionary<UserOptionEnum, object> options, Login login, Schema schema, SpaceDbContext databaseContext)
         {
             DatabaseUser user = databaseContext.DatabaseUsers.Single(x => x.ServerId == schema.ServerId
                                             && x.DatabaseId == schema.DatabaseId

@@ -8,8 +8,11 @@ namespace Integra.Space.Pipeline.Filters
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Linq;
     using Common;
     using Database;
+    using Language;
+    using Language.Runtime;
 
     /// <summary>
     /// Filter create source class.
@@ -27,7 +30,7 @@ namespace Integra.Space.Pipeline.Filters
                 stream.SchemaId = schema.SchemaId;
                 stream.StreamId = Guid.NewGuid();
                 stream.StreamName = command.MainCommandObject.Name;
-                stream.Query = command.Query;
+                stream.Query = command.Query.Trim();
 
                 // se le establece como propietario al usuario que lo esta creando.
                 stream.OwnerServerId = user.ServerId;
@@ -60,6 +63,53 @@ namespace Integra.Space.Pipeline.Filters
 
                 // almaceno la nueva entidad y guardo los cambios
                 databaseContext.Streams.Add(stream);
+                databaseContext.SaveChanges();
+
+                // guardo la relación del stream con las fuentes a las que hace referencia, de entrada o salida
+                Language.CommandObject[] sources = command.CommandObjects.Where(x => x.SecurableClass == SystemObjectEnum.Source).ToArray();
+                foreach (Language.CommandObject source in sources)
+                {
+                    Schema sourceSchema = source.GetSchema(databaseContext, login);
+                    Source sourceFromDatabase = databaseContext.Sources.Single(x => x.ServerId == sourceSchema.ServerId && x.DatabaseId == sourceSchema.DatabaseId && x.SchemaId == sourceSchema.SchemaId && x.SourceName == source.Name);
+
+                    bool? isInput = null;
+                    if (source.GranularPermission == PermissionsEnum.Read)
+                    {
+                        isInput = true;
+                    }
+                    else if (source.GranularPermission == PermissionsEnum.Write)
+                    {
+                        isInput = false;
+                    }
+
+                    SourceByStream relationship = new SourceByStream()
+                    {
+                        RelationshipId = Guid.NewGuid(),
+                        Source = sourceFromDatabase,
+                        Stream = stream,
+                        IsInputSource = isInput.Value
+                    };
+
+                    databaseContext.SourcesByStreams.Add(relationship);
+                }
+
+                databaseContext.SaveChanges();
+
+                // agrego las columnas del stream a la base de datos
+                List<Tuple<string, Type>> projectionColumns = command.ExecutionPlan.GetQueryProyection();
+                foreach (Tuple<string, Type> column in projectionColumns)
+                {
+                    StreamColumn projectionColumn = new StreamColumn()
+                    {
+                        ColumnId = Guid.NewGuid(),
+                        Stream = stream,
+                        ColumnName = column.Item1,
+                        ColumnType = column.Item2.AssemblyQualifiedName
+                    };
+
+                    databaseContext.StreamColumns.Add(projectionColumn);
+                }
+
                 databaseContext.SaveChanges();
             }
             else

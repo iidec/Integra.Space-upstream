@@ -28,7 +28,9 @@ namespace Integra.Space.Database
         public virtual DbSet<Source> Sources { get; set; }
         public virtual DbSet<SourceColumn> SourceColumns { get; set; }
         public virtual DbSet<Stream> Streams { get; set; }
+        public virtual DbSet<StreamColumn> StreamColumns { get; set; }
         public virtual DbSet<View> Views { get; set; }
+        public virtual DbSet<SourceByStream> SourcesByStreams { get; set; }
 
         // permissions
         public virtual DbSet<GranularPermission> GranularPermissions { get; set; }
@@ -559,6 +561,12 @@ namespace Integra.Space.Database
                 .HasForeignKey(e => new { e.SourceId, e.ServerId, e.DatabaseId, e.SchemaId })
                 .WillCascadeOnDelete(false);
 
+            modelBuilder.Entity<Source>()
+                .HasMany(e => e.Streams)
+                .WithRequired(e => e.Source)
+                .HasForeignKey(e => new { e.SourceId, e.SourceServerId, e.SourceDatabaseId, e.SourceSchemaId })
+                .WillCascadeOnDelete(false);
+
             modelBuilder.Entity<Stream>()
                 .Property(e => e.Query)
                 .IsUnicode(false);
@@ -573,6 +581,18 @@ namespace Integra.Space.Database
                 .HasMany(e => e.StreamAssignedPermissionsToUsers)
                 .WithRequired(e => e.Stream)
                 .HasForeignKey(e => new { e.StreamId, e.StreamServerId, e.StreamDatabaseId, e.StreamSchemaId })
+                .WillCascadeOnDelete(false);
+            
+            modelBuilder.Entity<Stream>()
+                .HasMany(e => e.Sources)
+                .WithRequired(e => e.Stream)
+                .HasForeignKey(e => new { e.StreamId, e.StreamServerId, e.StreamDatabaseId, e.StreamSchemaId })
+                .WillCascadeOnDelete(false);
+
+            modelBuilder.Entity<Stream>()
+                .HasMany(e => e.ProjectionColumns)
+                .WithRequired(e => e.Stream)
+                .HasForeignKey(e => new { e.StreamId, e.ServerId, e.DatabaseId, e.SchemaId })
                 .WillCascadeOnDelete(false);
 
             modelBuilder.Entity<View>()

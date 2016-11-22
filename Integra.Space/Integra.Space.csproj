@@ -44,6 +44,10 @@
     <Reference Include="Integra.Space.Language">
       <HintPath>..\..\Integra.Space.Language\Integra.Space.Language\bin\Debug\Integra.Space.Language.dll</HintPath>
     </Reference>
+    <Reference Include="Integra.Space.Runtime, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Integra.Space.Runtime.Debug.0.0.1\lib\Integra.Space.Runtime.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="Irony, Version=1.0.0.0, Culture=neutral, PublicKeyToken=ca48ace7223ead47, processorArchitecture=MSIL">
       <HintPath>..\packages\Irony.0.9.1\lib\net40\Irony.dll</HintPath>
       <Private>True</Private>
@@ -103,6 +107,7 @@
     <Compile Include="Management\Pipeline\Filters\CommandSpecific\Alter\Level2\AlterRoleFilter.cs" />
     <Compile Include="Management\Pipeline\Filters\CommandSpecific\Alter\Level2\AlterSchemaFilter.cs" />
     <Compile Include="Management\Pipeline\Filters\CommandSpecific\Alter\Level3\AlterDatabaseFilter.cs" />
+    <Compile Include="Management\Pipeline\Filters\CommandSpecific\Source\CreateSourceTypeFilter.cs" />
     <Compile Include="Management\Pipeline\Filters\CommandSpecific\Metadata\TruncateFilter.cs" />
     <Compile Include="Management\Pipeline\Filters\CommandSpecific\Metadata\ServerRoleMetadataQueryFilter.cs" />
     <Compile Include="Management\Pipeline\Filters\CommandSpecific\Metadata\EndpointMetadataQueryFilter.cs" />
@@ -137,6 +142,8 @@
     <Compile Include="Management\Pipeline\Filters\CommandSpecific\Permission\TakeOwnership\TakeOwnershipOfStreamFilter.cs" />
     <Compile Include="Management\Pipeline\Filters\CommandSpecific\Stream\ParseQueryForAlterStreamFilter.cs" />
     <Compile Include="Management\Pipeline\Filters\CommandSpecific\Stream\ParseQueryForCreateStreamFilter.cs" />
+    <Compile Include="Management\Pipeline\Filters\CommandSpecific\Stream\ValidateAlterStreamColumnsCompatibilityFilter.cs" />
+    <Compile Include="Management\Pipeline\Filters\CommandSpecific\Stream\ValidateCreateStreamColumnsCompatibilityFilter.cs" />
     <Compile Include="Management\Pipeline\Filters\CommandSpecific\Use\UseFilter.cs" />
     <Compile Include="Management\Pipeline\Filters\FirstLevelCommandFilter.cs" />
     <Compile Include="Management\Pipeline\Filters\CommandFilter.cs" />

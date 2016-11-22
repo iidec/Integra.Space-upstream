@@ -73,6 +73,10 @@ namespace Integra.Space.Pipeline.Filters
             {
                 commandNode.Pipeline = SpecificFilterSelector.GetSpecificFilter(new SpecificFilterKey(action, commandNode.Command.CommandObjects.Single().SecurableClass));
             }
+            else if (commandNode.Command is TemporalStreamNode)
+            {
+                throw new NotImplementedException("Temporal stream pipe not implemented.");
+            }
         }
 
         /// <summary>

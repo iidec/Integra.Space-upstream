@@ -761,6 +761,7 @@ namespace Integra.Space.UnitTests
             string userName = "UserAux";
             string databaseName = "Database1";
             string sourceNameTest = "source1234";
+            string sourceForInto = "sourceForInto";
             string eql = "cross " +
                                   $@"JOIN {sourceNameTest} as t1 WHERE t1.@event.Message.#0.#0 == ""0100""" +
                                   $@"WITH {sourceNameTest} as t2 WHERE t2.@event.Message.#0.#0 == ""0110""" +
@@ -769,9 +770,9 @@ namespace Integra.Space.UnitTests
                                   $@"WHERE isnull(t2.@event.SourceTimestamp, '01/01/2017') - isnull(t1.@event.SourceTimestamp, '01/01/2016') <= '00:00:01' " +
                                   $@"SELECT " +
                                           $@"t1.@event.Message.#1.#0 as c1, " +
-                                          $@"t2.@event.Message.#1.#0 as c3 ";
+                                          $@"t2.@event.Message.#1.#0 as c3 into {sourceForInto} ";
 
-            string command = $"create source {sourceNameTest} (column1 int, column2 decimal, column3 string); create stream {oldStreamName} {{ {eql} }}; grant connect on database {databaseName} to user {userName}; grant alter on stream {oldStreamName}, read on source {sourceNameTest} to user {userName}";
+            string command = $"create source {sourceNameTest} (column1 int, column2 decimal, column3 string); create source {sourceForInto} (c1 object, c3 object); create stream {oldStreamName} {{ {eql} }}; grant connect on database {databaseName} to user {userName}; grant alter on stream {oldStreamName}, read on source {sourceNameTest}, write on source {sourceForInto} to user {userName}";
             string command2 = $"use Database1; alter stream {oldStreamName} with name = {newStreamName}";
 
             IKernel kernel = new StandardKernel();
@@ -792,6 +793,10 @@ namespace Integra.Space.UnitTests
                         Assert.AreEqual(newStreamName, stream.StreamName);
                         Assert.IsTrue(stream.IsActive);
                         Assert.AreEqual(eql.Replace('\n', '\0').Trim(), stream.Query);
+
+                        Assert.IsTrue(stream.ProjectionColumns.Any(x => x.ColumnName == "c1" && x.ColumnType == typeof(object).AssemblyQualifiedName));
+                        Assert.IsTrue(stream.ProjectionColumns.Any(x => x.ColumnName == "c3" && x.ColumnType == typeof(object).AssemblyQualifiedName));
+
                         tran.Rollback();
                     }
                     catch (Exception e)
@@ -1114,6 +1119,7 @@ namespace Integra.Space.UnitTests
             string userName = "UserAux";
             string databaseName = "Database1";
             string sourceNameTest = "source1234";
+            string sourceForInto = "sourceForInto";
             string eql = "cross " +
                                   $@"JOIN {sourceNameTest} as t1 WHERE t1.@event.Message.#0.#0 == ""0100""" +
                                   $@"WITH {sourceNameTest} as t2 WHERE t2.@event.Message.#0.#0 == ""0110""" +
@@ -1122,9 +1128,9 @@ namespace Integra.Space.UnitTests
                                   $@"WHERE isnull(t2.@event.SourceTimestamp, '01/01/2017') - isnull(t1.@event.SourceTimestamp, '01/01/2016') <= '00:00:01' " +
                                   $@"SELECT " +
                                           $@"t1.@event.Message.#1.#0 as c1, " +
-                                          $@"t2.@event.Message.#1.#0 as c3 ";
+                                          $@"t2.@event.Message.#1.#0 as c3 into {sourceForInto} ";
 
-            string command = $"create source {sourceNameTest} (column1 int, column2 decimal, column3 string); create stream {oldStreamName} {{ {eql} }}; grant connect on database {databaseName} to user {userName}; grant alter any schema, read on source {sourceNameTest} to user {userName}";
+            string command = $"create source {sourceNameTest} (column1 int, column2 decimal, column3 string); create source {sourceForInto} (c1 object, c3 object); create stream {oldStreamName} {{ {eql} }}; grant connect on database {databaseName} to user {userName}; grant alter any schema, read on source {sourceNameTest}, write on source {sourceForInto} to user {userName}";
             string command2 = $"use Database1; alter stream {oldStreamName} with name = {newStreamName}";
 
             IKernel kernel = new StandardKernel();
@@ -1410,6 +1416,7 @@ namespace Integra.Space.UnitTests
             string userName = "UserAux";
             string databaseName = "Database1";
             string sourceNameTest = "source1234";
+            string sourceForInto = "sourceForInto";
             string eql = "cross " +
                                   $@"JOIN {sourceNameTest} as t1 WHERE t1.@event.Message.#0.#0 == ""0100""" +
                                   $@"WITH {sourceNameTest} as t2 WHERE t2.@event.Message.#0.#0 == ""0110""" +
@@ -1418,9 +1425,9 @@ namespace Integra.Space.UnitTests
                                   $@"WHERE isnull(t2.@event.SourceTimestamp, '01/01/2017') - isnull(t1.@event.SourceTimestamp, '01/01/2016') <= '00:00:01' " +
                                   $@"SELECT " +
                                           $@"t1.@event.Message.#1.#0 as c1, " +
-                                          $@"t2.@event.Message.#1.#0 as c3 ";
+                                          $@"t2.@event.Message.#1.#0 as c3 into {sourceForInto} ";
 
-            string command = $"create source {sourceNameTest} (column1 int, column2 decimal, column3 string); create stream {oldStreamName} {{ {eql} }}; grant connect on database {databaseName} to user {userName}; grant control on stream {oldStreamName}, read on source {sourceNameTest} to user {userName}";
+            string command = $"create source {sourceNameTest} (column1 int, column2 decimal, column3 string); create source {sourceForInto} (c1 object, c3 object); create stream {oldStreamName} {{ {eql} }}; grant connect on database {databaseName} to user {userName}; grant control on stream {oldStreamName}, read on source {sourceNameTest}, write on source {sourceForInto} to user {userName}";
             string command2 = $"use Database1; alter stream {oldStreamName} with name = {newStreamName}";
 
             IKernel kernel = new StandardKernel();
@@ -1441,6 +1448,10 @@ namespace Integra.Space.UnitTests
                         Assert.AreEqual(newStreamName, stream.StreamName);
                         Assert.IsTrue(stream.IsActive);
                         Assert.AreEqual(eql.Replace('\n', '\0').Trim(), stream.Query);
+
+                        Assert.IsTrue(stream.ProjectionColumns.Any(x => x.ColumnName == "c1" && x.ColumnType == typeof(object).AssemblyQualifiedName));
+                        Assert.IsTrue(stream.ProjectionColumns.Any(x => x.ColumnName == "c3" && x.ColumnType == typeof(object).AssemblyQualifiedName));
+
                         tran.Rollback();
                     }
                     catch (Exception e)
@@ -1639,6 +1650,7 @@ namespace Integra.Space.UnitTests
             string userName = "UserAux";
             string databaseName = "Database1";
             string sourceNameTest = "source1234";
+            string sourceForInto = "sourceForInto";
             string eql = "cross " +
                                   $@"JOIN {sourceNameTest} as t1 WHERE t1.@event.Message.#0.#0 == ""0100""" +
                                   $@"WITH {sourceNameTest} as t2 WHERE t2.@event.Message.#0.#0 == ""0110""" +
@@ -1647,9 +1659,9 @@ namespace Integra.Space.UnitTests
                                   $@"WHERE isnull(t2.@event.SourceTimestamp, '01/01/2017') - isnull(t1.@event.SourceTimestamp, '01/01/2016') <= '00:00:01' " +
                                   $@"SELECT " +
                                           $@"t1.@event.Message.#1.#0 as c1, " +
-                                          $@"t2.@event.Message.#1.#0 as c3 ";
+                                          $@"t2.@event.Message.#1.#0 as c3 into {sourceForInto} ";
 
-            string command = $"use {databaseName}; create source {sourceNameTest} (column1 int, column2 decimal, column3 string); create stream {oldStreamName} {{ {eql} }}; grant connect on database {databaseName} to user {userName}; grant take ownership on stream {oldStreamName}, read on source {sourceNameTest} to user {userName}";
+            string command = $"use {databaseName}; create source {sourceForInto} (c1 object, c3 object); create source {sourceNameTest} (column1 int, column2 decimal, column3 string); create stream {oldStreamName} {{ {eql} }}; grant connect on database {databaseName} to user {userName}; grant take ownership on stream {oldStreamName}, write on source {sourceForInto}, read on source {sourceNameTest} to user {userName}";
             string command2 = $"use {databaseName}; take ownership on stream {oldStreamName}";
 
             IKernel kernel = new StandardKernel();
@@ -1671,6 +1683,9 @@ namespace Integra.Space.UnitTests
                     Database.Schema schema = dbContext.Schemas.Single(x => x.ServerId == database.ServerId && x.DatabaseId == database.DatabaseId && x.SchemaName == "Schema1");
                     Database.Stream stream = dbContext.Streams.Single(x => x.ServerId == login.ServerId && x.DatabaseId == database.DatabaseId && x.SchemaId == schema.SchemaId && x.StreamName == oldStreamName);
                     Assert.AreEqual<string>(userName, stream.DatabaseUser.DbUsrName);
+
+                    Assert.IsTrue(stream.ProjectionColumns.Any(x => x.ColumnName == "c1" && x.ColumnType == typeof(object).AssemblyQualifiedName));
+                    Assert.IsTrue(stream.ProjectionColumns.Any(x => x.ColumnName == "c3" && x.ColumnType == typeof(object).AssemblyQualifiedName));
 
                     Console.WriteLine();
                     tran.Rollback();
@@ -2906,7 +2921,8 @@ namespace Integra.Space.UnitTests
         public void GrantCreateStream()
         {
             string otherLogin = "LoginAux";
-            string command = "grant read on source SourceInicial, create stream to user UserAux";
+            string sourceForInto = "sourceForInto";
+            string command = $"create source {sourceForInto} (c1 string, c2 object, numeroXXX int); grant read on source SourceInicial, write on source {sourceForInto}, create stream to user UserAux";
             string streamName = "newStream";
             string eql = "cross " +
                                    "JOIN SourceInicial as t1 WHERE t1.@event.Message.#1.#2 == \"9999941616073663_1\" " +
@@ -2914,7 +2930,7 @@ namespace Integra.Space.UnitTests
                                    "ON t1.@event.Message.#1.#32 == t2.@event.Message.#1.#32 " +
                                    "TIMEOUT '00:00:02' " +
                                    //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
-                                   "SELECT (string)t1.@event.Message.#1.#2 as c1, t2.@event.Message.#1.#2 as c2, 1 as numeroXXX ";
+                                   $"SELECT (string)t1.@event.Message.#1.#2 as c1, t2.@event.Message.#1.#2 as c2, 1 as numeroXXX into {sourceForInto} ";
 
             string command2 = $"create stream {streamName} {{ {eql} }}";
 
@@ -2937,6 +2953,11 @@ namespace Integra.Space.UnitTests
                         Assert.AreEqual(streamName, stream.StreamName);
                         Assert.IsTrue(stream.IsActive);
                         Assert.AreEqual(eql.Replace('\n', '\0').Trim(), stream.Query);
+
+                        Assert.IsTrue(stream.ProjectionColumns.Any(x => x.ColumnName == "c1" && x.ColumnType == typeof(string).AssemblyQualifiedName));
+                        Assert.IsTrue(stream.ProjectionColumns.Any(x => x.ColumnName == "c2" && x.ColumnType == typeof(object).AssemblyQualifiedName));
+                        Assert.IsTrue(stream.ProjectionColumns.Any(x => x.ColumnName == "numeroXXX" && x.ColumnType == typeof(int).AssemblyQualifiedName));
+
                         tran.Rollback();
                     }
                     catch (Exception e)
@@ -2952,7 +2973,8 @@ namespace Integra.Space.UnitTests
         public void GrantCreateStreamWithStatusOn()
         {
             string otherLogin = "LoginAux";
-            string command = "grant read on source SourceInicial, create stream to user UserAux";
+            string sourceForInto = "sourceForInto";
+            string command = $"create source {sourceForInto} (c1 string, c2 object, numeroXXX int); grant write on source {sourceForInto}, read on source SourceInicial, create stream to user UserAux";
             string streamName = "newStream";
             string eql = "cross " +
                                    "JOIN SourceInicial as t1 WHERE t1.@event.Message.#1.#2 == \"9999941616073663_1\" " +
@@ -2960,7 +2982,7 @@ namespace Integra.Space.UnitTests
                                    "ON t1.@event.Message.#1.#32 == t2.@event.Message.#1.#32 " +
                                    "TIMEOUT '00:00:02' " +
                                    //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
-                                   "SELECT (string)t1.@event.Message.#1.#2 as c1, t2.@event.Message.#1.#2 as c2, 1 as numeroXXX ";
+                                   $"SELECT (string)t1.@event.Message.#1.#2 as c1, t2.@event.Message.#1.#2 as c2, 1 as numeroXXX into {sourceForInto} ";
 
             string command2 = $"create stream {streamName} {{ {eql} }} with status = on";
 
@@ -2983,6 +3005,11 @@ namespace Integra.Space.UnitTests
                         Assert.AreEqual(streamName, stream.StreamName);
                         Assert.IsTrue(stream.IsActive);
                         Assert.AreEqual(eql.Replace('\n', '\0').Trim(), stream.Query);
+
+                        Assert.IsTrue(stream.ProjectionColumns.Any(x => x.ColumnName == "c1" && x.ColumnType == typeof(string).AssemblyQualifiedName));
+                        Assert.IsTrue(stream.ProjectionColumns.Any(x => x.ColumnName == "c2" && x.ColumnType == typeof(object).AssemblyQualifiedName));
+                        Assert.IsTrue(stream.ProjectionColumns.Any(x => x.ColumnName == "numeroXXX" && x.ColumnType == typeof(int).AssemblyQualifiedName));
+
                         tran.Rollback();
                     }
                     catch (Exception e)
@@ -2998,7 +3025,8 @@ namespace Integra.Space.UnitTests
         public void GrantCreateStreamWithStatusOff()
         {
             string otherLogin = "LoginAux";
-            string command = "grant read on source SourceInicial, create stream to user UserAux";
+            string sourceForInto = "sourceForInto";
+            string command = $"create source {sourceForInto} (c1 string, c2 object, numeroXXX int); grant write on source {sourceForInto}, read on source SourceInicial, create stream to user UserAux";
             string streamName = "newStream";
             string eql = "cross " +
                                    "JOIN SourceInicial as t1 WHERE t1.@event.Message.#1.#2 == \"9999941616073663_1\" " +
@@ -3006,7 +3034,7 @@ namespace Integra.Space.UnitTests
                                    "ON t1.@event.Message.#1.#32 == t2.@event.Message.#1.#32 " +
                                    "TIMEOUT '00:00:02' " +
                                    //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
-                                   "SELECT (string)t1.@event.Message.#1.#2 as c1, t2.@event.Message.#1.#2 as c2, 1 as numeroXXX ";
+                                   $"SELECT (string)t1.@event.Message.#1.#2 as c1, t2.@event.Message.#1.#2 as c2, 1 as numeroXXX into {sourceForInto} ";
 
             string command2 = $"create stream {streamName} {{ {eql} }} with status = off";
             this.loginName = "AdminLogin";
@@ -3030,6 +3058,11 @@ namespace Integra.Space.UnitTests
                         Assert.AreEqual(streamName, stream.StreamName);
                         Assert.IsFalse(stream.IsActive);
                         Assert.AreEqual(eql.Replace('\n', '\0').Trim(), stream.Query);
+
+                        Assert.IsTrue(stream.ProjectionColumns.Any(x => x.ColumnName == "c1" && x.ColumnType == typeof(string).AssemblyQualifiedName));
+                        Assert.IsTrue(stream.ProjectionColumns.Any(x => x.ColumnName == "c2" && x.ColumnType == typeof(object).AssemblyQualifiedName));
+                        Assert.IsTrue(stream.ProjectionColumns.Any(x => x.ColumnName == "numeroXXX" && x.ColumnType == typeof(int).AssemblyQualifiedName));
+
                         tran.Rollback();
                     }
                     catch (Exception e)

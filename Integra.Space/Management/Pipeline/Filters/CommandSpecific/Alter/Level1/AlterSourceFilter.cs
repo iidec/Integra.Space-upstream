@@ -15,7 +15,7 @@ namespace Integra.Space.Pipeline.Filters
     internal class AlterSourceFilter : AlterEntityFilter<Language.AlterSourceNode, Common.SourceOptionEnum>
     {
         /// <inheritdoc />
-        protected override void EditEntity(Language.AlterSourceNode command, Dictionary<Common.SourceOptionEnum, object> options, Schema schema, SpaceDbContext databaseContext)
+        protected override void EditEntity(Language.AlterSourceNode command, Dictionary<Common.SourceOptionEnum, object> options, Login login, Schema schema, SpaceDbContext databaseContext)
         {
             Source source = databaseContext.Sources.Single(x => x.ServerId == schema.ServerId
                                             && x.DatabaseId == schema.DatabaseId

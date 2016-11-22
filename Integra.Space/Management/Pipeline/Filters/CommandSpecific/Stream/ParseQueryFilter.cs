@@ -87,7 +87,7 @@ namespace Integra.Space.Pipeline.Filters
             bool debugMode = false;
             bool measureElapsedTime = false;
             bool isTestMode = false;
-            CompileContext compileContext = new CompileContext() { PrintLog = printLog, QueryName = streamName, Scheduler = dsf, DebugMode = debugMode, MeasureElapsedTime = measureElapsedTime, IsTestMode = isTestMode };
+            CompilerConfiguration compileContext = new CompilerConfiguration() { PrintLog = printLog, QueryName = streamName, Scheduler = dsf, DebugMode = debugMode, MeasureElapsedTime = measureElapsedTime, IsTestMode = isTestMode };
 
             SpaceAssemblyBuilder sasmBuilder = new SpaceAssemblyBuilder(streamName);
             AssemblyBuilder asmBuilder = sasmBuilder.CreateAssemblyBuilder();

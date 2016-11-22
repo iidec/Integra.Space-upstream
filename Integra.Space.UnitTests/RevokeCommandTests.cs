@@ -955,6 +955,7 @@ namespace Integra.Space.UnitTests
             string userName = "UserAux";
             string databaseName = "Database1";
             string sourceNameTest = "source1234";
+            string sourceForInto = "sourceForInto";
             string otherLogin = "LoginAux";
             string eql = "cross " +
                                   $@"JOIN {sourceNameTest} as t1 WHERE t1.@event.Message.#0.#0 == ""0100""" +
@@ -964,9 +965,9 @@ namespace Integra.Space.UnitTests
                                   $@"WHERE isnull(t2.@event.SourceTimestamp, '01/01/2017') - isnull(t1.@event.SourceTimestamp, '01/01/2016') <= '00:00:01' " +
                                   $@"SELECT " +
                                           $@"t1.@event.Message.#1.#0 as c1, " +
-                                          $@"t2.@event.Message.#1.#0 as c3 ";
+                                          $@"t2.@event.Message.#1.#0 as c3 into {sourceForInto} ";
 
-            string command = $"create source {sourceNameTest} (column1 int, column2 decimal, column3 string); create stream {oldStreamName} {{ {eql} }}; grant connect on database {databaseName} to user {userName}; grant alter on stream {oldStreamName}, read on source {sourceNameTest} to user {userName}; Revoke alter on stream {oldStreamName} to user {userName}";
+            string command = $"create source {sourceForInto} (c1 object, c3 object); create source {sourceNameTest} (column1 int, column2 decimal, column3 string); create stream {oldStreamName} {{ {eql} }}; grant connect on database {databaseName} to user {userName}; grant alter on stream {oldStreamName}, read on source {sourceNameTest} to user {userName}; Revoke alter on stream {oldStreamName} to user {userName}";
             string command2 = $"use Database1; alter stream {oldStreamName} with name = {newStreamName}";
 
             IKernel kernel = new StandardKernel();
@@ -994,6 +995,9 @@ namespace Integra.Space.UnitTests
                                                                             );
 
                     Assert.IsFalse(exists);
+
+                    Assert.IsTrue(stream.ProjectionColumns.Any(x => x.ColumnName == "c1" && x.ColumnType == typeof(object).AssemblyQualifiedName));
+                    Assert.IsTrue(stream.ProjectionColumns.Any(x => x.ColumnName == "c3" && x.ColumnType == typeof(object).AssemblyQualifiedName));
 
                     try
                     {
@@ -1024,6 +1028,7 @@ namespace Integra.Space.UnitTests
             string userName = "UserAux";
             string databaseName = "Database1";
             string sourceNameTest = "source1234";
+            string sourceForInto = "sourceForInto";
             string otherLogin = "LoginAux";
             string eql = "cross " +
                                   $@"JOIN {sourceNameTest} as t1 WHERE t1.@event.Message.#0.#0 == ""0100""" +
@@ -1033,9 +1038,9 @@ namespace Integra.Space.UnitTests
                                   $@"WHERE isnull(t2.@event.SourceTimestamp, '01/01/2017') - isnull(t1.@event.SourceTimestamp, '01/01/2016') <= '00:00:01' " +
                                   $@"SELECT " +
                                           $@"t1.@event.Message.#1.#0 as c1, " +
-                                          $@"t2.@event.Message.#1.#0 as c3 ";
+                                          $@"t2.@event.Message.#1.#0 as c3 into {sourceForInto} ";
 
-            string command = $"create source {sourceNameTest} (column1 int, column2 decimal, column3 string); create stream {oldStreamName} {{ {eql} }}; grant connect on database {databaseName} to user {userName}; grant alter on stream {oldStreamName}, read on source {sourceNameTest} to user {userName}; Revoke read on source {sourceNameTest} to user {userName}";
+            string command = $"create source {sourceForInto} (c1 object, c3 object); create source {sourceNameTest} (column1 int, column2 decimal, column3 string); create stream {oldStreamName} {{ {eql} }}; grant connect on database {databaseName} to user {userName}; grant alter on stream {oldStreamName}, read on source {sourceNameTest}, write on source {sourceForInto} to user {userName}; Revoke read on source {sourceNameTest} to user {userName}";
 
             string newEql = "inner " +
                                   $@"JOIN {sourceNameTest} as t1 WHERE t1.@event.Message.#0.#0 == ""0100""" +
@@ -1473,6 +1478,7 @@ namespace Integra.Space.UnitTests
             string userName = "UserAux";
             string databaseName = "Database1";
             string sourceNameTest = "source1234";
+            string sourceForInto = "sourceForInto";
             string eql = "cross " +
                                   $@"JOIN {sourceNameTest} as t1 WHERE t1.@event.Message.#0.#0 == ""0100""" +
                                   $@"WITH {sourceNameTest} as t2 WHERE t2.@event.Message.#0.#0 == ""0110""" +
@@ -1481,9 +1487,9 @@ namespace Integra.Space.UnitTests
                                   $@"WHERE isnull(t2.@event.SourceTimestamp, '01/01/2017') - isnull(t1.@event.SourceTimestamp, '01/01/2016') <= '00:00:01' " +
                                   $@"SELECT " +
                                           $@"t1.@event.Message.#1.#0 as c1, " +
-                                          $@"t2.@event.Message.#1.#0 as c3 ";
+                                          $@"t2.@event.Message.#1.#0 as c3 into {sourceForInto} ";
 
-            string command = $"create source {sourceNameTest} (column1 int, column2 decimal, column3 string); create stream {oldStreamName} {{ {eql} }}; grant connect on database {databaseName} to user {userName}; grant alter any schema, read on source {sourceNameTest} to user {userName}; Revoke alter any schema, read on source {sourceNameTest} to user {userName}";
+            string command = $"create source {sourceForInto} (c1 object, c3 object); create source {sourceNameTest} (column1 int, column2 decimal, column3 string); create stream {oldStreamName} {{ {eql} }}; grant connect on database {databaseName} to user {userName}; grant alter any schema, read on source {sourceNameTest}, write on source {sourceForInto} to user {userName}; Revoke alter any schema, read on source {sourceNameTest} to user {userName}";
             string command2 = $"use Database1; alter stream {oldStreamName} with name = {newStreamName}";
 
             IKernel kernel = new StandardKernel();
@@ -1849,6 +1855,7 @@ namespace Integra.Space.UnitTests
             string userName = "UserAux";
             string databaseName = "Database1";
             string sourceNameTest = "source1234";
+            string sourceForInto = "sourceForInto";
             string eql = "cross " +
                                   $@"JOIN {sourceNameTest} as t1 WHERE t1.@event.Message.#0.#0 == ""0100""" +
                                   $@"WITH {sourceNameTest} as t2 WHERE t2.@event.Message.#0.#0 == ""0110""" +
@@ -1857,9 +1864,9 @@ namespace Integra.Space.UnitTests
                                   $@"WHERE isnull(t2.@event.SourceTimestamp, '01/01/2017') - isnull(t1.@event.SourceTimestamp, '01/01/2016') <= '00:00:01' " +
                                   $@"SELECT " +
                                           $@"t1.@event.Message.#1.#0 as c1, " +
-                                          $@"t2.@event.Message.#1.#0 as c3 ";
+                                          $@"t2.@event.Message.#1.#0 as c3 into {sourceForInto} ";
 
-            string command = $"create source {sourceNameTest} (column1 int, column2 decimal, column3 string); create stream {oldStreamName} {{ {eql} }}; grant connect on database {databaseName} to user {userName}; grant control on stream {oldStreamName}, read on source {sourceNameTest} to user {userName}; Revoke control on stream {oldStreamName} to user {userName}";
+            string command = $"create source {sourceForInto} (c1 object, c3 object); create source {sourceNameTest} (column1 int, column2 decimal, column3 string); create stream {oldStreamName} {{ {eql} }}; grant connect on database {databaseName} to user {userName}; grant control on stream {oldStreamName}, read on source {sourceNameTest}, write on source {sourceForInto} to user {userName}; Revoke control on stream {oldStreamName} to user {userName}";
             string command2 = $"use Database1; alter stream {oldStreamName} with name = {newStreamName}";
 
             IKernel kernel = new StandardKernel();
@@ -1875,7 +1882,10 @@ namespace Integra.Space.UnitTests
                     Assert.AreEqual(oldStreamName, stream.StreamName);
                     Assert.IsTrue(stream.IsActive);
                     Assert.AreEqual(eql.Replace('\n', '\0').Trim(), stream.Query);
-
+                    
+                    Assert.IsTrue(stream.ProjectionColumns.Any(x => x.ColumnName == "c1" && x.ColumnType == typeof(object).AssemblyQualifiedName));
+                    Assert.IsTrue(stream.ProjectionColumns.Any(x => x.ColumnName == "c3" && x.ColumnType == typeof(object).AssemblyQualifiedName));
+                    
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.DbUsrName == userName);
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("control", StringComparison.InvariantCultureIgnoreCase));
                     SecurableClass sc = dbContext.SecurableClasses.Single(x => x.SecurableName.Equals("stream", StringComparison.InvariantCultureIgnoreCase));
@@ -2199,6 +2209,7 @@ namespace Integra.Space.UnitTests
             string userName = "UserAux";
             string databaseName = "Database1";
             string sourceNameTest = "source1234";
+            string sourceForInto = "sourceForInto";
             string eql = "cross " +
                                   $@"JOIN {sourceNameTest} as t1 WHERE t1.@event.Message.#0.#0 == ""0100""" +
                                   $@"WITH {sourceNameTest} as t2 WHERE t2.@event.Message.#0.#0 == ""0110""" +
@@ -2207,9 +2218,9 @@ namespace Integra.Space.UnitTests
                                   $@"WHERE isnull(t2.@event.SourceTimestamp, '01/01/2017') - isnull(t1.@event.SourceTimestamp, '01/01/2016') <= '00:00:01' " +
                                   $@"SELECT " +
                                           $@"t1.@event.Message.#1.#0 as c1, " +
-                                          $@"t2.@event.Message.#1.#0 as c3 ";
+                                          $@"t2.@event.Message.#1.#0 as c3 into {sourceForInto} ";
 
-            string command = $"use {databaseName}; create source {sourceNameTest} (column1 int, column2 decimal, column3 string); create stream {oldStreamName} {{ {eql} }}; grant connect on database {databaseName} to user {userName}; grant take ownership on stream {oldStreamName}, read on source {sourceNameTest} to user {userName}; Revoke take ownership on stream {oldStreamName} to user {userName}";
+            string command = $"use {databaseName}; create source {sourceForInto} (c1 object, c3 object); create source {sourceNameTest} (column1 int, column2 decimal, column3 string); create stream {oldStreamName} {{ {eql} }}; grant connect on database {databaseName} to user {userName}; grant take ownership on stream {oldStreamName}, read on source {sourceNameTest}, write on source {sourceForInto} to user {userName}; Revoke take ownership on stream {oldStreamName} to user {userName}";
             string command2 = $"use {databaseName}; take ownership on stream {oldStreamName}";
 
             IKernel kernel = new StandardKernel();
@@ -2228,6 +2239,9 @@ namespace Integra.Space.UnitTests
                     Database.Schema schema = dbContext.Schemas.Single(x => x.ServerId == database.ServerId && x.DatabaseId == database.DatabaseId && x.SchemaName == "Schema1");
                     Database.Stream stream = dbContext.Streams.Single(x => x.ServerId == login.ServerId && x.DatabaseId == database.DatabaseId && x.SchemaId == schema.SchemaId && x.StreamName == oldStreamName);
                     Assert.AreEqual<string>("AdminUser", stream.DatabaseUser.DbUsrName);
+
+                    Assert.IsTrue(stream.ProjectionColumns.Any(x => x.ColumnName == "c1" && x.ColumnType == typeof(object).AssemblyQualifiedName));
+                    Assert.IsTrue(stream.ProjectionColumns.Any(x => x.ColumnName == "c3" && x.ColumnType == typeof(object).AssemblyQualifiedName));
 
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.DbUsrName == userName);
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("take ownership", StringComparison.InvariantCultureIgnoreCase));

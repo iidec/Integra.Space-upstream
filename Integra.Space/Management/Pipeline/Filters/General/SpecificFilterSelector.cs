@@ -35,8 +35,8 @@ namespace Integra.Space.Pipeline.Filters
             // add the specific filters.
             // create
             // level 1
-            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.Create, SystemObjectEnum.Source), new CreateSourceFilter());
-            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.Create, SystemObjectEnum.Stream), new ParseQueryForCreateStreamFilter().AddStep(new CreateStreamFilter()));
+            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.Create, SystemObjectEnum.Source), new CreateSourceFilter().AddStep(new CreateSourceTypeFilter()));
+            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.Create, SystemObjectEnum.Stream), new ValidateCreateStreamColumnsCompatibilityFilter().AddStep(new ParseQueryForCreateStreamFilter()).AddStep(new CreateStreamFilter()));
             /* filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.Create, SystemObjectEnum.View), new CreateViewFilter() /* .AddStep(new FilterQueryParser()) ); */
 
             // level 2
@@ -54,7 +54,7 @@ namespace Integra.Space.Pipeline.Filters
 
             // alter
             // level 1
-            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.Alter, SystemObjectEnum.Stream), new ParseQueryForAlterStreamFilter().AddStep(new AlterStreamFilter()));
+            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.Alter, SystemObjectEnum.Stream), new ValidateAlterStreamColumnsCompatibilityFilter().AddStep(new ParseQueryForAlterStreamFilter()).AddStep(new AlterStreamFilter()));
             filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.Alter, SystemObjectEnum.Source), new AlterSourceFilter());
             /* filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.Alter, SystemObjectEnum.View), new AlterViewFilter() /* .AddStep(new FilterQueryParser()) );*/
 

@@ -77,7 +77,9 @@
     <Compile Include="Tables\SchemaAssignedPermissionsToUser.cs" />
     <Compile Include="Tables\SecurableClass.cs" />
     <Compile Include="Tables\Securables\Server.cs" />
+    <Compile Include="Tables\Securables\SourceByStream.cs" />
     <Compile Include="Tables\Securables\Source\SourceColumn.cs" />
+    <Compile Include="Tables\Securables\Stream\StreamColumn.cs" />
     <Compile Include="Tables\ServerAssignedPermissionsToLogin.cs" />
     <Compile Include="Tables\ServerAssignedPermissionsToServerRole.cs" />
     <Compile Include="Tables\Securables\ServerRole.cs" />
@@ -85,7 +87,7 @@
     <Compile Include="Tables\SourceAssignedPermissionsToDBRole.cs" />
     <Compile Include="Tables\SourceAssignedPermissionsToUser.cs" />
     <Compile Include="Contexts\SpaceDbContext.cs" />
-    <Compile Include="Tables\Securables\Stream.cs" />
+    <Compile Include="Tables\Securables\Stream\Stream.cs" />
     <Compile Include="Tables\StreamAssignedPermissionsToDBRole.cs" />
     <Compile Include="Tables\StreamAssignedPermissionsToUser.cs" />
     <Compile Include="Tables\UserAssignedPermissionsToDBRole.cs" />

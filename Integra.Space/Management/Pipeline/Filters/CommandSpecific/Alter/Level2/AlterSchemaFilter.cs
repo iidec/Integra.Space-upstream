@@ -17,7 +17,7 @@ namespace Integra.Space.Pipeline.Filters
     internal class AlterSchemaFilter : AlterEntityFilter<AlterSchemaNode, SchemaOptionEnum>
     {
         /// <inheritdoc />
-        protected override void EditEntity(AlterSchemaNode command, Dictionary<SchemaOptionEnum, object> options, Schema schema, SpaceDbContext databaseContext)
+        protected override void EditEntity(AlterSchemaNode command, Dictionary<SchemaOptionEnum, object> options, Login login, Schema schema, SpaceDbContext databaseContext)
         {
             Schema schemaToEdit = databaseContext.Schemas.Single(x => x.ServerId == schema.ServerId
                                             && x.DatabaseId == schema.DatabaseId

@@ -22,13 +22,20 @@ namespace Integra.Space.Pipeline.Filters
                                             && x.SchemaId == schema.SchemaId
                                             && x.SourceName == name);
 
-            // elimino las columnas de la fuente.
-            databaseContext.SourceColumns.RemoveRange(source.Columns);
-            databaseContext.SaveChanges();
+            if (source.Streams.Count > 0)
+            {
+                throw new System.Exception("Can't delete a source while is being used by one or more streams.");
+            }
+            else
+            {
+                // elimino las columnas de la fuente.
+                databaseContext.SourceColumns.RemoveRange(source.Columns);
+                databaseContext.SaveChanges();
 
-            // elimino la fuente.
-            databaseContext.Sources.Remove(source);
-            databaseContext.SaveChanges();
+                // elimino la fuente.
+                databaseContext.Sources.Remove(source);
+                databaseContext.SaveChanges();
+            }
         }
     }
 }

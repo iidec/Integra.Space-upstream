@@ -30,13 +30,13 @@ namespace Integra.Space.Pipeline.Filters
             this.login = context.SecurityContext.Login;
             Schema schema = command.MainCommandObject.GetSchema(context.Kernel.Get<SpaceDbContext>(), this.login);
             SpaceDbContext databaseContext = context.Kernel.Get<SpaceDbContext>();
-
-            this.EditEntity(command, options, schema, databaseContext);
+            Login login = context.SecurityContext.Login;
+            this.EditEntity(command, options, login, schema, databaseContext);
             return context;
         }
 
         /// <inheritdoc />
-        protected override void EditEntity(AlterRoleNode command, Dictionary<RoleOptionEnum, object> options, Schema schema, SpaceDbContext databaseContext)
+        protected override void EditEntity(AlterRoleNode command, Dictionary<RoleOptionEnum, object> options, Login login, Schema schema, SpaceDbContext databaseContext)
         {
             DatabaseRole role = databaseContext.DatabaseRoles.Single(x => x.ServerId == schema.ServerId
                                             && x.DatabaseId == schema.DatabaseId

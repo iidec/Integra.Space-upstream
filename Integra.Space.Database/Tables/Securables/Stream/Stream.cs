@@ -14,6 +14,8 @@ namespace Integra.Space.Database
         {
             StreamAssignedPermissionsToDBRoles = new HashSet<StreamAssignedPermissionsToDBRole>();
             StreamAssignedPermissionsToUsers = new HashSet<StreamAssignedPermissionsToUser>();
+            ProjectionColumns = new HashSet<StreamColumn>();
+            Sources = new HashSet<SourceByStream>();
         }
 
         [Key]
@@ -72,6 +74,12 @@ namespace Integra.Space.Database
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<StreamAssignedPermissionsToUser> StreamAssignedPermissionsToUsers { get; set; }
+        
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
+        public virtual ICollection<SourceByStream> Sources { get; set; }
+
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
+        public virtual ICollection<StreamColumn> ProjectionColumns { get; set; }
 
         //public virtual Securable securables { get; set; }
     }
