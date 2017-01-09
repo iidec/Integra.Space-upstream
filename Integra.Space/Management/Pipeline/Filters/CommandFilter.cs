@@ -11,16 +11,16 @@ namespace Integra.Space.Pipeline.Filters
     /// <summary>
     /// Command filter.
     /// </summary>
-    internal abstract class CommandFilter : Filter<PipelineExecutionCommandContext, PipelineExecutionCommandContext>
+    internal abstract class CommandFilter : Filter<PipelineContext, PipelineContext>
     {
         /// <inheritdoc />
-        public override PipelineExecutionCommandContext Execute(PipelineExecutionCommandContext context)
+        public override PipelineContext Execute(PipelineContext context)
         {
             throw new NotImplementedException();
         }
 
         /// <inheritdoc />
-        public override void OnError(PipelineExecutionCommandContext context)
+        public override void OnError(PipelineContext context)
         {
             throw new NotImplementedException();
         }

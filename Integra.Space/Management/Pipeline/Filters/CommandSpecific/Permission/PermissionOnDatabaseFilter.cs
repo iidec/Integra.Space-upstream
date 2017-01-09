@@ -1,0 +1,163 @@
+﻿//-----------------------------------------------------------------------
+// <copyright file="PermissionOnDatabaseFilter.cs" company="Integra.Space.Language">
+//     Copyright (c) Integra.Space.Language. All rights reserved.
+// </copyright>
+//-----------------------------------------------------------------------
+namespace Integra.Space.Pipeline.Filters
+{
+    using System;
+    using System.Linq;
+    using Database;
+    using Integra.Space.Language;
+
+    /// <summary>
+    /// Grant permission filter class.
+    /// </summary>
+    internal class PermissionOnDatabaseFilter : PermissionFilter
+    {
+        /// <inheritdoc />
+        protected override void SavePermissionForUser(SpaceDbContext databaseContext, Login login, Schema schemaOfPrincipal, Schema schemaOfSecurable, PermissionsCommandNode command, PermissionNode permission, DatabaseUser user)
+        {
+            DatabaseAssignedPermissionsToUser newPermission = new DatabaseAssignedPermissionsToUser();
+            newPermission.DatabaseUser = user;
+            SecurableClass securableClass = databaseContext.SecurableClasses.Single(x => x.SecurableName.Equals(permission.CommandObject.SecurableClass.ToString(), StringComparison.InvariantCultureIgnoreCase));
+            GranularPermission granularPermission = databaseContext.GranularPermissions.Single(x => x.GranularPermissionName.Replace(" ", string.Empty).Equals(permission.Permission.ToString(), StringComparison.InvariantCultureIgnoreCase));
+            newPermission.PermissionBySecurable = databaseContext.PermissionsBySecurables.Single(x => x.GranularPermissionId == granularPermission.GranularPermissionId && x.SecurableClassId == securableClass.SecurableClassId);
+            newPermission.WithGrantOption = command.PermissionOption;
+
+            if (permission.CommandObject == null)
+            {
+                // command.Permission.ObjectName = login.Database.DatabaseName; // context.CommandContext.Schema.Database.DatabaseName;
+                newPermission.Database = login.Database; // context.CommandContext.Schema.Database;
+            }
+            else
+            {
+                newPermission.Database = databaseContext.Databases.Single(x => x.ServerId == login.ServerId && x.DatabaseName == permission.CommandObject.Name);
+            }
+
+            Func<DatabaseAssignedPermissionsToUser, bool> predicate = x => x.DbUsrServerId == newPermission.DatabaseUser.ServerId
+                                                                             && x.DbUsrDatabaseId == newPermission.DatabaseUser.DatabaseId
+                                                                             && x.DbUsrId == newPermission.DatabaseUser.DbUsrId
+                                                                             && x.DatabaseServerId == newPermission.Database.ServerId
+                                                                             && x.DatabaseId == newPermission.Database.DatabaseId
+                                                                             && x.GranularPermissionId == newPermission.PermissionBySecurable.GranularPermissionId
+                                                                             && x.SecurableClassId == newPermission.PermissionBySecurable.SecurableClassId;
+
+            if (!databaseContext.DatabaseAssignedPermissionsToUsers.Any(predicate))
+            {
+                if (command.Action == Common.ActionCommandEnum.Grant)
+                {
+                    newPermission.Granted = true;
+                    databaseContext.DatabaseAssignedPermissionsToUsers.Add(newPermission);
+                }
+                else if (command.Action == Common.ActionCommandEnum.Deny)
+                {
+                    newPermission.Denied = true;
+                    databaseContext.DatabaseAssignedPermissionsToUsers.Add(newPermission);
+                }
+                else
+                {
+                    throw new Exception("Only grant, deny or revoke command allowed.");
+                }
+            }
+            else
+            {
+                DatabaseAssignedPermissionsToUser permissionToUpdate = databaseContext.DatabaseAssignedPermissionsToUsers.Single(predicate);
+                if (command.Action == Common.ActionCommandEnum.Grant)
+                {
+                    permissionToUpdate.Granted = true;
+                    permissionToUpdate.Denied = false;
+                }
+                else if (command.Action == Common.ActionCommandEnum.Deny)
+                {
+                    permissionToUpdate.Denied = true;
+                }
+                else if (command.Action == Common.ActionCommandEnum.Revoke)
+                {
+                    databaseContext.DatabaseAssignedPermissionsToUsers.Remove(permissionToUpdate);
+                }
+                else
+                {
+                    throw new Exception("Only grant, deny or revoke command allowed.");
+                }
+            }
+
+            databaseContext.SaveChanges();
+        }
+
+        /// <inheritdoc />
+        protected override void SavePermissionForRole(SpaceDbContext databaseContext, Login login, Schema schemaOfPrincipal, Schema schemaOfSecurable, PermissionsCommandNode command, PermissionNode permission, DatabaseRole role)
+        {
+            DatabaseAssignedPermissionsToDBRole newPermission = new DatabaseAssignedPermissionsToDBRole();
+            newPermission.DatabaseRole = role;
+            newPermission.SecurableClassId = databaseContext.SecurableClasses.Single(x => x.SecurableName.Equals(permission.CommandObject.SecurableClass.ToString(), StringComparison.InvariantCultureIgnoreCase)).SecurableClassId;
+            newPermission.GranularPermissionId = databaseContext.GranularPermissions.Single(x => x.GranularPermissionName.Replace(" ", string.Empty).Equals(permission.Permission.ToString(), StringComparison.InvariantCultureIgnoreCase)).GranularPermissionId;
+            newPermission.WithGrantOption = command.PermissionOption;
+
+            if (permission.CommandObject == null)
+            {
+                // command.Permission.ObjectName = login.Database.DatabaseName; // context.CommandContext.Schema.Database.DatabaseName;
+                newPermission.Database = login.Database; // context.CommandContext.Schema.Database;
+            }
+            else
+            {
+                newPermission.Database = databaseContext.Databases.Single(x => x.ServerId == login.ServerId && x.DatabaseName == permission.CommandObject.Name);
+            }
+
+            Func<DatabaseAssignedPermissionsToDBRole, bool> predicate = x => x.DbRoleServerId == newPermission.DatabaseRole.ServerId
+                                                                             && x.DbRoleDatabaseId == newPermission.DatabaseRole.DatabaseId
+                                                                             && x.DbRole_id == newPermission.DatabaseRole.DbRoleId
+                                                                             && x.DatabaseServerId == newPermission.Database.ServerId
+                                                                             && x.DatabaseId == newPermission.Database.DatabaseId
+                                                                             && x.GranularPermissionId == newPermission.GranularPermissionId
+                                                                             && x.SecurableClassId == newPermission.SecurableClassId;
+
+            if (!databaseContext.DatabaseAssignedPermissionsToDBRoles.Any(predicate))
+            {
+                if (command.Action == Common.ActionCommandEnum.Grant)
+                {
+                    newPermission.Granted = true;
+                    databaseContext.DatabaseAssignedPermissionsToDBRoles.Add(newPermission);
+                }
+                else if (command.Action == Common.ActionCommandEnum.Deny)
+                {
+                    newPermission.Denied = true;
+                    databaseContext.DatabaseAssignedPermissionsToDBRoles.Add(newPermission);
+                }
+                else
+                {
+                    throw new Exception("Only grant, deny or revoke command allowed.");
+                }
+            }
+            else
+            {
+                DatabaseAssignedPermissionsToDBRole permissionToUpdate = databaseContext.DatabaseAssignedPermissionsToDBRoles.Single(predicate);
+                if (command.Action == Common.ActionCommandEnum.Grant)
+                {
+                    permissionToUpdate.Granted = true;
+                    permissionToUpdate.Denied = false;
+                }
+                else if (command.Action == Common.ActionCommandEnum.Deny)
+                {
+                    permissionToUpdate.Denied = true;
+                }
+                else if (command.Action == Common.ActionCommandEnum.Revoke)
+                {
+                    databaseContext.DatabaseAssignedPermissionsToDBRoles.Remove(permissionToUpdate);
+                }
+                else
+                {
+                    throw new Exception("Only grant, deny or revoke command allowed.");
+                }
+            }
+
+            databaseContext.SaveChanges();
+        }
+
+        /// <inheritdoc />
+        protected override void SavePermissionForLogin(SpaceDbContext databaseContext, Login login, Schema schemaOfPrincipal, Schema schemaOfSecurable, PermissionsCommandNode command, PermissionNode permission, Login principal)
+        {
+            throw new NotImplementedException();
+        }
+    }
+}

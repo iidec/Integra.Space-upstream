@@ -47,13 +47,17 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Commands\SpacePermission.cs" />
-    <Compile Include="Commands\SpaceUserOption.cs" />
-    <Compile Include="Commands\SpaceCommand.cs" />
-    <Compile Include="Enums\SpaceActionCommandEnum.cs" />
-    <Compile Include="Enums\SpaceObjectEnum.cs" />
-    <Compile Include="Enums\SpacePermissionsEnum.cs" />
-    <Compile Include="Enums\SpaceUserOptionEnum.cs" />
+    <Compile Include="Enums\ActionCommandEnum.cs" />
+    <Compile Include="Enums\CommandOptions\SchemaOptionEnum.cs" />
+    <Compile Include="Enums\CommandOptions\StreamOptionEnum.cs" />
+    <Compile Include="Enums\CommandOptions\SourceOptionEnum.cs" />
+    <Compile Include="Enums\CommandOptions\RoleOptionEnum.cs" />
+    <Compile Include="Enums\CommandOptions\DatabaseOptionEnum.cs" />
+    <Compile Include="Enums\CommandOptions\LoginOptionEnum.cs" />
+    <Compile Include="Enums\SystemObjectEnum.cs" />
+    <Compile Include="Enums\PermissionsEnum.cs" />
+    <Compile Include="Enums\SystemRolesEnum.cs" />
+    <Compile Include="Enums\CommandOptions\UserOptionEnum.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Scheduler\IQuerySchedulerFactory.cs" />
     <Compile Include="Scheduler\SchedulerTypeEnum.cs" />

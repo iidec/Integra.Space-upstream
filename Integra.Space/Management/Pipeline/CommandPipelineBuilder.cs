@@ -14,12 +14,13 @@ namespace Integra.Space.Pipeline
         /// Build the pipeline.
         /// </summary>
         /// <returns>The pipeline to execute.</returns>
-        public Filter<PipelineContext, PipelineContext> Build()
+        public Filter<FirstLevelPipelineContext, FirstLevelPipelineContext> Build()
         {
-            Filter<PipelineContext, PipelineContext> result =
-                new Filters.FilterCommandParser()
+            Filter<FirstLevelPipelineContext, FirstLevelPipelineContext> result =
+                new Filters.CommandParserFilter()
                 .AddStep(new Filters.SpecificFiltersAggregator())
-                .AddStep(new Filters.CommonFiltersAggregator());
+                .AddStep(new Filters.CommonFiltersAggregator())
+                .AddStep(new Filters.PipelineExecutorFilter());
 
             return result;
         }

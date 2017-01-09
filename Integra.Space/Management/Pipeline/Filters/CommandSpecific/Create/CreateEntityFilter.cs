@@ -5,55 +5,47 @@
 //-----------------------------------------------------------------------
 namespace Integra.Space.Pipeline.Filters
 {
+    using System.Collections.Generic;
+    using System.Linq;
+    using Database;
     using Ninject;
-    using Repos;
 
     /// <summary>
     /// Filter create source class.
     /// </summary>
-    /// <typeparam name="TEntity">Entity type.</typeparam>
-    internal abstract class CreateEntityFilter<TEntity> : CommandFilter where TEntity : class
+    /// <typeparam name="TCommand">Command type.</typeparam>
+    /// <typeparam name="TOption">Command option type.</typeparam>
+    internal abstract class CreateEntityFilter<TCommand, TOption> : CommandFilter where TCommand : Language.CreateObjectNode<TOption> where TOption : struct, System.IConvertible
     {
         /// <inheritdoc />
-        public override PipelineExecutionCommandContext Execute(PipelineExecutionCommandContext context)
+        public override PipelineContext Execute(PipelineContext context)
         {
-            TEntity entity = this.CreateEntity(context);
-            IRepository<TEntity> sr = context.Kernel.Get<IRepository<TEntity>>();
-            sr.Add(entity);
-            
+            TCommand command = (TCommand)context.CommandContext.Command;
+            Dictionary<TOption, object> options = command.Options;
+            Schema schema = command.MainCommandObject.GetSchema(context.Kernel.Get<SpaceDbContext>(), context.SecurityContext.Login);
+            SpaceDbContext databaseContext = context.Kernel.Get<SpaceDbContext>();
+            Login login = context.SecurityContext.Login;
+            Database database = command.MainCommandObject.GetDatabase(databaseContext, login);
+            DatabaseUser user = login.DatabaseUsers.Where(x => x.DatabaseId == database.DatabaseId && x.ServerId == database.ServerId).Single();
+
+            this.CreateEntity(command, options, login, user, schema, databaseContext);
             return context;
         }
 
         /// <inheritdoc />
-        public override void OnError(PipelineExecutionCommandContext context)
+        public override void OnError(PipelineContext context)
         {
-            if (!this.Executed)
-            {
-                return;
-            }
-
-            this.DeleteSource(context);
         }
 
         /// <summary>
         /// Creates a new entity.
         /// </summary>
-        /// <param name="context">Context of the pipeline.</param>
-        /// <returns>The created entity.</returns>
-        protected abstract TEntity CreateEntity(PipelineExecutionCommandContext context);
-
-        /// <summary>
-        /// Delete a the source.
-        /// </summary>
-        /// <param name="context">Context of the pipeline.</param>
-        protected virtual void DeleteSource(PipelineExecutionCommandContext context)
-        {
-            IRepository<TEntity> sr = context.Kernel.Get<IRepository<TEntity>>();
-            TEntity entity = sr.FindByName(context.Command.ObjectName);
-            if (entity != null)
-            {
-                sr.Delete(entity);
-            }
-        }
+        /// <param name="command">Command object.</param>
+        /// <param name="options">Options of the command.</param>
+        /// <param name="login">Login executing the command.</param>
+        /// <param name="user">User executing the command.</param>
+        /// <param name="schema">Schema of the command object.</param>
+        /// <param name="databaseContext">Database context.</param>
+        protected abstract void CreateEntity(TCommand command, Dictionary<TOption, object> options, Login login, DatabaseUser user, Schema schema, SpaceDbContext databaseContext);
     }
 }
