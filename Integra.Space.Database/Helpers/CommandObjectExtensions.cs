@@ -3,11 +3,10 @@
 //     Copyright (c) Integra.Space. All rights reserved.
 // </copyright>
 //-----------------------------------------------------------------------
-namespace Integra.Space.Pipeline
+namespace Integra.Space.Database
 {
     using System.Linq;
     using Common;
-    using Database;
 
     /// <summary>
     /// Command object extensions.
@@ -25,17 +24,18 @@ namespace Integra.Space.Pipeline
         public static Schema GetSchema(this CommandObject commandObject, SpaceDbContext context, Login login, Database database)
         {
             string schemaName = commandObject.SchemaName;
-
+            
             Schema schemaAux = null;
             if (schemaName != null)
             {
-                if (context.Schemas.Select(x => x.SchemaName).Contains(schemaName))
+                IQueryable<Schema> schemas = context.Schemas.Where(x => x.ServerId == database.ServerId && x.DatabaseId == database.DatabaseId);
+                if (schemas.Select(x => x.SchemaName).Contains(schemaName))
                 {
-                    schemaAux = context.Schemas.Single(x => x.SchemaName == schemaName);
+                    schemaAux = schemas.Single(x => x.SchemaName == schemaName);
                 }
                 else
                 {
-                    throw new System.Exception(string.Format("The schema does not exist in the database: '{0}'.", database.DatabaseName));
+                    throw new System.Exception(string.Format("The schema '{1}' does not exist in the database: '{0}'.", database.DatabaseName, schemaName));
                 }
             }
             else
@@ -45,15 +45,23 @@ namespace Integra.Space.Pipeline
                 try
                 {
                     // obtengo el usuario que quiere ejecutar el comando. Este tambien se calcula en la clase SecureContextBuilderFilter
-                    userAux = login.DatabaseUsers.Single(x => x.ServerId == database.ServerId && x.DatabaseId == database.DatabaseId);
+                    userAux = login.DatabaseUsers.SingleOrDefault(x => x.ServerId == database.ServerId && x.DatabaseId == database.DatabaseId);
+
+                    if(userAux == null)
+                    {
+                        // obtengo el esquema de ejecución.
+                        schemaAux = context.Schemas.Single(x => x.DatabaseId == database.DatabaseId && x.ServerId == database.ServerId && x.SchemaName == "dbo");
+                    }
+                    else
+                    {
+                        // obtengo el esquema de ejecución.
+                        schemaAux = context.DatabaseUsers.Single(x => x.DatabaseId == database.DatabaseId && x.ServerId == database.ServerId && x.DbUsrName == userAux.DbUsrName).DefaultSchema;
+                    }
                 }
                 catch (System.Exception e)
                 {
-                    throw new System.Exception(string.Format("No user mapped at the database '{0}' for the login '{1}'.", database.DatabaseName, login.LoginName));
-                }
-
-                // obtengo el esquema de ejecución.
-                schemaAux = context.DatabaseUsers.Single(x => x.DatabaseId == database.DatabaseId && x.ServerId == database.ServerId && x.DbUsrName == userAux.DbUsrName).DefaultSchema;
+                    throw new System.Exception(string.Format("Critical error, the dbo schema was not found at database '{0}' of the server '{1}'.", database.DatabaseName, database.Server.ServerName));
+                }                
             }
 
             return schemaAux;

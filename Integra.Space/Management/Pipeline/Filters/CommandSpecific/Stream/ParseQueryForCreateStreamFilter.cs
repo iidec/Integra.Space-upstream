@@ -5,6 +5,7 @@
 //-----------------------------------------------------------------------
 namespace Integra.Space.Pipeline.Filters
 {
+    using System.Reflection.Emit;
     using Database;
     using Language;
     using Ninject;
@@ -19,7 +20,8 @@ namespace Integra.Space.Pipeline.Filters
         {
             CreateStreamNode command = (CreateStreamNode)context.CommandContext.Command;
             Schema schema = command.MainCommandObject.GetSchema(context.Kernel.Get<SpaceDbContext>(), context.SecurityContext.Login);
-            this.CompileQuery(command.MainCommandObject.Name, command.ExecutionPlan, schema);
+            string typeSignature = string.Format("{0}_{1}", context.AssemblyBuilder.GetName().Name, command.MainCommandObject.Name);
+            this.CompileQuery(typeSignature, command.ExecutionPlan, schema, context.SecurityContext.Login, context.Kernel, context.AssemblyBuilder);
             return context;
         }
     }

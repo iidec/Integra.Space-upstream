@@ -37,10 +37,10 @@ namespace Integra.Space.Pipeline.Filters
 
             if (command.Options.ContainsKey(RoleOptionEnum.Add))
             {
-                HashSet<Language.CommandObject> users = (HashSet<Language.CommandObject>)command.Options[RoleOptionEnum.Add];
+                HashSet<CommandObject> users = (HashSet<CommandObject>)command.Options[RoleOptionEnum.Add];
                 DatabaseUser databaseUser = null;
                 Schema schemaOfTheUser = null;
-                foreach (Language.CommandObject userToAdd in users)
+                foreach (CommandObject userToAdd in users)
                 {
                     schemaOfTheUser = userToAdd.GetSchema(databaseContext, login);
                     databaseUser = databaseContext.DatabaseUsers.Single(x => x.ServerId == schemaOfTheUser.Database.Server.ServerId && x.DatabaseId == schemaOfTheUser.DatabaseId && x.DbUsrName == userToAdd.Name);

@@ -6,6 +6,7 @@
 namespace Integra.Space.Pipeline
 {
     using System.Diagnostics.Contracts;
+    using System.Reflection.Emit;
     using Language;
     using Ninject;
 
@@ -25,9 +26,9 @@ namespace Integra.Space.Pipeline
         private System.Exception error;
 
         /// <summary>
-        /// Created pipeline.
+        /// Assembly builder.
         /// </summary>
-        private Filter<PipelineContext, PipelineContext> pipeline;
+        private AssemblyBuilder assemblyBuilder;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PipelineContext"/> class.
@@ -89,19 +90,22 @@ namespace Integra.Space.Pipeline
         }
 
         /// <summary>
-        /// Gets or sets the created pipeline.
+        /// Gets or sets the assembly builder for the current command.
         /// </summary>
-        public Filter<PipelineContext, PipelineContext> Pipeline
+        public AssemblyBuilder AssemblyBuilder
         {
             get
             {
-                return this.pipeline;
+                return this.assemblyBuilder;
             }
 
             set
             {
-                this.pipeline = value;
+                if (this.assemblyBuilder == null)
+                {
+                    this.assemblyBuilder = value;
+                }
             }
-        }        
+        }
     }
 }

@@ -46,6 +46,9 @@ namespace Integra.Space.Database
         [Column("so_column_type")]
         public string ColumnType { get; set; }
 
+        [Column("so_column_index")]
+        public byte ColumnIndex { get; set; }
+
         public virtual Source Source { get; set; }
     }
 }

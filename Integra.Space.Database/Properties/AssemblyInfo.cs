@@ -35,3 +35,5 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyVersion("1.0.0.0")]
 [assembly: AssemblyFileVersion("1.0.0.0")]
 [assembly: InternalsVisibleTo("Integra.Space.UnitTests")]
+[assembly: InternalsVisibleTo("Integra.Space")]
+[assembly: InternalsVisibleTo("Integra.Space.Compiler.CodeGeneration")]

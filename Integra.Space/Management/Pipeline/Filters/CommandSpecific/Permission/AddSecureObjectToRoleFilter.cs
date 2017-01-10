@@ -8,6 +8,7 @@ namespace Integra.Space.Pipeline.Filters
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using Common;
     using Database;
     using Language;
     using Ninject;

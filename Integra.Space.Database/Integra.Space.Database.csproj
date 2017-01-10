@@ -52,6 +52,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Helpers\CommandObjectExtensions.cs" />
     <Compile Include="Tables\HierarchyPermissions.cs" />
     <Compile Include="Tables\Securables\Database.cs" />
     <Compile Include="Tables\DatabaseAssignedPermissionsToDBRole.cs" />
@@ -105,6 +106,12 @@
     <Content Include="Scripts\CheckConstraints.sql">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Integra.Space.Common\Integra.Space.Common.csproj">
+      <Project>{27c39916-4c52-4472-8168-07a33448a5fc}</Project>
+      <Name>Integra.Space.Common</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

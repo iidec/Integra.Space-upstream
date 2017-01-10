@@ -1,5 +1,5 @@
 ﻿//-----------------------------------------------------------------------
-// <copyright file="SystemObjectEnum.cs" company="Integra.Space.Common">
+// <copyright file="SystemSourceEnum.cs" company="Integra.Space.Common">
 //     Copyright (c) Integra.Space.Common. All rights reserved.
 // </copyright>
 //-----------------------------------------------------------------------
@@ -10,71 +10,71 @@ namespace Integra.Space.Common
     /// <summary>
     /// Space object enumerable.
     /// </summary>
-    internal enum SystemObjectEnum
+    internal enum SystemSourceEnum
     {
         /// <summary>
         /// Space object source.
         /// </summary>
-        Source = 1,
+        Sources = 1,
 
         /// <summary>
         /// Space object stream.
         /// </summary>
-        Stream = 2,
+        Streams = 2,
 
         /// <summary>
         /// Space object view.
         /// </summary>
-        View = 4,
+        Views = 4,
 
         /// <summary>
         /// Space object schema
         /// </summary>
-        Schema = 8,
+        Schemas = 8,
 
         /// <summary>
         /// Space object user.
         /// </summary>
-        DatabaseUser = 16,
+        Users = 16,
 
         /// <summary>
         /// Space object role
         /// </summary>
-        DatabaseRole = 32,
+        DatabaseRoles = 32,
 
         /// <summary>
         /// Space object database.
         /// </summary>
-        Database = 64,
+        Databases = 64,
 
         /// <summary>
         /// Space object server role.
         /// </summary>
-        ServerRole = 128,
+        ServerRoles = 128,
 
         /// <summary>
         /// Space object login.
         /// </summary>
-        Login = 256,
+        Logins = 256,
 
         /// <summary>
         /// Space object endpoint.
         /// </summary>
-        Endpoint = 512,
+        Endpoints = 512,
 
         /// <summary>
         /// Space object server.
         /// </summary>
-        Server = 1024,
+        Servers = 1024,
 
         /// <summary>
         /// Space object: source column.
         /// </summary>
-        SourceColumn = 2048,
+        SourceColumns = 2048,
 
         /// <summary>
         /// Space object: stream column.
         /// </summary>
-        StreamColumn = 4096
+        StreamColumns = 4096
     }
 }

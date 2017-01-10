@@ -51,6 +51,7 @@ namespace Integra.Space.Pipeline.Filters
 
             if (command.ColumnsToAdd != null)
             {
+                byte index = source.Columns.Max(x => x.ColumnIndex);
                 foreach (KeyValuePair<string, System.Type> kvp in command.ColumnsToAdd)
                 {
                     SourceColumn column = new SourceColumn();
@@ -61,6 +62,7 @@ namespace Integra.Space.Pipeline.Filters
                     column.ServerId = source.ServerId;
                     column.ColumnName = kvp.Key;
                     column.ColumnType = kvp.Value.AssemblyQualifiedName;
+                    column.ColumnIndex = ++index;
 
                     databaseContext.SourceColumns.Add(column);
                 }

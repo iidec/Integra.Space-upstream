@@ -47,6 +47,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CommandObjects\CommandObject.cs" />
+    <Compile Include="CommandObjectComparer.cs" />
     <Compile Include="Enums\ActionCommandEnum.cs" />
     <Compile Include="Enums\CommandOptions\SchemaOptionEnum.cs" />
     <Compile Include="Enums\CommandOptions\StreamOptionEnum.cs" />
@@ -54,6 +56,7 @@
     <Compile Include="Enums\CommandOptions\RoleOptionEnum.cs" />
     <Compile Include="Enums\CommandOptions\DatabaseOptionEnum.cs" />
     <Compile Include="Enums\CommandOptions\LoginOptionEnum.cs" />
+    <Compile Include="Enums\SystemSourceEnum.cs" />
     <Compile Include="Enums\SystemObjectEnum.cs" />
     <Compile Include="Enums\PermissionsEnum.cs" />
     <Compile Include="Enums\SystemRolesEnum.cs" />

@@ -211,7 +211,7 @@ namespace Integra.Space.Pipeline.Filters
                     continue;
                 }
 
-                if (securableClass == null || !securableClass.SecurableName.Equals(@object.SecurableClass.ToString(), StringComparison.InvariantCultureIgnoreCase))
+                /*if (securableClass == null || !securableClass.SecurableName.Equals(@object.SecurableClass.ToString(), StringComparison.InvariantCultureIgnoreCase))
                 {
                     IEnumerable<PermissionBySecurable> pbsListAux = permissionsBySecurables.Where(x => x.GranularPermission.GranularPermissionName.Replace(" ", string.Empty).Equals(@object.GranularPermission.ToString(), StringComparison.InvariantCultureIgnoreCase));
 
@@ -229,7 +229,24 @@ namespace Integra.Space.Pipeline.Filters
 
                     // se obtienen la clase de objeto asegurable.
                     securableClass = permissionBySecurable.SecurableClass;
+                }*/
+
+                IEnumerable<PermissionBySecurable> pbsListAux = permissionsBySecurables.Where(x => x.GranularPermission.GranularPermissionName.Replace(" ", string.Empty).Equals(@object.GranularPermission.ToString(), StringComparison.InvariantCultureIgnoreCase));
+
+                // si la lista contiene un elemento se toma ese y continua, de lo contrario toma el registro que coincida con el tipo de objeto, si hay mas de uno es error.
+                if (pbsListAux.Count() == 1)
+                {
+                    permissionBySecurable = pbsListAux.First();
                 }
+                else
+                {
+                    permissionBySecurable = pbsListAux.Single(x => x.SecurableClass.SecurableName.Equals(@object.SecurableClass.ToString(), StringComparison.InvariantCultureIgnoreCase));
+                }
+
+                granularPermission = permissionBySecurable.GranularPermission;
+
+                // se obtienen la clase de objeto asegurable.
+                securableClass = permissionBySecurable.SecurableClass;
 
                 // se obtienen la jerarquía de permisos en base al tipo de objeto y al permiso granular.
                 HashSet<string> hashSetParentPermissions = new HashSet<string>();

@@ -24,7 +24,7 @@ namespace Integra.Space.Pipeline
         /// <summary>
         /// The schema where the command will be executed.
         /// </summary>
-        private Space.Database.Schema schema;
+        private Schema schema;
 
         /// <summary>
         /// Login of the client.

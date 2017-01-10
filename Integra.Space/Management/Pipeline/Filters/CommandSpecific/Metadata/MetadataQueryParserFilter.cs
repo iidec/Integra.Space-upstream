@@ -12,9 +12,9 @@ namespace Integra.Space.Pipeline.Filters
     using System.Reactive.Linq;
     using System.Reflection.Emit;
     using Common;
+    using Compiler;
     using Database;
     using Language;
-    using Language.Runtime;
     using Ninject;
 
     /// <summary>
@@ -55,26 +55,26 @@ namespace Integra.Space.Pipeline.Filters
             bool debugMode = false;
             bool measureElapsedTime = false;
             bool isTestMode = false;
-            CompilerConfiguration compileContext = new CompilerConfiguration()
-            {
-                PrintLog = printLog,
-                QueryName = streamName,
-                Scheduler = dsf,
-                DebugMode = debugMode,
-                MeasureElapsedTime = measureElapsedTime,
-                IsTestMode = isTestMode
-            };
-
-            SpaceAssemblyBuilder sasmBuilder = new SpaceAssemblyBuilder("SpaceQueryAssembly_" + compileContext.QueryName);
+            SpaceAssemblyBuilder sasmBuilder = new SpaceAssemblyBuilder("SpaceQueryAssembly_" + "QueryTest");
             AssemblyBuilder asmBuilder = sasmBuilder.CreateAssemblyBuilder();
+            CodeGeneratorConfiguration config = new CodeGeneratorConfiguration(
+                context.SecurityContext.Login,
+                dsf,
+                asmBuilder,
+                context.Kernel,
+                printLog: printLog,
+                debugMode: debugMode,
+                measureElapsedTime: measureElapsedTime,
+                isTestMode: isTestMode,
+                queryName: "QueryTest");
+
             SpaceModuleBuilder modBuilder = new SpaceModuleBuilder(asmBuilder);
             modBuilder.CreateModuleBuilder();
 
-            TreeTransformations tf = new TreeTransformations(asmBuilder, command.ExecutionPlan);
-            tf.Transform();
-
-            compileContext.AsmBuilder = asmBuilder;
-            CodeGenerator cg = new CodeGenerator(compileContext);
+            /*TreeTransformations tf = new TreeTransformations(asmBuilder, command.ExecutionPlan, context.Kernel.Get<ISourceTypeFactory>());
+            tf.Transform();*/
+            
+            CodeGenerator cg = new CodeGenerator(config);
             Delegate resultFunc = cg.CompileDelegate(command.ExecutionPlan);
             IObservable<TIn> input = this.GetMetadata(context);
             IObservable<object> finalResultMetadata = null;

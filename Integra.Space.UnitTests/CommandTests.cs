@@ -5,6 +5,11 @@ using Integra.Space.Pipeline;
 using Ninject;
 using Integra.Space.Database;
 using System.Data.Entity;
+using Integra.Space.Compiler;
+using System.Reflection.Emit;
+using System.Threading.Tasks.Dataflow;
+using System.Reflection;
+using System.Reactive.Linq;
 
 namespace Integra.Space.UnitTests
 {
@@ -24,13 +29,158 @@ namespace Integra.Space.UnitTests
             return result;
         }
 
+        private CodeGeneratorConfiguration GetCodeGeneratorConfig(ManagementSchedulerFactory dsf, IKernel kernel)
+        {
+            bool printLog = false;
+            bool debugMode = false;
+            bool measureElapsedTime = false;
+            bool isTestMode = false;
+            Login login = new SpaceDbContext().Logins.Single(x => x.LoginName == "sa");
+            SpaceAssemblyBuilder sasmBuilder = new SpaceAssemblyBuilder("Test");
+            AssemblyBuilder asmBuilder = sasmBuilder.CreateAssemblyBuilder();
+            SpaceModuleBuilder smodBuilder = new SpaceModuleBuilder(asmBuilder);
+            smodBuilder.CreateModuleBuilder();
+            kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
+            kernel.Bind<ISource>().ToConstructor(x => new ConcreteSource());
+            CodeGeneratorConfiguration config = new CodeGeneratorConfiguration(
+                login,
+                dsf,
+                asmBuilder,
+                kernel,
+                printLog: printLog,
+                debugMode: debugMode,
+                measureElapsedTime: measureElapsedTime,
+                isTestMode: isTestMode,
+                queryName: "QueryTest"
+                );
+
+            return config;
+        }
+
+        #region insert
+
+        [TestMethod]
+        public void Insert1()
+        {
+            #region commmand
+
+            string command = @"insert into SourceParaPruebas
+                                (
+                                MessageType,
+                                PrimaryAccountNumber,
+                                ProcessingCode,
+                                TransactionAmount,
+                                DateTimeTransmission,
+                                SystemTraceAuditNumber,
+                                LocalTransactionTime,
+                                LocalTransactionDate,
+                                SettlementDate,
+                                MerchantType,
+                                AcquiringInstitutionCountryCode,
+                                PointOfServiceEntryMode,
+                                PointOfServiceConditionCode,
+                                AcquiringInstitutionIdentificationCode,
+                                Track2Data,
+                                RetrievalReferenceNumber,
+                                CardAcceptorTerminalIdentification,
+                                CardAcceptorIdentificationCode,
+                                CardAcceptorNameLocation,
+                                TransactionCurrencyCode,
+                                AccountIdentification1,
+                                Campo104,
+                                Campo105
+                                )
+                                values
+                                (
+                                ""0100"",
+                                ""9999941616073663"",
+                                ""302000"",
+                                1m,
+                                ""0508152549"",
+                                ""212868"",
+                                ""152549"",
+                                ""0508"",
+                                ""0508"",
+                                ""6011"",
+                                ""320"",
+                                ""051"",
+                                ""02"",
+                                ""491381"",
+                                ""9999941616073663D18022011583036900000"",
+                                ""412815212868"",
+                                ""2906    "",
+                                ""Shell El Rodeo "",
+                                ""Shell El Rodeo1GUATEMALA    GT"",
+                                ""320"",
+                                ""00001613000000000001"",
+                                -1,
+                                1U
+                                )";
+
+            #endregion command
+            
+            loginName = "sa";
+            IKernel kernel = new StandardKernel();
+            using (SpaceDbContext dbContext = new SpaceDbContext())
+            {
+                using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
+                {
+                    kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
+
+                    #region create stream
+
+                    string eql = "use Database2; from SourceParaPruebas where MessageType == \"0100\" select true as resultado into SourceParaPruebas";
+                    ManagementSchedulerFactory dsf = new ManagementSchedulerFactory();
+                    CodeGeneratorConfiguration context = this.GetCodeGeneratorConfig(dsf, kernel);
+                    Language.CommandParser parser = new Language.CommandParser(eql);
+                    Language.PlanNode executionPlan = ((Language.TemporalStreamNode)parser.Evaluate().Last()).ExecutionPlan;
+                    CodeGenerator te = new CodeGenerator(context);
+                    Assembly assembly = te.Compile(executionPlan);
+
+                    Type[] types = assembly.GetTypes();
+                    /*Type inputType = types.First(x => x.BaseType == typeof(InputBase));*/
+                    Type queryInfo = types.First(x => x.GetInterface("IQueryInformation") == typeof(IQueryInformation));
+                    IQueryInformation queryInfoObject = (IQueryInformation)Activator.CreateInstance(queryInfo);
+                    Type queryType = queryInfoObject.GetQueryType();
+                    object queryObject = Activator.CreateInstance(queryType);
+                    MethodInfo result = queryObject.GetType().GetMethod("MainFunction");
+
+                    IObservable<TestObject1> o = Observable.Create<TestObject1>(x => {
+                        return BufferBlockForTest.BufferBlock1.AsObservable().Subscribe(y => x.OnNext((TestObject1)y));
+                    });
+
+                    IObservable<object> resultObservable = ((IObservable<object>)result.Invoke(queryObject, new object[] { o /*, dsf.TestScheduler*/ }));
+
+                    #endregion create stream
+
+                    resultObservable.Subscribe(x =>
+                    {
+                        bool val = bool.Parse(((Array)x.GetType().GetProperty("Result").GetValue(x)).GetValue(0).GetType().GetProperty("resultado").GetValue(((Array)x.GetType().GetProperty("Result").GetValue(x)).GetValue(0)).ToString());
+                        System.Diagnostics.Debug.WriteLine(val);
+                    });
+
+                    try
+                    {
+                        FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
+                        tran.Rollback();
+                    }
+                    catch
+                    {
+                        tran.Rollback();
+                    }
+                }
+            }
+        }
+
+        #endregion insert
+
         #region metadata query
 
         [TestMethod]
         public void GetMetadataFromWhereSelectOrderByTest()
         {
-            string command = "from sys.streams as x where (string)ServerId == \"59e858fc-c84d-48a7-8a98-c0e7adede20a\" select ServerId as servId, max(1) as maxTest order by desc servId, maxTest";
-            loginName = "AdminLogin";
+            string command = "use Database2; from sys.streams as x where (string)ServerId == \"59e858fc-c84d-48a7-8a98-c0e7adede20a\" apply window of '00:00:01' select ServerId as serverId, max(1) as entero order by desc serverId, entero into SourceParaMetadata";
+            loginName = "sa";
 
             IKernel kernel = new StandardKernel();
             using (SpaceDbContext dbContext = new SpaceDbContext())
@@ -38,6 +188,7 @@ namespace Integra.Space.UnitTests
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
+                    kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
                     tran.Rollback();
                 }
@@ -47,9 +198,9 @@ namespace Integra.Space.UnitTests
         [TestMethod]
         public void GetMetadataFromSelectTest()
         {
-            string command = "from sys.streams as x select 1 as servId, 2 as maxTest";
+            string command = "use Database2; from sys.streams as x select ServerId as serverId, 2 as entero into SourceParaMetadata";
 
-            loginName = "AdminLogin";
+            loginName = "sa";
             IKernel kernel = new StandardKernel();
 
             using (SpaceDbContext dbContext = new SpaceDbContext())
@@ -57,6 +208,7 @@ namespace Integra.Space.UnitTests
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
+                    kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
                     tran.Rollback();
                 }
@@ -1223,6 +1375,13 @@ namespace Integra.Space.UnitTests
             this.loginName = "AdminLogin";
 
             IKernel kernel = new StandardKernel();
+
+            SpaceAssemblyBuilder sasmBuilder = new SpaceAssemblyBuilder("Integra.Space.Sources");
+            AssemblyBuilder asmBuilder = sasmBuilder.CreateAssemblyBuilder();
+            SpaceModuleBuilder modBuilder = new SpaceModuleBuilder(asmBuilder);
+            modBuilder.CreateModuleBuilder();
+            kernel.Bind<AssemblyBuilder>().ToConstant(asmBuilder);
+
             using (SpaceDbContext dbContext = new SpaceDbContext())
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
@@ -1261,6 +1420,11 @@ namespace Integra.Space.UnitTests
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
+                    SpaceAssemblyBuilder sasmBuilder = new SpaceAssemblyBuilder("Test");
+                    AssemblyBuilder asmBuilder = sasmBuilder.CreateAssemblyBuilder();
+                    SpaceModuleBuilder smodBuilder = new SpaceModuleBuilder(asmBuilder);
+                    smodBuilder.CreateModuleBuilder();
+                    kernel.Bind<AssemblyBuilder>().ToConstant(asmBuilder);
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
                     try
                     {
@@ -1291,6 +1455,11 @@ namespace Integra.Space.UnitTests
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
+                    SpaceAssemblyBuilder sasmBuilder = new SpaceAssemblyBuilder("Test");
+                    AssemblyBuilder asmBuilder = sasmBuilder.CreateAssemblyBuilder();
+                    SpaceModuleBuilder smodBuilder = new SpaceModuleBuilder(asmBuilder);
+                    smodBuilder.CreateModuleBuilder();
+                    kernel.Bind<AssemblyBuilder>().ToConstant(asmBuilder);
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
                     try
                     {
@@ -1321,6 +1490,11 @@ namespace Integra.Space.UnitTests
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
+                    SpaceAssemblyBuilder sasmBuilder = new SpaceAssemblyBuilder("Test");
+                    AssemblyBuilder asmBuilder = sasmBuilder.CreateAssemblyBuilder();
+                    SpaceModuleBuilder smodBuilder = new SpaceModuleBuilder(asmBuilder);
+                    smodBuilder.CreateModuleBuilder();
+                    kernel.Bind<AssemblyBuilder>().ToConstant(asmBuilder);
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
                     try
                     {
@@ -1356,6 +1530,11 @@ namespace Integra.Space.UnitTests
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
+                    SpaceAssemblyBuilder sasmBuilder = new SpaceAssemblyBuilder("Test");
+                    AssemblyBuilder asmBuilder = sasmBuilder.CreateAssemblyBuilder();
+                    SpaceModuleBuilder smodBuilder = new SpaceModuleBuilder(asmBuilder);
+                    smodBuilder.CreateModuleBuilder();
+                    kernel.Bind<AssemblyBuilder>().ToConstant(asmBuilder);
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
                     try
                     {
@@ -1391,6 +1570,11 @@ namespace Integra.Space.UnitTests
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
+                    SpaceAssemblyBuilder sasmBuilder = new SpaceAssemblyBuilder("Test");
+                    AssemblyBuilder asmBuilder = sasmBuilder.CreateAssemblyBuilder();
+                    SpaceModuleBuilder smodBuilder = new SpaceModuleBuilder(asmBuilder);
+                    smodBuilder.CreateModuleBuilder();
+                    kernel.Bind<AssemblyBuilder>().ToConstant(asmBuilder);
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
                     try
                     {
@@ -1423,15 +1607,15 @@ namespace Integra.Space.UnitTests
             string streamName = "newStream";
             string sourceName = "newSource";
             string eql = "cross " +
-                                   "JOIN SourceInicial as t1 WHERE t1.@event.Message.#1.#2 == \"9999941616073663_1\" " +
-                                   "WITH SourceInicial as t2 WHERE t2.@event.Message.#1.#2 == \"9999941616073663_2\" " +
-                                   "ON t1.@event.Message.#1.#32 == t2.@event.Message.#1.#32 " +
+                                   "JOIN SourceParaPruebas as t1 WHERE t1.PrimaryAccountNumber == \"9999941616073663_1\" " +
+                                   "WITH SourceParaPruebas as t2 WHERE t2.PrimaryAccountNumber == \"9999941616073663_2\" " +
+                                   "ON t1.AcquiringInstitutionIdentificationCode == t2.AcquiringInstitutionIdentificationCode " +
                                    "TIMEOUT '00:00:02' " +
                                    //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
-                                   $"SELECT (string)t1.@event.Message.#1.#2 as c1, t2.@event.Message.#1.#2 as c2, 1 as numeroXXX into {sourceName} ";
+                                   $"SELECT (string)t1.PrimaryAccountNumber as c1, t2.PrimaryAccountNumber as c2, 1 as numeroXXX into {sourceName} ";
 
-            string command = $"create source {sourceName} (c1 string, c2 object, numeroXXX int); create stream {streamName} {{ {eql} }}";
-            this.loginName = "AdminLogin";
+            string command = $"use Database2; create source {sourceName} (c1 string, c2 string, numeroXXX int); create stream {streamName} {{ {eql} }}";
+            this.loginName = "sa";
 
             IKernel kernel = new StandardKernel();
             using (SpaceDbContext dbContext = new SpaceDbContext())
@@ -1439,6 +1623,14 @@ namespace Integra.Space.UnitTests
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
+                    SpaceAssemblyBuilder sasmBuilder = new SpaceAssemblyBuilder("Test");
+                    AssemblyBuilder asmBuilder = sasmBuilder.CreateAssemblyBuilder();
+                    SpaceModuleBuilder smodBuilder = new SpaceModuleBuilder(asmBuilder);
+                    smodBuilder.CreateModuleBuilder();
+                    kernel.Bind<AssemblyBuilder>().ToConstant(asmBuilder);
+                    kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
+                    kernel.Bind<ISource>().ToConstructor(x => new ConcreteSource());
+
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
                     try
                     {
@@ -1452,7 +1644,7 @@ namespace Integra.Space.UnitTests
                                             && x.StreamId == stream.StreamId).ToArray();
 
                         Assert.IsTrue(projectionColumns.Any(x => x.ColumnName == "c1" && x.ColumnType == typeof(string).AssemblyQualifiedName));
-                        Assert.IsTrue(projectionColumns.Any(x => x.ColumnName == "c2" && x.ColumnType == typeof(object).AssemblyQualifiedName));
+                        Assert.IsTrue(projectionColumns.Any(x => x.ColumnName == "c2" && x.ColumnType == typeof(string).AssemblyQualifiedName));
                         Assert.IsTrue(projectionColumns.Any(x => x.ColumnName == "numeroXXX" && x.ColumnType == typeof(int).AssemblyQualifiedName));
 
                         tran.Rollback();
@@ -1472,12 +1664,12 @@ namespace Integra.Space.UnitTests
             string streamName = "newStream";
             string sourceName = "newSource";
             string eql = "cross " +
-                                   "JOIN SourceInicial as t1 WHERE t1.@event.Message.#1.#2 == \"9999941616073663_1\" " +
-                                   "WITH SourceInicial as t2 WHERE t2.@event.Message.#1.#2 == \"9999941616073663_2\" " +
-                                   "ON t1.@event.Message.#1.#32 == t2.@event.Message.#1.#32 " +
+                                   "JOIN SourceInicial as t1 WHERE t1.PrimaryAccountNumber == \"9999941616073663_1\" " +
+                                   "WITH SourceInicial as t2 WHERE t2.PrimaryAccountNumber == \"9999941616073663_2\" " +
+                                   "ON t1.AcquiringInstitutionIdentificationCode == t2.AcquiringInstitutionIdentificationCode " +
                                    "TIMEOUT '00:00:02' " +
                                    //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
-                                   $"SELECT (string)t1.@event.Message.#1.#2 as c1, t2.@event.Message.#1.#2 as c2, 1 as numeroXXX into {sourceName} ";
+                                   $"SELECT (string)t1.PrimaryAccountNumber as c1, t2.PrimaryAccountNumber as c2, 1 as numeroXXX into {sourceName} ";
 
             string command = $"create source {sourceName} (c1 string, c2 object); create stream {streamName} {{ {eql} }}";
             this.loginName = "AdminLogin";
@@ -1508,15 +1700,15 @@ namespace Integra.Space.UnitTests
             string streamName = "newStream";
             string sourceName = "newSource";
             string eql = "cross " +
-                                   "JOIN SourceInicial as t1 WHERE t1.@event.Message.#1.#2 == \"9999941616073663_1\" " +
-                                   "WITH SourceInicial as t2 WHERE t2.@event.Message.#1.#2 == \"9999941616073663_2\" " +
-                                   "ON t1.@event.Message.#1.#32 == t2.@event.Message.#1.#32 " +
+                                   "JOIN SourceParaPruebas as t1 WHERE t1.PrimaryAccountNumber == \"9999941616073663_1\" " +
+                                   "WITH SourceParaPruebas as t2 WHERE t2.PrimaryAccountNumber == \"9999941616073663_2\" " +
+                                   "ON t1.AcquiringInstitutionIdentificationCode == t2.AcquiringInstitutionIdentificationCode " +
                                    "TIMEOUT '00:00:02' " +
                                    //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
-                                   $"SELECT (string)t1.@event.Message.#1.#2 as c1, t2.@event.Message.#1.#2 as c2, 1 as numeroXXX into {sourceName} ";
+                                   $"SELECT (string)t1.PrimaryAccountNumber as c1, t2.PrimaryAccountNumber as c2, 1 as numeroXXX into {sourceName} ";
 
-            string command = $"create source {sourceName} (c1 string, c2 object, numeroXXX int); create stream {streamName} {{ {eql} }} with status = on";
-            this.loginName = "AdminLogin";
+            string command = $"use Database2; create source {sourceName} (c1 string, c2 string, numeroXXX int); create stream {streamName} {{ {eql} }} with status = on";
+            this.loginName = "sa";
 
             IKernel kernel = new StandardKernel();
             using (SpaceDbContext dbContext = new SpaceDbContext())
@@ -1524,6 +1716,13 @@ namespace Integra.Space.UnitTests
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
+                    SpaceAssemblyBuilder sasmBuilder = new SpaceAssemblyBuilder("Test");
+                    AssemblyBuilder asmBuilder = sasmBuilder.CreateAssemblyBuilder();
+                    SpaceModuleBuilder smodBuilder = new SpaceModuleBuilder(asmBuilder);
+                    smodBuilder.CreateModuleBuilder();
+                    kernel.Bind<AssemblyBuilder>().ToConstant(asmBuilder);
+                    kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
+                    kernel.Bind<ISource>().ToConstructor(x => new ConcreteSource());
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
                     try
                     {
@@ -1537,7 +1736,7 @@ namespace Integra.Space.UnitTests
                                             && x.StreamId == stream.StreamId).ToArray();
 
                         Assert.IsTrue(projectionColumns.Any(x => x.ColumnName == "c1" && x.ColumnType == typeof(string).AssemblyQualifiedName));
-                        Assert.IsTrue(projectionColumns.Any(x => x.ColumnName == "c2" && x.ColumnType == typeof(object).AssemblyQualifiedName));
+                        Assert.IsTrue(projectionColumns.Any(x => x.ColumnName == "c2" && x.ColumnType == typeof(string).AssemblyQualifiedName));
                         Assert.IsTrue(projectionColumns.Any(x => x.ColumnName == "numeroXXX" && x.ColumnType == typeof(int).AssemblyQualifiedName));
                         tran.Rollback();
                     }
@@ -1556,15 +1755,15 @@ namespace Integra.Space.UnitTests
             string streamName = "newStream";
             string sourceName = "newSource";
             string eql = "cross " +
-                                   "JOIN SourceInicial as t1 WHERE t1.@event.Message.#1.#2 == \"9999941616073663_1\" " +
-                                   "WITH SourceInicial as t2 WHERE t2.@event.Message.#1.#2 == \"9999941616073663_2\" " +
-                                   "ON t1.@event.Message.#1.#32 == t2.@event.Message.#1.#32 " +
+                                   "JOIN SourceParaPruebas as t1 WHERE t1.PrimaryAccountNumber == \"9999941616073663_1\" " +
+                                   "WITH SourceParaPruebas as t2 WHERE t2.PrimaryAccountNumber == \"9999941616073663_2\" " +
+                                   "ON t1.AcquiringInstitutionIdentificationCode == t2.AcquiringInstitutionIdentificationCode " +
                                    "TIMEOUT '00:00:02' " +
                                    //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
-                                   $"SELECT (string)t1.@event.Message.#1.#2 as c1, t2.@event.Message.#1.#2 as c2, 1 as numeroXXX into {sourceName} ";
+                                   $"SELECT (string)t1.PrimaryAccountNumber as c1, t2.PrimaryAccountNumber as c2, 1 as numeroXXX into {sourceName} ";
 
-            string command = $"create source {sourceName} (c1 string, c2 object, numeroXXX int); create stream {streamName} {{ {eql} }} with status = off";
-            this.loginName = "AdminLogin";
+            string command = $"use Database2; create source {sourceName} (c1 string, c2 string, numeroXXX int); create stream {streamName} {{ {eql} }} with status = off";
+            this.loginName = "sa";
 
             IKernel kernel = new StandardKernel();
             using (SpaceDbContext dbContext = new SpaceDbContext())
@@ -1572,6 +1771,13 @@ namespace Integra.Space.UnitTests
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
+                    SpaceAssemblyBuilder sasmBuilder = new SpaceAssemblyBuilder("Test");
+                    AssemblyBuilder asmBuilder = sasmBuilder.CreateAssemblyBuilder();
+                    SpaceModuleBuilder smodBuilder = new SpaceModuleBuilder(asmBuilder);
+                    smodBuilder.CreateModuleBuilder();
+                    kernel.Bind<AssemblyBuilder>().ToConstant(asmBuilder);
+                    kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
+                    kernel.Bind<ISource>().ToConstructor(x => new ConcreteSource());
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
                     try
                     {
@@ -1585,7 +1791,7 @@ namespace Integra.Space.UnitTests
                                             && x.StreamId == stream.StreamId).ToArray();
 
                         Assert.IsTrue(projectionColumns.Any(x => x.ColumnName == "c1" && x.ColumnType == typeof(string).AssemblyQualifiedName));
-                        Assert.IsTrue(projectionColumns.Any(x => x.ColumnName == "c2" && x.ColumnType == typeof(object).AssemblyQualifiedName));
+                        Assert.IsTrue(projectionColumns.Any(x => x.ColumnName == "c2" && x.ColumnType == typeof(string).AssemblyQualifiedName));
                         Assert.IsTrue(projectionColumns.Any(x => x.ColumnName == "numeroXXX" && x.ColumnType == typeof(int).AssemblyQualifiedName));
                         tran.Rollback();
                     }
@@ -2469,6 +2675,11 @@ namespace Integra.Space.UnitTests
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
+                    SpaceAssemblyBuilder sasmBuilder = new SpaceAssemblyBuilder("Test");
+                    AssemblyBuilder asmBuilder = sasmBuilder.CreateAssemblyBuilder();
+                    SpaceModuleBuilder smodBuilder = new SpaceModuleBuilder(asmBuilder);
+                    smodBuilder.CreateModuleBuilder();
+                    kernel.Bind<AssemblyBuilder>().ToConstant(asmBuilder);
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
                     try
                     {
@@ -2494,7 +2705,7 @@ namespace Integra.Space.UnitTests
         {
             string sourceName = "oldSourceName";
             string command = $@"create source {sourceName} (column1 string, column2 int, column3 decimal); 
-                                alter source {sourceName} add columnX string, columnY int, columnZ decimal";
+                                alter source {sourceName} add (columnX string, columnY int, columnZ decimal)";
             this.loginName = "AdminLogin";
 
             IKernel kernel = new StandardKernel();
@@ -2503,6 +2714,11 @@ namespace Integra.Space.UnitTests
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
+                    SpaceAssemblyBuilder sasmBuilder = new SpaceAssemblyBuilder("Test");
+                    AssemblyBuilder asmBuilder = sasmBuilder.CreateAssemblyBuilder();
+                    SpaceModuleBuilder smodBuilder = new SpaceModuleBuilder(asmBuilder);
+                    smodBuilder.CreateModuleBuilder();
+                    kernel.Bind<AssemblyBuilder>().ToConstant(asmBuilder);
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
                     try
                     {
@@ -2531,7 +2747,7 @@ namespace Integra.Space.UnitTests
         {
             string sourceName = "oldSourceName";
             string command = $@"create source {sourceName} (column1 string, column2 int, column3 decimal, columnX string, columnY int, columnZ decimal); 
-                                alter source {sourceName} remove columnX string, columnY int, columnZ decimal";
+                                alter source {sourceName} remove (columnX string, columnY int, columnZ decimal)";
             this.loginName = "AdminLogin";
 
             IKernel kernel = new StandardKernel();
@@ -2540,6 +2756,11 @@ namespace Integra.Space.UnitTests
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
+                    SpaceAssemblyBuilder sasmBuilder = new SpaceAssemblyBuilder("Test");
+                    AssemblyBuilder asmBuilder = sasmBuilder.CreateAssemblyBuilder();
+                    SpaceModuleBuilder smodBuilder = new SpaceModuleBuilder(asmBuilder);
+                    smodBuilder.CreateModuleBuilder();
+                    kernel.Bind<AssemblyBuilder>().ToConstant(asmBuilder);
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
                     try
                     {
@@ -2604,6 +2825,11 @@ namespace Integra.Space.UnitTests
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
+                    SpaceAssemblyBuilder sasmBuilder = new SpaceAssemblyBuilder("Test");
+                    AssemblyBuilder asmBuilder = sasmBuilder.CreateAssemblyBuilder();
+                    SpaceModuleBuilder smodBuilder = new SpaceModuleBuilder(asmBuilder);
+                    smodBuilder.CreateModuleBuilder();
+                    kernel.Bind<AssemblyBuilder>().ToConstant(asmBuilder);
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
                     try
                     {
@@ -2634,6 +2860,11 @@ namespace Integra.Space.UnitTests
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
+                    SpaceAssemblyBuilder sasmBuilder = new SpaceAssemblyBuilder("Test");
+                    AssemblyBuilder asmBuilder = sasmBuilder.CreateAssemblyBuilder();
+                    SpaceModuleBuilder smodBuilder = new SpaceModuleBuilder(asmBuilder);
+                    smodBuilder.CreateModuleBuilder();
+                    kernel.Bind<AssemblyBuilder>().ToConstant(asmBuilder);
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
                     try
                     {
@@ -2664,6 +2895,11 @@ namespace Integra.Space.UnitTests
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
+                    SpaceAssemblyBuilder sasmBuilder = new SpaceAssemblyBuilder("Test");
+                    AssemblyBuilder asmBuilder = sasmBuilder.CreateAssemblyBuilder();
+                    SpaceModuleBuilder smodBuilder = new SpaceModuleBuilder(asmBuilder);
+                    smodBuilder.CreateModuleBuilder();
+                    kernel.Bind<AssemblyBuilder>().ToConstant(asmBuilder);
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
                     try
                     {
@@ -2698,6 +2934,11 @@ namespace Integra.Space.UnitTests
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
+                    SpaceAssemblyBuilder sasmBuilder = new SpaceAssemblyBuilder("Test");
+                    AssemblyBuilder asmBuilder = sasmBuilder.CreateAssemblyBuilder();
+                    SpaceModuleBuilder smodBuilder = new SpaceModuleBuilder(asmBuilder);
+                    smodBuilder.CreateModuleBuilder();
+                    kernel.Bind<AssemblyBuilder>().ToConstant(asmBuilder);
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
                     try
                     {
@@ -2732,6 +2973,11 @@ namespace Integra.Space.UnitTests
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
+                    SpaceAssemblyBuilder sasmBuilder = new SpaceAssemblyBuilder("Test");
+                    AssemblyBuilder asmBuilder = sasmBuilder.CreateAssemblyBuilder();
+                    SpaceModuleBuilder smodBuilder = new SpaceModuleBuilder(asmBuilder);
+                    smodBuilder.CreateModuleBuilder();
+                    kernel.Bind<AssemblyBuilder>().ToConstant(asmBuilder);
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
                     try
                     {
@@ -2766,6 +3012,11 @@ namespace Integra.Space.UnitTests
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
+                    SpaceAssemblyBuilder sasmBuilder = new SpaceAssemblyBuilder("Test");
+                    AssemblyBuilder asmBuilder = sasmBuilder.CreateAssemblyBuilder();
+                    SpaceModuleBuilder smodBuilder = new SpaceModuleBuilder(asmBuilder);
+                    smodBuilder.CreateModuleBuilder();
+                    kernel.Bind<AssemblyBuilder>().ToConstant(asmBuilder);
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
                     try
                     {
@@ -2800,6 +3051,11 @@ namespace Integra.Space.UnitTests
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
+                    SpaceAssemblyBuilder sasmBuilder = new SpaceAssemblyBuilder("Test");
+                    AssemblyBuilder asmBuilder = sasmBuilder.CreateAssemblyBuilder();
+                    SpaceModuleBuilder smodBuilder = new SpaceModuleBuilder(asmBuilder);
+                    smodBuilder.CreateModuleBuilder();
+                    kernel.Bind<AssemblyBuilder>().ToConstant(asmBuilder);
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
                     try
                     {
@@ -2833,15 +3089,15 @@ namespace Integra.Space.UnitTests
             string newStreamName = "newStream";
             string sourceName = "newSource";
             string eql = "cross " +
-                                   "JOIN SourceInicial as t1 WHERE t1.@event.Message.#1.#2 == \"9999941616073663_1\" " +
-                                   "WITH SourceInicial as t2 WHERE t2.@event.Message.#1.#2 == \"9999941616073663_2\" " +
-                                   "ON t1.@event.Message.#1.#32 == t2.@event.Message.#1.#32 " +
+                                   "JOIN SourceParaPruebas as t1 WHERE t1.PrimaryAccountNumber == \"9999941616073663_1\" " +
+                                   "WITH SourceParaPruebas as t2 WHERE t2.PrimaryAccountNumber == \"9999941616073663_2\" " +
+                                   "ON t1.AcquiringInstitutionIdentificationCode == t2.AcquiringInstitutionIdentificationCode " +
                                    "TIMEOUT '00:00:02' " +
                                    //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
-                                   $"SELECT (string)t1.@event.Message.#1.#2 as c1, t2.@event.Message.#1.#2 as c2, 1 as numeroXXX into {sourceName}";
+                                   $"SELECT (string)t1.PrimaryAccountNumber as c1, t2.PrimaryAccountNumber as c2, 1 as numeroXXX into {sourceName}";
 
-            string command = $"create source {sourceName} (c1 string, c2 object, numeroXXX int); create stream {oldStreamName} {{ {eql} }}; alter stream {oldStreamName} with name = {newStreamName}";
-            this.loginName = "AdminLogin";
+            string command = $"use Database2; create source {sourceName} (c1 string, c2 string, numeroXXX int); create stream {oldStreamName} {{ {eql} }}; alter stream {oldStreamName} with name = {newStreamName}";
+            this.loginName = "sa";
 
             IKernel kernel = new StandardKernel();
             using (SpaceDbContext dbContext = new SpaceDbContext())
@@ -2849,6 +3105,13 @@ namespace Integra.Space.UnitTests
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
+                    SpaceAssemblyBuilder sasmBuilder = new SpaceAssemblyBuilder("Test");
+                    AssemblyBuilder asmBuilder = sasmBuilder.CreateAssemblyBuilder();
+                    SpaceModuleBuilder smodBuilder = new SpaceModuleBuilder(asmBuilder);
+                    smodBuilder.CreateModuleBuilder();
+                    kernel.Bind<AssemblyBuilder>().ToConstant(asmBuilder);
+                    kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
+                    kernel.Bind<ISource>().ToConstructor(x => new ConcreteSource());
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
                     try
                     {
@@ -2862,7 +3125,7 @@ namespace Integra.Space.UnitTests
                                             && x.StreamId == stream.StreamId).ToArray();
 
                         Assert.IsTrue(projectionColumns.Any(x => x.ColumnName == "c1" && x.ColumnType == typeof(string).AssemblyQualifiedName));
-                        Assert.IsTrue(projectionColumns.Any(x => x.ColumnName == "c2" && x.ColumnType == typeof(object).AssemblyQualifiedName));
+                        Assert.IsTrue(projectionColumns.Any(x => x.ColumnName == "c2" && x.ColumnType == typeof(string).AssemblyQualifiedName));
                         Assert.IsTrue(projectionColumns.Any(x => x.ColumnName == "numeroXXX" && x.ColumnType == typeof(int).AssemblyQualifiedName));
                         tran.Rollback();
                     }
@@ -2882,23 +3145,23 @@ namespace Integra.Space.UnitTests
             string newStreamName = "newStream";
             string sourceName = "newSource";
             string eql = "cross " +
-                                   "JOIN SourceInicial as t1 WHERE t1.@event.Message.#1.#2 == \"9999941616073663_1\" " +
-                                   "WITH SourceInicial as t2 WHERE t2.@event.Message.#1.#2 == \"9999941616073663_2\" " +
-                                   "ON t1.@event.Message.#1.#32 == t2.@event.Message.#1.#32 " +
+                                   "JOIN SourceParaPruebas as t1 WHERE t1.PrimaryAccountNumber == \"9999941616073663_1\" " +
+                                   "WITH SourceParaPruebas as t2 WHERE t2.PrimaryAccountNumber == \"9999941616073663_2\" " +
+                                   "ON t1.AcquiringInstitutionIdentificationCode == t2.AcquiringInstitutionIdentificationCode " +
                                    "TIMEOUT '00:00:02' " +
                                    //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
-                                   $"SELECT (string)t1.@event.Message.#1.#2 as c1, t2.@event.Message.#1.#2 as c2, 1 as numeroXXX into {sourceName}";
+                                   $"SELECT (string)t1.PrimaryAccountNumber as c1, t2.PrimaryAccountNumber as c2, 1 as numeroXXX into {sourceName}";
             
             string eql2 = "cross " +
-                                   "JOIN SourceInicial as t1 WHERE t1.@event.Message.#1.#2 == \"9999941616073663_1\" " +
-                                   "WITH SourceInicial as t2 WHERE t2.@event.Message.#1.#2 == \"9999941616073663_2\" " +
-                                   "ON t1.@event.Message.#1.#32 == t2.@event.Message.#1.#32 " +
+                                   "JOIN SourceParaPruebas as t1 WHERE t1.PrimaryAccountNumber == \"9999941616073663_1\" " +
+                                   "WITH SourceParaPruebas as t2 WHERE t2.PrimaryAccountNumber == \"9999941616073663_2\" " +
+                                   "ON t1.AcquiringInstitutionIdentificationCode == t2.AcquiringInstitutionIdentificationCode " +
                                    "TIMEOUT '00:00:02' " +
                                    //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
-                                   $"SELECT (string)t1.@event.Message.#1.#2 as c1, 1 as numeroXXX into {sourceName}";
+                                   $"SELECT (string)t1.PrimaryAccountNumber as c1, 1 as numeroXXX into {sourceName}";
 
-            string command = $"create source {sourceName} (c1 string, c2 object, numeroXXX int); create stream {oldStreamName} {{ {eql} }}; alter stream {oldStreamName} with query = {{ {eql2} }}";
-            this.loginName = "AdminLogin";
+            string command = $"use Database2; create source {sourceName} (c1 string, c2 string, numeroXXX int); create stream {oldStreamName} {{ {eql} }}; alter stream {oldStreamName} with query = {{ {eql2} }}";
+            this.loginName = "sa";
 
             IKernel kernel = new StandardKernel();
             using (SpaceDbContext dbContext = new SpaceDbContext())
@@ -2906,6 +3169,13 @@ namespace Integra.Space.UnitTests
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
+                    SpaceAssemblyBuilder sasmBuilder = new SpaceAssemblyBuilder("Test");
+                    AssemblyBuilder asmBuilder = sasmBuilder.CreateAssemblyBuilder();
+                    SpaceModuleBuilder smodBuilder = new SpaceModuleBuilder(asmBuilder);
+                    smodBuilder.CreateModuleBuilder();
+                    kernel.Bind<AssemblyBuilder>().ToConstant(asmBuilder);
+                    kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
+                    kernel.Bind<ISource>().ToConstructor(x => new ConcreteSource());
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
                     try
                     {
@@ -2938,23 +3208,23 @@ namespace Integra.Space.UnitTests
             string newStreamName = "newStream";
             string sourceName = "newSource";
             string eql = "cross " +
-                                   "JOIN SourceInicial as t1 WHERE t1.@event.Message.#1.#2 == \"9999941616073663_1\" " +
-                                   "WITH SourceInicial as t2 WHERE t2.@event.Message.#1.#2 == \"9999941616073663_2\" " +
-                                   "ON t1.@event.Message.#1.#32 == t2.@event.Message.#1.#32 " +
+                                   "JOIN SourceParaPruebas as t1 WHERE t1.PrimaryAccountNumber == \"9999941616073663_1\" " +
+                                   "WITH SourceParaPruebas as t2 WHERE t2.PrimaryAccountNumber == \"9999941616073663_2\" " +
+                                   "ON t1.AcquiringInstitutionIdentificationCode == t2.AcquiringInstitutionIdentificationCode " +
                                    "TIMEOUT '00:00:02' " +
                                    //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
-                                   $"SELECT (string)t1.@event.Message.#1.#2 as c1, t2.@event.Message.#1.#2 as c2, 1 as numeroXXX into {sourceName}";
+                                   $"SELECT (string)t1.PrimaryAccountNumber as c1, t2.PrimaryAccountNumber as c2, 1 as numeroXXX into {sourceName}";
 
             string eql2 = "cross " +
-                                   "JOIN SourceInicial as t1 WHERE t1.@event.Message.#1.#2 == \"9999941616073663_1\" " +
-                                   "WITH SourceInicial as t2 WHERE t2.@event.Message.#1.#2 == \"9999941616073663_2\" " +
-                                   "ON t1.@event.Message.#1.#32 == t2.@event.Message.#1.#32 " +
+                                   "JOIN SourceParaPruebas as t1 WHERE t1.PrimaryAccountNumber == \"9999941616073663_1\" " +
+                                   "WITH SourceParaPruebas as t2 WHERE t2.PrimaryAccountNumber == \"9999941616073663_2\" " +
+                                   "ON t1.AcquiringInstitutionIdentificationCode == t2.AcquiringInstitutionIdentificationCode " +
                                    "TIMEOUT '00:00:02' " +
                                    //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
-                                   $"SELECT (string)t1.@event.Message.#1.#2 as c1, t2.@event.Message.#1.#2 as c2, 1 as numeroXXX, 2 as numeroYYY into {sourceName}";
+                                   $"SELECT (string)t1.PrimaryAccountNumber as c1, t2.PrimaryAccountNumber as c2, 1 as numeroXXX, 2 as numeroYYY into {sourceName}";
 
-            string command = $"create source {sourceName} (c1 string, c2 object, numeroXXX int); create stream {oldStreamName} {{ {eql} }}; alter source {sourceName} add numeroYYY int; alter stream {oldStreamName} with query = {{ {eql2} }}";
-            this.loginName = "AdminLogin";
+            string command = $"use Database2; create source {sourceName} (c1 string, c2 string, numeroXXX int); create stream {oldStreamName} {{ {eql} }}; alter source {sourceName} add (numeroYYY int); alter stream {oldStreamName} with query = {{ {eql2} }}";
+            this.loginName = "sa";
 
             IKernel kernel = new StandardKernel();
             using (SpaceDbContext dbContext = new SpaceDbContext())
@@ -2962,6 +3232,8 @@ namespace Integra.Space.UnitTests
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
+                    kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
+                    kernel.Bind<ISource>().ToConstructor(x => new ConcreteSource());
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
                     try
                     {
@@ -2975,7 +3247,7 @@ namespace Integra.Space.UnitTests
                                             && x.StreamId == stream.StreamId).ToArray();
 
                         Assert.IsTrue(projectionColumns.Any(x => x.ColumnName == "c1" && x.ColumnType == typeof(string).AssemblyQualifiedName));
-                        Assert.IsTrue(projectionColumns.Any(x => x.ColumnName == "c2" && x.ColumnType == typeof(object).AssemblyQualifiedName));
+                        Assert.IsTrue(projectionColumns.Any(x => x.ColumnName == "c2" && x.ColumnType == typeof(string).AssemblyQualifiedName));
                         Assert.IsTrue(projectionColumns.Any(x => x.ColumnName == "numeroXXX" && x.ColumnType == typeof(int).AssemblyQualifiedName));
                         Assert.IsTrue(projectionColumns.Any(x => x.ColumnName == "numeroYYY" && x.ColumnType == typeof(int).AssemblyQualifiedName));
                         tran.Rollback();
@@ -2996,23 +3268,23 @@ namespace Integra.Space.UnitTests
             string newStreamName = "newStream";
             string sourceName = "newSource";
             string eql = "cross " +
-                                   "JOIN SourceInicial as t1 WHERE t1.@event.Message.#1.#2 == \"9999941616073663_1\" " +
-                                   "WITH SourceInicial as t2 WHERE t2.@event.Message.#1.#2 == \"9999941616073663_2\" " +
-                                   "ON t1.@event.Message.#1.#32 == t2.@event.Message.#1.#32 " +
+                                   "JOIN SourceParaPruebas as t1 WHERE t1.PrimaryAccountNumber == \"9999941616073663_1\" " +
+                                   "WITH SourceParaPruebas as t2 WHERE t2.PrimaryAccountNumber == \"9999941616073663_2\" " +
+                                   "ON t1.AcquiringInstitutionIdentificationCode == t2.AcquiringInstitutionIdentificationCode " +
                                    "TIMEOUT '00:00:02' " +
                                    //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
-                                   $"SELECT (string)t1.@event.Message.#1.#2 as c1, t2.@event.Message.#1.#2 as c2, 1 as numeroXXX into {sourceName}";
+                                   $"SELECT (string)t1.PrimaryAccountNumber as c1, t2.PrimaryAccountNumber as c2, 1 as numeroXXX into {sourceName}";
 
             string eql2 = "cross " +
-                                   "JOIN SourceInicial as t1 WHERE t1.@event.Message.#1.#2 == \"9999941616073663_1\" " +
-                                   "WITH SourceInicial as t2 WHERE t2.@event.Message.#1.#2 == \"9999941616073663_2\" " +
-                                   "ON t1.@event.Message.#1.#32 == t2.@event.Message.#1.#32 " +
+                                   "JOIN SourceParaPruebas as t1 WHERE t1.PrimaryAccountNumber == \"9999941616073663_1\" " +
+                                   "WITH SourceParaPruebas as t2 WHERE t2.PrimaryAccountNumber == \"9999941616073663_2\" " +
+                                   "ON t1.AcquiringInstitutionIdentificationCode == t2.AcquiringInstitutionIdentificationCode " +
                                    "TIMEOUT '00:00:02' " +
                                    //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
-                                   $"SELECT (string)t1.@event.Message.#1.#2 as column1, t2.@event.Message.#1.#2 as column2, 1 as column3 into {sourceName}";
+                                   $"SELECT (string)t1.PrimaryAccountNumber as column1, t2.PrimaryAccountNumber as column2, 1 as column3 into {sourceName}";
 
-            string command = $"create source {sourceName} (column1 string, column2 object, column3 int, c1 string, c2 object, numeroXXX int); create stream {oldStreamName} {{ {eql} }}; alter stream {oldStreamName} with query = {{ {eql2} }}";
-            this.loginName = "AdminLogin";
+            string command = $"use Database2; create source {sourceName} (column1 string, column2 string, column3 int, c1 string, c2 string, numeroXXX int); create stream {oldStreamName} {{ {eql} }}; alter stream {oldStreamName} with query = {{ {eql2} }}";
+            this.loginName = "sa";
 
             IKernel kernel = new StandardKernel();
             using (SpaceDbContext dbContext = new SpaceDbContext())
@@ -3020,6 +3292,13 @@ namespace Integra.Space.UnitTests
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
+                    SpaceAssemblyBuilder sasmBuilder = new SpaceAssemblyBuilder("Test");
+                    AssemblyBuilder asmBuilder = sasmBuilder.CreateAssemblyBuilder();
+                    SpaceModuleBuilder smodBuilder = new SpaceModuleBuilder(asmBuilder);
+                    smodBuilder.CreateModuleBuilder();
+                    kernel.Bind<AssemblyBuilder>().ToConstant(asmBuilder);
+                    kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
+                    kernel.Bind<ISource>().ToConstructor(x => new ConcreteSource());
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
                     try
                     {
@@ -3033,11 +3312,11 @@ namespace Integra.Space.UnitTests
                                             && x.StreamId == stream.StreamId).ToArray();
 
                         Assert.IsFalse(projectionColumns.Any(x => x.ColumnName == "c1" && x.ColumnType == typeof(string).AssemblyQualifiedName));
-                        Assert.IsFalse(projectionColumns.Any(x => x.ColumnName == "c2" && x.ColumnType == typeof(object).AssemblyQualifiedName));
+                        Assert.IsFalse(projectionColumns.Any(x => x.ColumnName == "c2" && x.ColumnType == typeof(string).AssemblyQualifiedName));
                         Assert.IsFalse(projectionColumns.Any(x => x.ColumnName == "numeroXXX" && x.ColumnType == typeof(int).AssemblyQualifiedName));
 
                         Assert.IsTrue(projectionColumns.Any(x => x.ColumnName == "column1" && x.ColumnType == typeof(string).AssemblyQualifiedName));
-                        Assert.IsTrue(projectionColumns.Any(x => x.ColumnName == "column2" && x.ColumnType == typeof(object).AssemblyQualifiedName));
+                        Assert.IsTrue(projectionColumns.Any(x => x.ColumnName == "column2" && x.ColumnType == typeof(string).AssemblyQualifiedName));
                         Assert.IsTrue(projectionColumns.Any(x => x.ColumnName == "column3" && x.ColumnType == typeof(int).AssemblyQualifiedName));
                         tran.Rollback();
                     }
@@ -3057,20 +3336,20 @@ namespace Integra.Space.UnitTests
             string newStreamName = "newStream";
             string sourceName = "newSource";
             string eql = "cross " +
-                                   "JOIN SourceInicial as t1 WHERE t1.@event.Message.#1.#2 == \"9999941616073663_1\" " +
-                                   "WITH SourceInicial as t2 WHERE t2.@event.Message.#1.#2 == \"9999941616073663_2\" " +
-                                   "ON t1.@event.Message.#1.#32 == t2.@event.Message.#1.#32 " +
+                                   "JOIN SourceInicial as t1 WHERE t1.PrimaryAccountNumber == \"9999941616073663_1\" " +
+                                   "WITH SourceInicial as t2 WHERE t2.PrimaryAccountNumber == \"9999941616073663_2\" " +
+                                   "ON t1.AcquiringInstitutionIdentificationCode == t2.AcquiringInstitutionIdentificationCode " +
                                    "TIMEOUT '00:00:02' " +
                                    //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
-                                   $"SELECT (string)t1.@event.Message.#1.#2 as c1, t2.@event.Message.#1.#2 as c2, 1 as numeroXXX into {sourceName}";
+                                   $"SELECT (string)t1.PrimaryAccountNumber as c1, t2.PrimaryAccountNumber as c2, 1 as numeroXXX into {sourceName}";
 
             string eql2 = "cross " +
-                                   "JOIN SourceInicial as t1 WHERE t1.@event.Message.#1.#2 == \"9999941616073663_1\" " +
-                                   "WITH SourceInicial as t2 WHERE t2.@event.Message.#1.#2 == \"9999941616073663_2\" " +
-                                   "ON t1.@event.Message.#1.#32 == t2.@event.Message.#1.#32 " +
+                                   "JOIN SourceInicial as t1 WHERE t1.PrimaryAccountNumber == \"9999941616073663_1\" " +
+                                   "WITH SourceInicial as t2 WHERE t2.PrimaryAccountNumber == \"9999941616073663_2\" " +
+                                   "ON t1.AcquiringInstitutionIdentificationCode == t2.AcquiringInstitutionIdentificationCode " +
                                    "TIMEOUT '00:00:02' " +
                                    //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
-                                   $"SELECT (string)t1.@event.Message.#1.#2 as column1, t2.@event.Message.#1.#2 as column2, 1 as column3 into {sourceName}";
+                                   $"SELECT (string)t1.PrimaryAccountNumber as column1, t2.PrimaryAccountNumber as column2, 1 as column3 into {sourceName}";
 
             string command = $"create source {sourceName} (column1 string, column3 int, c1 string, c2 object, numeroXXX int); create stream {oldStreamName} {{ {eql} }}; alter stream {oldStreamName} with query = {{ {eql2} }}";
             this.loginName = "AdminLogin";
@@ -3081,6 +3360,13 @@ namespace Integra.Space.UnitTests
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
+                    SpaceAssemblyBuilder sasmBuilder = new SpaceAssemblyBuilder("Test");
+                    AssemblyBuilder asmBuilder = sasmBuilder.CreateAssemblyBuilder();
+                    SpaceModuleBuilder smodBuilder = new SpaceModuleBuilder(asmBuilder);
+                    smodBuilder.CreateModuleBuilder();
+                    kernel.Bind<AssemblyBuilder>().ToConstant(asmBuilder);
+                    kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
+                    kernel.Bind<ISource>().ToConstructor(x => new ConcreteSource());
                     try
                     {
                         FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
@@ -3101,15 +3387,15 @@ namespace Integra.Space.UnitTests
             string streamName = "newStream";
             string sourceName = "newSource";
             string eql = "cross " +
-                                   "JOIN SourceInicial as t1 WHERE t1.@event.Message.#1.#2 == \"9999941616073663_1\" " +
-                                   "WITH SourceInicial as t2 WHERE t2.@event.Message.#1.#2 == \"9999941616073663_2\" " +
-                                   "ON t1.@event.Message.#1.#32 == t2.@event.Message.#1.#32 " +
+                                   "JOIN SourceParaPruebas as t1 WHERE t1.PrimaryAccountNumber == \"9999941616073663_1\" " +
+                                   "WITH SourceParaPruebas as t2 WHERE t2.PrimaryAccountNumber == \"9999941616073663_2\" " +
+                                   "ON t1.AcquiringInstitutionIdentificationCode == t2.AcquiringInstitutionIdentificationCode " +
                                    "TIMEOUT '00:00:02' " +
                                    //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
-                                   $"SELECT (string)t1.@event.Message.#1.#2 as c1, t2.@event.Message.#1.#2 as c2, 1 as numeroXXX into {sourceName} ";
+                                   $"SELECT (string)t1.PrimaryAccountNumber as c1, t2.PrimaryAccountNumber as c2, 1 as numeroXXX into {sourceName} ";
 
-            string command = $"create source {sourceName} (c1 string, c2 object, numeroXXX int); create stream {streamName} {{ {eql} }} with status = off; alter stream {streamName} with status = on";
-            this.loginName = "AdminLogin";
+            string command = $"use Database2; create source {sourceName} (c1 string, c2 string, numeroXXX int); create stream {streamName} {{ {eql} }} with status = off; alter stream {streamName} with status = on";
+            this.loginName = "sa";
 
             IKernel kernel = new StandardKernel();
             using (SpaceDbContext dbContext = new SpaceDbContext())
@@ -3117,6 +3403,13 @@ namespace Integra.Space.UnitTests
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
+                    SpaceAssemblyBuilder sasmBuilder = new SpaceAssemblyBuilder("Test");
+                    AssemblyBuilder asmBuilder = sasmBuilder.CreateAssemblyBuilder();
+                    SpaceModuleBuilder smodBuilder = new SpaceModuleBuilder(asmBuilder);
+                    smodBuilder.CreateModuleBuilder();
+                    kernel.Bind<AssemblyBuilder>().ToConstant(asmBuilder);
+                    kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
+                    kernel.Bind<ISource>().ToConstructor(x => new ConcreteSource());
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
                     try
                     {
@@ -3130,7 +3423,7 @@ namespace Integra.Space.UnitTests
                                             && x.StreamId == stream.StreamId).ToArray();
 
                         Assert.IsTrue(projectionColumns.Any(x => x.ColumnName == "c1" && x.ColumnType == typeof(string).AssemblyQualifiedName));
-                        Assert.IsTrue(projectionColumns.Any(x => x.ColumnName == "c2" && x.ColumnType == typeof(object).AssemblyQualifiedName));
+                        Assert.IsTrue(projectionColumns.Any(x => x.ColumnName == "c2" && x.ColumnType == typeof(string).AssemblyQualifiedName));
                         Assert.IsTrue(projectionColumns.Any(x => x.ColumnName == "numeroXXX" && x.ColumnType == typeof(int).AssemblyQualifiedName));
                         tran.Rollback();
                     }
@@ -3149,15 +3442,15 @@ namespace Integra.Space.UnitTests
             string streamName = "newStream";
             string sourceName = "newSource";
             string eql = "cross " +
-                                   "JOIN SourceInicial as t1 WHERE t1.@event.Message.#1.#2 == \"9999941616073663_1\" " +
-                                   "WITH SourceInicial as t2 WHERE t2.@event.Message.#1.#2 == \"9999941616073663_2\" " +
-                                   "ON t1.@event.Message.#1.#32 == t2.@event.Message.#1.#32 " +
+                                   "JOIN SourceParaPruebas as t1 WHERE t1.PrimaryAccountNumber == \"9999941616073663_1\" " +
+                                   "WITH SourceParaPruebas as t2 WHERE t2.PrimaryAccountNumber == \"9999941616073663_2\" " +
+                                   "ON t1.AcquiringInstitutionIdentificationCode == t2.AcquiringInstitutionIdentificationCode " +
                                    "TIMEOUT '00:00:02' " +
                                    //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
-                                   $"SELECT (string)t1.@event.Message.#1.#2 as c1, t2.@event.Message.#1.#2 as c2, 1 as numeroXXX into {sourceName} ";
+                                   $"SELECT (string)t1.PrimaryAccountNumber as c1, t2.PrimaryAccountNumber as c2, 1 as numeroXXX into {sourceName} ";
 
-            string command = $"create source {sourceName} (c1 string, c2 object, numeroXXX int); create stream {streamName} {{ {eql} }} with status = on; alter stream {streamName} with status = off";
-            this.loginName = "AdminLogin";
+            string command = $"use Database2; create source {sourceName} (c1 string, c2 string, numeroXXX int); create stream {streamName} {{ {eql} }} with status = on; alter stream {streamName} with status = off";
+            this.loginName = "sa";
 
             IKernel kernel = new StandardKernel();
             using (SpaceDbContext dbContext = new SpaceDbContext())
@@ -3165,6 +3458,13 @@ namespace Integra.Space.UnitTests
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
+                    SpaceAssemblyBuilder sasmBuilder = new SpaceAssemblyBuilder("Test");
+                    AssemblyBuilder asmBuilder = sasmBuilder.CreateAssemblyBuilder();
+                    SpaceModuleBuilder smodBuilder = new SpaceModuleBuilder(asmBuilder);
+                    smodBuilder.CreateModuleBuilder();
+                    kernel.Bind<AssemblyBuilder>().ToConstant(asmBuilder);
+                    kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
+                    kernel.Bind<ISource>().ToConstructor(x => new ConcreteSource());
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
                     try
                     {
@@ -3178,7 +3478,7 @@ namespace Integra.Space.UnitTests
                                             && x.StreamId == stream.StreamId).ToArray();
 
                         Assert.IsTrue(projectionColumns.Any(x => x.ColumnName == "c1" && x.ColumnType == typeof(string).AssemblyQualifiedName));
-                        Assert.IsTrue(projectionColumns.Any(x => x.ColumnName == "c2" && x.ColumnType == typeof(object).AssemblyQualifiedName));
+                        Assert.IsTrue(projectionColumns.Any(x => x.ColumnName == "c2" && x.ColumnType == typeof(string).AssemblyQualifiedName));
                         Assert.IsTrue(projectionColumns.Any(x => x.ColumnName == "numeroXXX" && x.ColumnType == typeof(int).AssemblyQualifiedName));
                         tran.Rollback();
                     }
@@ -3357,6 +3657,11 @@ namespace Integra.Space.UnitTests
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
+                    SpaceAssemblyBuilder sasmBuilder = new SpaceAssemblyBuilder("Test");
+                    AssemblyBuilder asmBuilder = sasmBuilder.CreateAssemblyBuilder();
+                    SpaceModuleBuilder smodBuilder = new SpaceModuleBuilder(asmBuilder);
+                    smodBuilder.CreateModuleBuilder();
+                    kernel.Bind<AssemblyBuilder>().ToConstant(asmBuilder);
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
                     try
                     {
@@ -3379,15 +3684,15 @@ namespace Integra.Space.UnitTests
             string sourceName = "sourceNameXX";
             string streamName = "newStream";
             string eql = "cross " +
-                                   $"JOIN SourceInicial as t1 WHERE t1.@event.Message.#1.#2 == \"9999941616073663_1\" " +
-                                   $"WITH SourceInicial as t2 WHERE t2.@event.Message.#1.#2 == \"9999941616073663_2\" " +
-                                   "ON t1.@event.Message.#1.#32 == t2.@event.Message.#1.#32 " +
+                                   $"JOIN SourceParaPruebas as t1 WHERE t1.PrimaryAccountNumber == \"9999941616073663_1\" " +
+                                   $"WITH SourceParaPruebas as t2 WHERE t2.PrimaryAccountNumber == \"9999941616073663_2\" " +
+                                   "ON t1.AcquiringInstitutionIdentificationCode == t2.AcquiringInstitutionIdentificationCode " +
                                    "TIMEOUT '00:00:02' " +
                                    //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
-                                   $"SELECT (string)t1.@event.Message.#1.#2 as c1, t2.@event.Message.#1.#2 as c2, 1 as numeroXXX into {sourceName} ";
+                                   $"SELECT (string)t1.PrimaryAccountNumber as c1, t2.PrimaryAccountNumber as c2, 1 as numeroXXX into {sourceName} ";
 
-            string command = $"create source {sourceName} (c1 string, c2 object, numeroXXX int); create stream {streamName} {{ {eql} }}; drop stream {streamName}";
-            this.loginName = "AdminLogin";
+            string command = $"use Database2; create source {sourceName} (c1 string, c2 string, numeroXXX int); create stream {streamName} {{ {eql} }}; drop stream {streamName}";
+            this.loginName = "sa";
 
             IKernel kernel = new StandardKernel();
             using (SpaceDbContext dbContext = new SpaceDbContext())
@@ -3395,6 +3700,9 @@ namespace Integra.Space.UnitTests
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
+                    kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
+                    kernel.Bind<ISource>().ToConstructor(x => new ConcreteSource());
+
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
                     try
                     {
@@ -3431,6 +3739,11 @@ namespace Integra.Space.UnitTests
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
                     try
                     {
+                        SpaceAssemblyBuilder sasmBuilder1 = new SpaceAssemblyBuilder("Test");
+                        AssemblyBuilder asmBuilder1 = sasmBuilder1.CreateAssemblyBuilder();
+                        SpaceModuleBuilder smodBuilder1 = new SpaceModuleBuilder(asmBuilder1);
+                        smodBuilder1.CreateModuleBuilder();
+                        kernel.Bind<AssemblyBuilder>().ToConstant(asmBuilder1);
                         FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
                         bool exists = dbContext.Sources.Any(x => x.SourceName == sourceName);
                         Assert.IsTrue(exists);
@@ -3511,21 +3824,22 @@ namespace Integra.Space.UnitTests
             string userNameThatCreateTheStream = "UserAux";
             string sourceNameTest = "source1234";
             string sourceNameTest2 = "sourceForInto";
-            string firstCommand = $"create source {sourceNameTest2} (c1 object, c3 object); create source {sourceNameTest} (column1 int, column2 decimal, column3 string); grant create stream, read on source {sourceNameTest} to user {userNameThatCreateTheStream}";
+            string databaseName = "Database2";
+            string firstCommand = $"use {databaseName}; create source {sourceNameTest2} (c1 string, c3 string); create source {sourceNameTest} (MessageType string, RetrievalReferenceNumber string, PrimaryAccountNumber string, SourceTimestamp datetime, column1 int, column2 decimal, column3 string); grant create stream, read on source {sourceNameTest}, write on source {sourceNameTest2} to user {userNameThatCreateTheStream}";
 
             string newStreamName = "Stream1234";
             string eql = $@"cross 
-                                  JOIN {sourceNameTest} as t1 WHERE t1.@event.Message.#0.#0 == ""0100""
-                                  WITH {sourceNameTest} as t2 WHERE t2.@event.Message.#0.#0 == ""0110""
-                                  ON (string)t1.@event.Message.#1.#0 == (string)t2.@event.Message.#1.#0 and (string)t1.@event.Message.#1.#1 == (string)t2.@event.Message.#1.#1 
+                                  JOIN {sourceNameTest} as t1 WHERE t1.MessageType == ""0100""
+                                  WITH {sourceNameTest} as t2 WHERE t2.MessageType == ""0110""
+                                  ON (string)t1.PrimaryAccountNumber == (string)t2.PrimaryAccountNumber and (string)t1.RetrievalReferenceNumber == (string)t2.RetrievalReferenceNumber 
                                   TIMEOUT '00:00:01.5' 
-                                  WHERE isnull(t2.@event.SourceTimestamp, '01/01/2017') - isnull(t1.@event.SourceTimestamp, '01/01/2016') <= '00:00:01'
+                                  WHERE isnull(t2.SourceTimestamp, '01/01/2017') - isnull(t1.SourceTimestamp, '01/01/2016') <= '00:00:01'
                                   SELECT
-                                          t1.@event.Message.#1.#0 as c1,
-                                          t2.@event.Message.#1.#0 as c3 
+                                          t1.PrimaryAccountNumber as c1,
+                                          t2.PrimaryAccountNumber as c3 
                                   INTO {sourceNameTest2} ";
 
-            string secondCommand = $"create stream {newStreamName} {{\n{ eql }\n}}";
+            string secondCommand = $"use {databaseName}; create stream {newStreamName} {{\n{ eql }\n}}";
             IKernel kernel = new StandardKernel();
 
             using (SpaceDbContext dbContext = new SpaceDbContext())
@@ -3533,22 +3847,25 @@ namespace Integra.Space.UnitTests
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
-
-                    this.loginName = "AdminLogin";
+                    this.loginName = "sa";
                     FirstLevelPipelineContext result1 = this.ProcessCommand(firstCommand, kernel);
 
+                    kernel = new StandardKernel();
+                    kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
+                    kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
+                    kernel.Bind<ISource>().ToConstructor(x => new ConcreteSource());
                     this.loginName = "LoginAux";
                     FirstLevelPipelineContext result2 = this.ProcessCommand(secondCommand, kernel);
 
                     Server server = dbContext.Servers.Single(x => x.ServerName == "Server1");
-                    Database.Database db = dbContext.Databases.Single(x => x.ServerId == server.ServerId && x.DatabaseName == "Database1");
-                    Database.Schema schema = dbContext.Schemas.Single(x => x.ServerId == server.ServerId && x.DatabaseId == db.DatabaseId && x.SchemaName == "Schema1");
+                    Database.Database db = dbContext.Databases.Single(x => x.ServerId == server.ServerId && x.DatabaseName == databaseName);
+                    Database.Schema schema = dbContext.Schemas.Single(x => x.ServerId == server.ServerId && x.DatabaseId == db.DatabaseId && x.SchemaName == "dbo");
                     Database.Stream stream = dbContext.Streams.Single(x => x.ServerId == schema.ServerId && x.DatabaseId == schema.DatabaseId && x.SchemaId == schema.SchemaId && x.StreamName == newStreamName);
                     Assert.IsNotNull(stream);
                     Assert.AreEqual<string>(newStreamName, stream.StreamName);
 
-                    Assert.IsTrue(stream.ProjectionColumns.Any(x => x.ColumnName == "c1" && x.ColumnType == typeof(object).AssemblyQualifiedName));
-                    Assert.IsTrue(stream.ProjectionColumns.Any(x => x.ColumnName == "c3" && x.ColumnType == typeof(object).AssemblyQualifiedName));
+                    Assert.IsTrue(stream.ProjectionColumns.Any(x => x.ColumnName == "c1" && x.ColumnType == typeof(string).AssemblyQualifiedName));
+                    Assert.IsTrue(stream.ProjectionColumns.Any(x => x.ColumnName == "c3" && x.ColumnType == typeof(string).AssemblyQualifiedName));
 
                     Console.WriteLine();
                     tran.Rollback();
@@ -3657,6 +3974,11 @@ namespace Integra.Space.UnitTests
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
+                    SpaceAssemblyBuilder sasmBuilder = new SpaceAssemblyBuilder("Test");
+                    AssemblyBuilder asmBuilder = sasmBuilder.CreateAssemblyBuilder();
+                    SpaceModuleBuilder smodBuilder = new SpaceModuleBuilder(asmBuilder);
+                    smodBuilder.CreateModuleBuilder();
+                    kernel.Bind<AssemblyBuilder>().ToConstant(asmBuilder);
 
                     this.loginName = "AdminLogin";
                     FirstLevelPipelineContext result1 = this.ProcessCommand(firstCommand, kernel);

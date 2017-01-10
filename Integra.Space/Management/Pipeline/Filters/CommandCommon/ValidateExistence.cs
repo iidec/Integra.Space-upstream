@@ -10,7 +10,6 @@ namespace Integra.Space.Pipeline.Filters
     using System.Linq;
     using Common;
     using Database;
-    using Language;
     using Ninject;
 
     /// <summary>
@@ -66,7 +65,17 @@ namespace Integra.Space.Pipeline.Filters
                         exists = this.ExistSourceColumn(@object.GranularObjectName, @object.Name, context.Kernel, schema);
                         break;
                     case SystemObjectEnum.Source:
-                        exists = this.ExistSource(@object.Name, context.Kernel, schema);
+                        // se valida si es una fuente del sistema Ej. para metadata.
+                        SystemSourceEnum systemSource;
+                        if (Enum.TryParse(@object.Name, true, out systemSource))
+                        {
+                            continue;
+                        }
+                        else
+                        {
+                            exists = this.ExistSource(@object.Name, context.Kernel, schema);
+                        }
+
                         break;
                     case SystemObjectEnum.Stream:
                         exists = this.ExistStream(@object.Name, context.Kernel, schema);

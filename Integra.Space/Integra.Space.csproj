@@ -41,12 +41,15 @@
       <HintPath>..\packages\Integra.Messaging.Debug.2.1.0.0\lib\net45\Integra.Messaging.dll</HintPath>
       <Private>True</Private>
     </Reference>
+    <Reference Include="Integra.Space.Compiler.CodeGeneration">
+      <HintPath>..\..\Integra.Space.Language\Integra.Space.Compiler.CodeGeneration\bin\Debug\Integra.Space.Compiler.CodeGeneration.dll</HintPath>
+    </Reference>
     <Reference Include="Integra.Space.Language">
       <HintPath>..\..\Integra.Space.Language\Integra.Space.Language\bin\Debug\Integra.Space.Language.dll</HintPath>
     </Reference>
     <Reference Include="Integra.Space.Runtime, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Integra.Space.Runtime.Debug.0.0.1\lib\Integra.Space.Runtime.dll</HintPath>
-      <Private>True</Private>
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\Integra.Space.Language\Integra.Space.Runtime\bin\Debug\Integra.Space.Runtime.dll</HintPath>
     </Reference>
     <Reference Include="Irony, Version=1.0.0.0, Culture=neutral, PublicKeyToken=ca48ace7223ead47, processorArchitecture=MSIL">
       <HintPath>..\packages\Irony.0.9.1\lib\net40\Irony.dll</HintPath>
@@ -63,30 +66,31 @@
     <Reference Include="System" />
     <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
-    <Reference Include="System.Reactive.Core, Version=3.0.0.0, Culture=neutral, PublicKeyToken=94bc3704cddfc263, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Reactive.Core.3.0.0\lib\net45\System.Reactive.Core.dll</HintPath>
+    <Reference Include="System.Reactive.Core, Version=3.0.1000.0, Culture=neutral, PublicKeyToken=94bc3704cddfc263, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Reactive.Core.3.1.1\lib\net45\System.Reactive.Core.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="System.Reactive.Interfaces, Version=3.0.0.0, Culture=neutral, PublicKeyToken=94bc3704cddfc263, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Reactive.Interfaces.3.0.0\lib\net45\System.Reactive.Interfaces.dll</HintPath>
+    <Reference Include="System.Reactive.Interfaces, Version=3.0.1000.0, Culture=neutral, PublicKeyToken=94bc3704cddfc263, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Reactive.Interfaces.3.1.1\lib\net45\System.Reactive.Interfaces.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="System.Reactive.Linq, Version=3.0.0.0, Culture=neutral, PublicKeyToken=94bc3704cddfc263, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Reactive.Linq.3.0.0\lib\net45\System.Reactive.Linq.dll</HintPath>
+    <Reference Include="System.Reactive.Linq, Version=3.0.1000.0, Culture=neutral, PublicKeyToken=94bc3704cddfc263, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Reactive.Linq.3.1.1\lib\net45\System.Reactive.Linq.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="System.Reactive.PlatformServices, Version=3.0.0.0, Culture=neutral, PublicKeyToken=94bc3704cddfc263, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Reactive.PlatformServices.3.0.0\lib\net45\System.Reactive.PlatformServices.dll</HintPath>
+    <Reference Include="System.Reactive.PlatformServices, Version=3.0.1000.0, Culture=neutral, PublicKeyToken=94bc3704cddfc263, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Reactive.PlatformServices.3.1.1\lib\net45\System.Reactive.PlatformServices.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="System.Reactive.Providers, Version=3.0.0.0, Culture=neutral, PublicKeyToken=94bc3704cddfc263, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Reactive.Providers.3.0.0\lib\net45\System.Reactive.Providers.dll</HintPath>
+    <Reference Include="System.Reactive.Providers, Version=3.0.1000.0, Culture=neutral, PublicKeyToken=94bc3704cddfc263, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Reactive.Providers.3.1.1\lib\net45\System.Reactive.Providers.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="System.Reactive.Windows.Threading, Version=3.0.0.0, Culture=neutral, PublicKeyToken=94bc3704cddfc263, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Reactive.Windows.Threading.3.0.0\lib\net45\System.Reactive.Windows.Threading.dll</HintPath>
+    <Reference Include="System.Reactive.Windows.Threading, Version=3.0.1000.0, Culture=neutral, PublicKeyToken=94bc3704cddfc263, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Reactive.Windows.Threading.3.1.1\lib\net45\System.Reactive.Windows.Threading.dll</HintPath>
       <Private>True</Private>
     </Reference>
+    <Reference Include="System.Windows" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -107,8 +111,11 @@
     <Compile Include="Management\Pipeline\Filters\CommandSpecific\Alter\Level2\AlterRoleFilter.cs" />
     <Compile Include="Management\Pipeline\Filters\CommandSpecific\Alter\Level2\AlterSchemaFilter.cs" />
     <Compile Include="Management\Pipeline\Filters\CommandSpecific\Alter\Level3\AlterDatabaseFilter.cs" />
+    <Compile Include="Management\Pipeline\Filters\CommandSpecific\Metadata\ValidateMetadataOutputColumnsCompatibilityFilter.cs" />
+    <Compile Include="Management\Pipeline\Filters\CommandSpecific\Source\AlterSourceTypeFilter.cs" />
     <Compile Include="Management\Pipeline\Filters\CommandSpecific\Source\CreateSourceTypeFilter.cs" />
-    <Compile Include="Management\Pipeline\Filters\CommandSpecific\Metadata\TruncateFilter.cs" />
+    <Compile Include="Management\Pipeline\Filters\CommandSpecific\Source\InsertFilter.cs" />
+    <Compile Include="Management\Pipeline\Filters\CommandSpecific\Source\TruncateFilter.cs" />
     <Compile Include="Management\Pipeline\Filters\CommandSpecific\Metadata\ServerRoleMetadataQueryFilter.cs" />
     <Compile Include="Management\Pipeline\Filters\CommandSpecific\Metadata\EndpointMetadataQueryFilter.cs" />
     <Compile Include="Management\Pipeline\Filters\CommandSpecific\Metadata\LoginMetadataQueryFilter.cs" />
@@ -140,11 +147,14 @@
     <Compile Include="Management\Pipeline\Filters\CommandSpecific\Permission\TakeOwnership\TakeOwnershipOfViewFilter.cs" />
     <Compile Include="Management\Pipeline\Filters\CommandSpecific\Permission\TakeOwnership\TakeOwnershipOfSourceFilter.cs" />
     <Compile Include="Management\Pipeline\Filters\CommandSpecific\Permission\TakeOwnership\TakeOwnershipOfStreamFilter.cs" />
+    <Compile Include="Management\Pipeline\Filters\CommandSpecific\CreateAssemblyBuilderFilter.cs" />
+    <Compile Include="Management\Pipeline\Filters\CommandSpecific\TransformExecutionPlanFilter.cs" />
     <Compile Include="Management\Pipeline\Filters\CommandSpecific\Stream\ParseQueryForAlterStreamFilter.cs" />
     <Compile Include="Management\Pipeline\Filters\CommandSpecific\Stream\ParseQueryForCreateStreamFilter.cs" />
-    <Compile Include="Management\Pipeline\Filters\CommandSpecific\Stream\ValidateAlterStreamColumnsCompatibilityFilter.cs" />
-    <Compile Include="Management\Pipeline\Filters\CommandSpecific\Stream\ValidateCreateStreamColumnsCompatibilityFilter.cs" />
+    <Compile Include="Management\Pipeline\Filters\CommandSpecific\Stream\ValidateAlterStreamOutputColumnsCompatibilityFilter.cs" />
+    <Compile Include="Management\Pipeline\Filters\CommandSpecific\Stream\ValidateCreateStreamOutputColumnsCompatibilityFilter.cs" />
     <Compile Include="Management\Pipeline\Filters\CommandSpecific\Use\UseFilter.cs" />
+    <Compile Include="Management\Pipeline\Filters\CommandSpecific\OutputColumnsCompatibilityValidatorFilter.cs" />
     <Compile Include="Management\Pipeline\Filters\FirstLevelCommandFilter.cs" />
     <Compile Include="Management\Pipeline\Filters\CommandFilter.cs" />
     <Compile Include="Management\Pipeline\Filters\FirstLevelCommandPipeline.cs" />
@@ -190,13 +200,14 @@
     <Compile Include="Management\Pipeline\Filters\General\SpecificFiltersAggregator.cs" />
     <Compile Include="Management\Pipeline\Filters\General\CommandParserFilter.cs" />
     <Compile Include="Management\Pipeline\Filters\CommandCommon\ValidateExistence.cs" />
-    <Compile Include="Management\Pipeline\Helpers\CommandObjectExtensions.cs" />
+    <Compile Include="Management\Pipeline\Helpers\ISource.cs" />
     <Compile Include="Management\Pipeline\PipelineBuilderBase.cs" />
     <Compile Include="Management\Pipeline\Pipeline.cs" />
     <Compile Include="Management\Pipeline\PipelineExtensions.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="app.config" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>

@@ -56,6 +56,7 @@ namespace Integra.Space.Pipeline.Filters
             databaseContext.Sources.Add(source);
             databaseContext.SaveChanges();
 
+            byte index = 1;
             foreach (KeyValuePair<string, Type> kvp in command.Columns)
             {
                 SourceColumn column = new SourceColumn();
@@ -66,6 +67,8 @@ namespace Integra.Space.Pipeline.Filters
                 column.ServerId = source.ServerId;
                 column.ColumnName = kvp.Key;
                 column.ColumnType = kvp.Value.AssemblyQualifiedName;
+                column.ColumnIndex = index;
+                index++;
 
                 databaseContext.SourceColumns.Add(column);
             }

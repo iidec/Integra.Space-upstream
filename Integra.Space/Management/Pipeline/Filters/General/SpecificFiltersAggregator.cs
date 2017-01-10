@@ -56,26 +56,85 @@ namespace Integra.Space.Pipeline.Filters
             if (commandNode.Command is QueryCommandForMetadataNode)
             {
                 QueryCommandForMetadataNode dmlCommand = (QueryCommandForMetadataNode)commandNode.Command;
-                PlanNode fromNode = Language.Runtime.NodesFinder.FindNode(dmlCommand.ExecutionPlan, new PlanNodeTypeEnum[] { PlanNodeTypeEnum.ObservableFrom }).First();
-                Type typeItemSource = ((Type)fromNode.Properties["SourceType"]).GetGenericArguments()[0];
-
-                SystemObjectEnum objectType;
-                if (Enum.TryParse(typeItemSource.Name, true, out objectType))
-                {
-                    commandNode.Pipeline = SpecificFilterSelector.GetSpecificFilter(new SpecificFilterKey(action, objectType));
-                }
-                else
-                {
-                    throw new Exception(string.Format("The system type '{0}' does not exist.", typeItemSource.Name));
-                }
+                PlanNode fromNode = NodesFinder.FindNode(dmlCommand.ExecutionPlan, new PlanNodeTypeEnum[] { PlanNodeTypeEnum.ObservableFrom }).First();
+                commandNode.Pipeline = SpecificFilterSelector.GetSpecificFilter(new SpecificFilterKey(action, this.GetSystemObject(fromNode.Properties["SourceName"].ToString())));
             }
             else if (action == ActionCommandEnum.Truncate)
+            {
+                commandNode.Pipeline = SpecificFilterSelector.GetSpecificFilter(new SpecificFilterKey(action, commandNode.Command.CommandObjects.Single().SecurableClass));
+            }
+            else if (action == ActionCommandEnum.Insert)
             {
                 commandNode.Pipeline = SpecificFilterSelector.GetSpecificFilter(new SpecificFilterKey(action, commandNode.Command.CommandObjects.Single().SecurableClass));
             }
             else if (commandNode.Command is TemporalStreamNode)
             {
                 throw new NotImplementedException("Temporal stream pipe not implemented.");
+            }
+        }
+
+        /// <summary>
+        /// Gets the system object based in a given metadata source name.
+        /// </summary>
+        /// <param name="sourceName">Source name.</param>
+        /// <returns>System object type.</returns>
+        private SystemObjectEnum GetSystemObject(string sourceName)
+        {
+            if (sourceName.ToString().Equals("servers", StringComparison.InvariantCultureIgnoreCase))
+            {
+                return SystemObjectEnum.Server;
+            }
+            else if (sourceName.Equals("endpoints", StringComparison.InvariantCultureIgnoreCase))
+            {
+                return SystemObjectEnum.Endpoint;
+            }
+            else if (sourceName.Equals("logins", StringComparison.InvariantCultureIgnoreCase))
+            {
+                return SystemObjectEnum.Login;
+            }
+            else if (sourceName.Equals("serverroles", StringComparison.InvariantCultureIgnoreCase))
+            {
+                return SystemObjectEnum.ServerRole;
+            }
+            else if (sourceName.Equals("databases", StringComparison.InvariantCultureIgnoreCase))
+            {
+                return SystemObjectEnum.Database;
+            }
+            else if (sourceName.Equals("users", StringComparison.InvariantCultureIgnoreCase))
+            {
+                return SystemObjectEnum.DatabaseUser;
+            }
+            else if (sourceName.Equals("databaseroles", StringComparison.InvariantCultureIgnoreCase))
+            {
+                return SystemObjectEnum.DatabaseRole;
+            }
+            else if (sourceName.Equals("schemas", StringComparison.InvariantCultureIgnoreCase))
+            {
+                return SystemObjectEnum.Schema;
+            }
+            else if (sourceName.Equals("sources", StringComparison.InvariantCultureIgnoreCase))
+            {
+                return SystemObjectEnum.Source;
+            }
+            else if (sourceName.Equals("sourcecolumns", StringComparison.InvariantCultureIgnoreCase))
+            {
+                return SystemObjectEnum.SourceColumn;
+            }
+            else if (sourceName.Equals("streams", StringComparison.InvariantCultureIgnoreCase))
+            {
+                return SystemObjectEnum.Stream;
+            }
+            else if (sourceName.Equals("streamcolumns", StringComparison.InvariantCultureIgnoreCase))
+            {
+                return SystemObjectEnum.StreamColumn;
+            }
+            else if (sourceName.Equals("views", StringComparison.InvariantCultureIgnoreCase))
+            {
+                return SystemObjectEnum.View;
+            }
+            else
+            {
+                throw new Exception("Invalid source name.");
             }
         }
 

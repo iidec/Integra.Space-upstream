@@ -23,7 +23,7 @@ namespace Integra.Space.Pipeline.Filters
         /// Dictionary of filters for permissions.
         /// </summary>
         private static Dictionary<SystemObjectEnum, Filter<PipelineContext, PipelineContext>> filterDictionaryForPermissions;
-        
+
         /// <summary>
         /// Initializes static members of the <see cref="SpecificFilterSelector"/> class.
         /// </summary>
@@ -35,8 +35,13 @@ namespace Integra.Space.Pipeline.Filters
             // add the specific filters.
             // create
             // level 1
-            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.Create, SystemObjectEnum.Source), new CreateSourceFilter().AddStep(new CreateSourceTypeFilter()));
-            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.Create, SystemObjectEnum.Stream), new ValidateCreateStreamColumnsCompatibilityFilter().AddStep(new ParseQueryForCreateStreamFilter()).AddStep(new CreateStreamFilter()));
+            Filter<PipelineContext, PipelineContext> createStream = new CreateAssemblyBuilderFilter()
+                                                                        .AddStep(new TransformExecutionPlanFilter())
+                                                                        .AddStep(new ValidateCreateStreamOutputColumnsCompatibilityFilter())
+                                                                        .AddStep(new ParseQueryForCreateStreamFilter())
+                                                                        .AddStep(new CreateStreamFilter());
+            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.Create, SystemObjectEnum.Stream), createStream);
+            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.Create, SystemObjectEnum.Source), new CreateAssemblyBuilderFilter().AddStep(new CreateSourceFilter().AddStep(new CreateSourceTypeFilter())));
             /* filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.Create, SystemObjectEnum.View), new CreateViewFilter() /* .AddStep(new FilterQueryParser()) ); */
 
             // level 2
@@ -54,8 +59,13 @@ namespace Integra.Space.Pipeline.Filters
 
             // alter
             // level 1
-            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.Alter, SystemObjectEnum.Stream), new ValidateAlterStreamColumnsCompatibilityFilter().AddStep(new ParseQueryForAlterStreamFilter()).AddStep(new AlterStreamFilter()));
-            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.Alter, SystemObjectEnum.Source), new AlterSourceFilter());
+            Filter<PipelineContext, PipelineContext> alterStream = new CreateAssemblyBuilderFilter()
+                                                                       .AddStep(new TransformExecutionPlanFilter())
+                                                                       .AddStep(new ValidateAlterStreamOutputColumnsCompatibilityFilter())
+                                                                       .AddStep(new ParseQueryForAlterStreamFilter())
+                                                                       .AddStep(new AlterStreamFilter());
+            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.Alter, SystemObjectEnum.Stream), alterStream);
+            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.Alter, SystemObjectEnum.Source), new CreateAssemblyBuilderFilter().AddStep(new AlterSourceFilter().AddStep(new AlterSourceTypeFilter())));
             /* filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.Alter, SystemObjectEnum.View), new AlterViewFilter() /* .AddStep(new FilterQueryParser()) );*/
 
             // level 2
@@ -108,20 +118,23 @@ namespace Integra.Space.Pipeline.Filters
             filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.TakeOwnership, SystemObjectEnum.View), new TakeOwnershipOfViewFilter());
 
             // view definition
-            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.ViewDefinition, SystemObjectEnum.Database), new DatabaseMetadataQueryFilter());
-            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.ViewDefinition, SystemObjectEnum.DatabaseRole), new DatabaseRoleMetadataQueryFilter());
-            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.ViewDefinition, SystemObjectEnum.DatabaseUser), new UserMetadataQueryFilter());
-            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.ViewDefinition, SystemObjectEnum.Endpoint), new EndpointMetadataQueryFilter());
-            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.ViewDefinition, SystemObjectEnum.Login), new LoginMetadataQueryFilter());
-            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.ViewDefinition, SystemObjectEnum.Schema), new SchemaMetadataQueryFilter());
-            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.ViewDefinition, SystemObjectEnum.Server), new ServerMetadataQueryFilter());
-            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.ViewDefinition, SystemObjectEnum.ServerRole), new ServerRoleMetadataQueryFilter());
-            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.ViewDefinition, SystemObjectEnum.Source), new SourceMetadataQueryFilter());
-            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.ViewDefinition, SystemObjectEnum.Stream), new StreamMetadataQueryFilter());
-            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.ViewDefinition, SystemObjectEnum.View), new ViewMetadataQueryFilter());
+            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.ViewDefinition, SystemObjectEnum.Database), new CreateAssemblyBuilderFilter().AddStep(new TransformExecutionPlanFilter()).AddStep(new ValidateMetadataOutputColumnsCompatibilityFilter().AddStep(new DatabaseMetadataQueryFilter())));
+            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.ViewDefinition, SystemObjectEnum.DatabaseRole), new CreateAssemblyBuilderFilter().AddStep(new TransformExecutionPlanFilter()).AddStep(new ValidateMetadataOutputColumnsCompatibilityFilter().AddStep(new DatabaseRoleMetadataQueryFilter())));
+            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.ViewDefinition, SystemObjectEnum.DatabaseUser), new CreateAssemblyBuilderFilter().AddStep(new TransformExecutionPlanFilter()).AddStep(new ValidateMetadataOutputColumnsCompatibilityFilter().AddStep(new UserMetadataQueryFilter())));
+            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.ViewDefinition, SystemObjectEnum.Endpoint), new CreateAssemblyBuilderFilter().AddStep(new TransformExecutionPlanFilter()).AddStep(new ValidateMetadataOutputColumnsCompatibilityFilter().AddStep(new EndpointMetadataQueryFilter())));
+            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.ViewDefinition, SystemObjectEnum.Login), new CreateAssemblyBuilderFilter().AddStep(new TransformExecutionPlanFilter()).AddStep(new ValidateMetadataOutputColumnsCompatibilityFilter().AddStep(new LoginMetadataQueryFilter())));
+            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.ViewDefinition, SystemObjectEnum.Schema), new CreateAssemblyBuilderFilter().AddStep(new TransformExecutionPlanFilter()).AddStep(new ValidateMetadataOutputColumnsCompatibilityFilter().AddStep(new SchemaMetadataQueryFilter())));
+            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.ViewDefinition, SystemObjectEnum.Server), new CreateAssemblyBuilderFilter().AddStep(new TransformExecutionPlanFilter()).AddStep(new ValidateMetadataOutputColumnsCompatibilityFilter().AddStep(new ServerMetadataQueryFilter())));
+            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.ViewDefinition, SystemObjectEnum.ServerRole), new CreateAssemblyBuilderFilter().AddStep(new TransformExecutionPlanFilter()).AddStep(new ValidateMetadataOutputColumnsCompatibilityFilter().AddStep(new ServerRoleMetadataQueryFilter())));
+            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.ViewDefinition, SystemObjectEnum.Source), new CreateAssemblyBuilderFilter().AddStep(new TransformExecutionPlanFilter()).AddStep(new ValidateMetadataOutputColumnsCompatibilityFilter().AddStep(new SourceMetadataQueryFilter())));
+            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.ViewDefinition, SystemObjectEnum.Stream), new CreateAssemblyBuilderFilter().AddStep(new TransformExecutionPlanFilter()).AddStep(new ValidateMetadataOutputColumnsCompatibilityFilter().AddStep(new StreamMetadataQueryFilter())));
+            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.ViewDefinition, SystemObjectEnum.View), new CreateAssemblyBuilderFilter().AddStep(new TransformExecutionPlanFilter()).AddStep(new ValidateMetadataOutputColumnsCompatibilityFilter().AddStep(new ViewMetadataQueryFilter())));
 
             // truncate source
             filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.Truncate, SystemObjectEnum.Source), new TruncateFilter());
+
+            // insert source
+            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.Insert, SystemObjectEnum.Source), new InsertFilter());
         }
 
         /// <summary>
