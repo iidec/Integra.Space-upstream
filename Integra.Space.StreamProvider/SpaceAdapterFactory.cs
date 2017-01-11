@@ -42,7 +42,7 @@ namespace Integra.Space.StreamProvider
 			this.connectionString = new RedisConnectionString(config.Properties["ConnectionString"]);
 			connectionString.Validate();
 			this.queueMapper = new HashRingBasedStreamQueueMapper(1, this.providerName);
-			this.adapterCache = new SpaceQueueAdapterCache(1024, this.logger);
+			this.adapterCache = new SimpleQueueAdapterCache(1024, this.logger);
 		}
 
 		public Task<IQueueAdapter> CreateAdapter()
