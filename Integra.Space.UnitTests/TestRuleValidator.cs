@@ -32,13 +32,6 @@ namespace Integra.Space.UnitTests
         public bool IsAnAllowedFunctionality(EQLFunctionalityEnum functionality)
         {
             return true;
-
-            if (functionalities.ContainsKey(functionality))
-            {
-                return functionalities[functionality];
-            }
-
-            return false;
         }
     }
 }
