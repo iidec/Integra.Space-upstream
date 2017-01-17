@@ -52,7 +52,7 @@ namespace Integra.Space.Pipeline.Filters
             if (command.ColumnsToAdd != null)
             {
                 byte index = source.Columns.Max(x => x.ColumnIndex);
-                foreach (KeyValuePair<string, System.Type> kvp in command.ColumnsToAdd)
+                foreach (Language.SourceColumnNode kvp in command.ColumnsToAdd)
                 {
                     SourceColumn column = new SourceColumn();
                     column.ColumnId = System.Guid.NewGuid();
@@ -60,9 +60,10 @@ namespace Integra.Space.Pipeline.Filters
                     column.SchemaId = source.SchemaId;
                     column.DatabaseId = source.DatabaseId;
                     column.ServerId = source.ServerId;
-                    column.ColumnName = kvp.Key;
-                    column.ColumnType = kvp.Value.AssemblyQualifiedName;
+                    column.ColumnName = kvp.Name;
+                    column.ColumnType = kvp.Type.ColumnType.AssemblyQualifiedName;
                     column.ColumnIndex = ++index;
+                    column.ColumnLength = (int?)kvp.Type.Length;
 
                     databaseContext.SourceColumns.Add(column);
                 }
@@ -72,7 +73,7 @@ namespace Integra.Space.Pipeline.Filters
 
             if (command.ColumnsToRemove != null)
             {
-                IEnumerable<SourceColumn> columnsToRemove = source.Columns.Where(x => command.ColumnsToRemove.ContainsKey(x.ColumnName));
+                IEnumerable<SourceColumn> columnsToRemove = source.Columns.Where(x => command.ColumnsToRemove.Select(y => y.Name).Contains(x.ColumnName));
                 databaseContext.SourceColumns.RemoveRange(columnsToRemove);
             }
 

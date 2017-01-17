@@ -134,7 +134,7 @@ namespace Integra.Space.Pipeline.Filters
             filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.Truncate, SystemObjectEnum.Source), new TruncateFilter());
 
             // insert source
-            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.Insert, SystemObjectEnum.Source), new InsertFilter());
+            filterDictionary.Add(new SpecificFilterKey(ActionCommandEnum.Insert, SystemObjectEnum.Source), new ValidateInsertFilter().AddStep(new InsertFilter()));
         }
 
         /// <summary>

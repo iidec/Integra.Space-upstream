@@ -7,6 +7,7 @@ using System.Data.Entity;
 using System.Linq;
 using System.Reflection.Emit;
 using Integra.Space.Compiler;
+using Ninject.Planning.Bindings;
 
 namespace Integra.Space.UnitTests
 {
@@ -17,6 +18,12 @@ namespace Integra.Space.UnitTests
 
         private FirstLevelPipelineContext ProcessCommand(string command, IKernel kernel)
         {
+            IBinding binding = kernel.GetBindings(typeof(Language.IGrammarRuleValidator)).FirstOrDefault();
+            if (binding != null)
+            {
+                kernel.RemoveBinding(binding);
+            }
+            kernel.Bind<Language.IGrammarRuleValidator>().ToConstant(new TestRuleValidator());
             CommandPipelineBuilder cpb = new CommandPipelineBuilder();
             Filter<FirstLevelPipelineContext, FirstLevelPipelineContext> pipeline = cpb.Build();
 
@@ -774,7 +781,7 @@ namespace Integra.Space.UnitTests
                                           $@"t1.PrimaryAccountNumber as c1, " +
                                           $@"t2.PrimaryAccountNumber as c3 into {sourceForInto} ";
 
-            string command = $"use Database1; create source {sourceNameTest} (MessageType string, PrimaryAccountNumber string, RetrievalReferenceNumber string, SourceTimestamp datetime); create source {sourceForInto} (c1 string, c3 string); create stream {oldStreamName} {{ {eql} }}; grant connect on database {databaseName} to user {userName}; grant alter on stream {oldStreamName}, read on source {sourceNameTest}, write on source {sourceForInto} to user {userName}";
+            string command = $"use Database1; create source {sourceNameTest} (MessageType string(4000), PrimaryAccountNumber string(4000), RetrievalReferenceNumber string(4000), SourceTimestamp datetime); create source {sourceForInto} (c1 string(4000), c3 string(4000)); create stream {oldStreamName} {{ {eql} }}; grant connect on database {databaseName} to user {userName}; grant alter on stream {oldStreamName}, read on source {sourceNameTest}, write on source {sourceForInto} to user {userName}";
             string command2 = $"use Database1; alter stream {oldStreamName} with name = {newStreamName}";
 
             IKernel kernel = new StandardKernel();
@@ -823,7 +830,7 @@ namespace Integra.Space.UnitTests
             string newSourceName = "newSource";
             string userName = "UserAux";
             string databaseName = "Database1";
-            string command = $"create source {oldSourceName} (column1 int, column2 decimal, column3 string); grant connect on database {databaseName}, alter on source {oldSourceName} to user {userName}";
+            string command = $"create source {oldSourceName} (column1 int, column2 double, column3 string(4000)); grant connect on database {databaseName}, alter on source {oldSourceName} to user {userName}";
             string command2 = $"use Database1; alter source {oldSourceName} with name = {newSourceName}";
 
             IKernel kernel = new StandardKernel();
@@ -1149,7 +1156,7 @@ namespace Integra.Space.UnitTests
                                           $@"t1.PrimaryAccountNumber as c1, " +
                                           $@"t2.PrimaryAccountNumber as c3 into {sourceForInto} ";
 
-            string command = $"use {databaseName}; create source {sourceNameTest} (SourceTimestamp datetime, MessageType string, PrimaryAccountNumber string, RetrievalReferenceNumber string); create source {sourceForInto} (c1 string, c3 string); create stream {oldStreamName} {{ {eql} }}; grant connect on database {databaseName} to user {userName}; grant alter any schema, read on source {sourceNameTest}, write on source {sourceForInto} to user {userName}";
+            string command = $"use {databaseName}; create source {sourceNameTest} (SourceTimestamp datetime, MessageType string(4000), PrimaryAccountNumber string(4000), RetrievalReferenceNumber string(4000)); create source {sourceForInto} (c1 string(4000), c3 string(4000)); create stream {oldStreamName} {{ {eql} }}; grant connect on database {databaseName} to user {userName}; grant alter any schema, read on source {sourceNameTest}, write on source {sourceForInto} to user {userName}";
             string command2 = $"use {databaseName}; alter stream {oldStreamName} with name = {newStreamName}";
 
             IKernel kernel = new StandardKernel();
@@ -1194,7 +1201,7 @@ namespace Integra.Space.UnitTests
             string newSourceName = "newSource";
             string userName = "UserAux";
             string databaseName = "Database1";
-            string command = $"create source {oldSourceName} (column1 int, column2 decimal, column3 string); grant connect on database {databaseName}, alter any schema to user {userName}";
+            string command = $"create source {oldSourceName} (column1 int, column2 double, column3 string(4000)); grant connect on database {databaseName}, alter any schema to user {userName}";
             string command2 = $"use Database1; alter source {oldSourceName} with name = {newSourceName}";
 
             IKernel kernel = new StandardKernel();
@@ -1463,7 +1470,7 @@ namespace Integra.Space.UnitTests
                                           $@"t1.PrimaryAccountNumber as c1, " +
                                           $@"t2.PrimaryAccountNumber as c3 into {sourceForInto} ";
 
-            string command = $"use {databaseName}; create source {sourceNameTest} (MessageType string, PrimaryAccountNumber string, RetrievalReferenceNumber string, SourceTimestamp datetime); create source {sourceForInto} (c1 string, c3 string); create stream {oldStreamName} {{ {eql} }}; grant connect on database {databaseName} to user {userName}; grant control on stream {oldStreamName}, read on source {sourceNameTest}, write on source {sourceForInto} to user {userName}";
+            string command = $"use {databaseName}; create source {sourceNameTest} (MessageType string(4000), PrimaryAccountNumber string(4000), RetrievalReferenceNumber string(4000), SourceTimestamp datetime); create source {sourceForInto} (c1 string(4000), c3 string(4000)); create stream {oldStreamName} {{ {eql} }}; grant connect on database {databaseName} to user {userName}; grant control on stream {oldStreamName}, read on source {sourceNameTest}, write on source {sourceForInto} to user {userName}";
             string command2 = $"use {databaseName}; alter stream {oldStreamName} with name = {newStreamName}";
 
             IKernel kernel = new StandardKernel();
@@ -1512,7 +1519,7 @@ namespace Integra.Space.UnitTests
             string newSourceName = "newSource";
             string userName = "UserAux";
             string databaseName = "Database1";
-            string command = $"create source {oldSourceName} (column1 int, column2 decimal, column3 string); grant connect on database {databaseName}, control on source {oldSourceName} to user {userName}";
+            string command = $"create source {oldSourceName} (column1 int, column2 double, column3 string(4000)); grant connect on database {databaseName}, control on source {oldSourceName} to user {userName}";
             string command2 = $"use Database1; alter source {oldSourceName} with name = {newSourceName}";
 
             IKernel kernel = new StandardKernel();
@@ -1666,7 +1673,7 @@ namespace Integra.Space.UnitTests
             string oldSourceName = "oldSourceName";
             string userName = "UserAux";
             string databaseName = "Database1";
-            string command = $"create source {oldSourceName} (column1 int, column2 decimal, column3 string); grant connect on database {databaseName}, take ownership on source {oldSourceName} to user {userName}";
+            string command = $"create source {oldSourceName} (column1 int, column2 double, column3 string(4000)); grant connect on database {databaseName}, take ownership on source {oldSourceName} to user {userName}";
             string command2 = $"use {databaseName}; take ownership on source {oldSourceName}";
             string schemaName = "schema1";
 
@@ -1719,7 +1726,7 @@ namespace Integra.Space.UnitTests
                                           $@"t1.PrimaryAccountNumber as c1, " +
                                           $@"t2.PrimaryAccountNumber as c3 into {sourceForInto} ";
 
-            string command = $"use {databaseName}; create source {sourceForInto} (c1 string, c3 string); create source {sourceNameTest} (MessageType string, PrimaryAccountNumber string, RetrievalReferenceNumber string, SourceTimestamp datetime); create stream {oldStreamName} {{ {eql} }}; grant connect on database {databaseName} to user {userName}; grant take ownership on stream {oldStreamName}, write on source {sourceForInto}, read on source {sourceNameTest} to user {userName}";
+            string command = $"use {databaseName}; create source {sourceForInto} (c1 string(4000), c3 string(4000)); create source {sourceNameTest} (MessageType string(4000), PrimaryAccountNumber string(4000), RetrievalReferenceNumber string(4000), SourceTimestamp datetime); create stream {oldStreamName} {{ {eql} }}; grant connect on database {databaseName} to user {userName}; grant take ownership on stream {oldStreamName}, write on source {sourceForInto}, read on source {sourceNameTest} to user {userName}";
             string command2 = $"use {databaseName}; take ownership on stream {oldStreamName}";
 
             IKernel kernel = new StandardKernel();
@@ -2893,7 +2900,7 @@ namespace Integra.Space.UnitTests
             string sourceName = "newSource";
             string otherLogin = "LoginAux";
             string command = "grant create source to user UserAux";
-            string command2 = $"create source {sourceName} (column1 int, column2 decimal, column3 string)";
+            string command2 = $"create source {sourceName} (column1 int, column2 double, column3 string(4000))";
 
             IKernel kernel = new StandardKernel();
             using (SpaceDbContext dbContext = new SpaceDbContext())
@@ -2935,7 +2942,7 @@ namespace Integra.Space.UnitTests
             string sourceName = "newSource";
             string otherLogin = "LoginAux";
             string command = "grant create source to user UserAux";
-            string command2 = $"create source {sourceName} (column1 int, column2 decimal, column3 string) with status = on";
+            string command2 = $"create source {sourceName} (column1 int, column2 double, column3 string(4000)) with status = on";
 
             IKernel kernel = new StandardKernel();
             using (SpaceDbContext dbContext = new SpaceDbContext())
@@ -2977,7 +2984,7 @@ namespace Integra.Space.UnitTests
             string sourceName = "newSource";
             string otherLogin = "LoginAux";
             string command = "grant create source to user UserAux";
-            string command2 = $"create source {sourceName} (column1 int, column2 decimal, column3 string) with status = off";
+            string command2 = $"create source {sourceName} (column1 int, column2 double, column3 string(4000)) with status = off";
 
             IKernel kernel = new StandardKernel();
             using (SpaceDbContext dbContext = new SpaceDbContext())
@@ -3022,7 +3029,7 @@ namespace Integra.Space.UnitTests
         {
             string otherLogin = "LoginAux";
             string sourceForInto = "sourceForInto";
-            string command = $"use Database2; create source {sourceForInto} (c1 string, c2 string, numeroXXX int); grant read on source SourceParaPruebas, write on source {sourceForInto}, create stream to user UserAux";
+            string command = $"use Database2; create source {sourceForInto} (c1 string(4000), c2 string(4000), numeroXXX int); grant read on source SourceParaPruebas, write on source {sourceForInto}, create stream to user UserAux";
             string streamName = "newStream";
             string eql = "cross " +
                                    "JOIN SourceParaPruebas as t1 WHERE t1.PrimaryAccountNumber == \"9999941616073663_1\" " +
@@ -3077,7 +3084,7 @@ namespace Integra.Space.UnitTests
         {
             string otherLogin = "LoginAux";
             string sourceForInto = "sourceForInto";
-            string command = $"use Database2; create source {sourceForInto} (c1 string, c2 string, numeroXXX int); grant write on source {sourceForInto}, read on source SourceParaPruebas, create stream to user UserAux";
+            string command = $"use Database2; create source {sourceForInto} (c1 string(4000), c2 string(4000), numeroXXX int); grant write on source {sourceForInto}, read on source SourceParaPruebas, create stream to user UserAux";
             string streamName = "newStream";
             string eql = "cross " +
                                    "JOIN SourceParaPruebas as t1 WHERE t1.PrimaryAccountNumber == \"9999941616073663_1\" " +
@@ -3132,7 +3139,7 @@ namespace Integra.Space.UnitTests
         {
             string otherLogin = "LoginAux";
             string sourceForInto = "sourceForInto";
-            string command = $"use Database2; create source {sourceForInto} (c1 string, c2 string, numeroXXX int); grant write on source {sourceForInto}, read on source SourceParaPruebas, create stream to user UserAux";
+            string command = $"use Database2; create source {sourceForInto} (c1 string(4000), c2 string(4000), numeroXXX int); grant write on source {sourceForInto}, read on source SourceParaPruebas, create stream to user UserAux";
             string streamName = "newStream";
             string eql = "cross " +
                                    "JOIN SourceParaPruebas as t1 WHERE t1.PrimaryAccountNumber == \"9999941616073663_1\" " +

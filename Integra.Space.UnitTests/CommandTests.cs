@@ -10,6 +10,7 @@ using System.Reflection.Emit;
 using System.Threading.Tasks.Dataflow;
 using System.Reflection;
 using System.Reactive.Linq;
+using Ninject.Planning.Bindings;
 
 namespace Integra.Space.UnitTests
 {
@@ -20,6 +21,12 @@ namespace Integra.Space.UnitTests
 
         private FirstLevelPipelineContext ProcessCommand(string command, IKernel kernel)
         {
+            IBinding binding = kernel.GetBindings(typeof(Language.IGrammarRuleValidator)).FirstOrDefault();
+            if (binding != null)
+            {
+                kernel.RemoveBinding(binding);
+            }
+            kernel.Bind<Language.IGrammarRuleValidator>().ToConstant(new TestRuleValidator());
             CommandPipelineBuilder cpb = new CommandPipelineBuilder();
             Filter<FirstLevelPipelineContext, FirstLevelPipelineContext> pipeline = cpb.Build();
 
@@ -132,7 +139,7 @@ namespace Integra.Space.UnitTests
                     string eql = "use Database2; from SourceParaPruebas where MessageType == \"0100\" select true as resultado into SourceParaPruebas";
                     ManagementSchedulerFactory dsf = new ManagementSchedulerFactory();
                     CodeGeneratorConfiguration context = this.GetCodeGeneratorConfig(dsf, kernel);
-                    Language.CommandParser parser = new Language.CommandParser(eql);
+                    Language.CommandParser parser = new Language.CommandParser(eql, new TestRuleValidator());
                     Language.PlanNode executionPlan = ((Language.TemporalStreamNode)parser.Evaluate().Last()).ExecutionPlan;
                     CodeGenerator te = new CodeGenerator(context);
                     Assembly assembly = te.Compile(executionPlan);
@@ -1371,7 +1378,7 @@ namespace Integra.Space.UnitTests
         public void CreateSource()
         {
             string sourceName = "newSource";
-            string command = $"create source {sourceName} (column1 int, column2 decimal, column3 string)";
+            string command = $"create source {sourceName} (column1 int, column2 double, column3 string(4000))";
             this.loginName = "AdminLogin";
 
             IKernel kernel = new StandardKernel();
@@ -1411,7 +1418,7 @@ namespace Integra.Space.UnitTests
         public void CreateSourceWithStatusOn()
         {
             string sourceName = "newSource";
-            string command = $"create source {sourceName} (column1 int, column2 decimal, column3 string) with status = on";
+            string command = $"create source {sourceName} (column1 int, column2 double, column3 string(4000)) with status = on";
             this.loginName = "AdminLogin";
 
             IKernel kernel = new StandardKernel();
@@ -1446,7 +1453,7 @@ namespace Integra.Space.UnitTests
         public void CreateSourceWithStatusOff()
         {
             string sourceName = "newSource";
-            string command = $"create source {sourceName} (column1 int, column2 decimal, column3 string) with status = off";
+            string command = $"create source {sourceName} (column1 int, column2 double, column3 string(4000)) with status = off";
             this.loginName = "AdminLogin";
 
             IKernel kernel = new StandardKernel();
@@ -1481,7 +1488,7 @@ namespace Integra.Space.UnitTests
         public void CreateSourceWithCacheSize()
         {
             string sourceName = "newSource";
-            string command = $"create source {sourceName} (column1 int, column2 decimal, column3 string) with cache_size = 200";
+            string command = $"create source {sourceName} (column1 int, column2 double, column3 string(4000)) with cache_size = 200";
             this.loginName = "AdminLogin";
 
             IKernel kernel = new StandardKernel();
@@ -1521,7 +1528,7 @@ namespace Integra.Space.UnitTests
         public void CreateSourceWithCacheDurability()
         {
             string sourceName = "newSource";
-            string command = $"create source {sourceName} (column1 int, column2 decimal, column3 string) with cache_durability = 70";
+            string command = $"create source {sourceName} (column1 int, column2 double, column3 string(4000)) with cache_durability = 70";
             this.loginName = "AdminLogin";
 
             IKernel kernel = new StandardKernel();
@@ -1561,7 +1568,7 @@ namespace Integra.Space.UnitTests
         public void CreateSourceWithCacheDurabilityCacheSize()
         {
             string sourceName = "newSource";
-            string command = $"create source {sourceName} (column1 int, column2 decimal, column3 string) with cache_durability = 70, cache_size = 200";
+            string command = $"create source {sourceName} (column1 int, column2 double, column3 string(4000)) with cache_durability = 70, cache_size = 200";
             this.loginName = "AdminLogin";
 
             IKernel kernel = new StandardKernel();
@@ -1614,7 +1621,7 @@ namespace Integra.Space.UnitTests
                                    //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
                                    $"SELECT (string)t1.PrimaryAccountNumber as c1, t2.PrimaryAccountNumber as c2, 1 as numeroXXX into {sourceName} ";
 
-            string command = $"use Database2; create source {sourceName} (c1 string, c2 string, numeroXXX int); create stream {streamName} {{ {eql} }}";
+            string command = $"use Database2; create source {sourceName} (c1 string(4000), c2 string(4000), numeroXXX int); create stream {streamName} {{ {eql} }}";
             this.loginName = "sa";
 
             IKernel kernel = new StandardKernel();
@@ -1707,7 +1714,7 @@ namespace Integra.Space.UnitTests
                                    //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
                                    $"SELECT (string)t1.PrimaryAccountNumber as c1, t2.PrimaryAccountNumber as c2, 1 as numeroXXX into {sourceName} ";
 
-            string command = $"use Database2; create source {sourceName} (c1 string, c2 string, numeroXXX int); create stream {streamName} {{ {eql} }} with status = on";
+            string command = $"use Database2; create source {sourceName} (c1 string(4000), c2 string(4000), numeroXXX int); create stream {streamName} {{ {eql} }} with status = on";
             this.loginName = "sa";
 
             IKernel kernel = new StandardKernel();
@@ -1762,7 +1769,7 @@ namespace Integra.Space.UnitTests
                                    //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
                                    $"SELECT (string)t1.PrimaryAccountNumber as c1, t2.PrimaryAccountNumber as c2, 1 as numeroXXX into {sourceName} ";
 
-            string command = $"use Database2; create source {sourceName} (c1 string, c2 string, numeroXXX int); create stream {streamName} {{ {eql} }} with status = off";
+            string command = $"use Database2; create source {sourceName} (c1 string(4000), c2 string(4000), numeroXXX int); create stream {streamName} {{ {eql} }} with status = off";
             this.loginName = "sa";
 
             IKernel kernel = new StandardKernel();
@@ -2666,7 +2673,7 @@ namespace Integra.Space.UnitTests
         {
             string oldSourceName = "oldSourceName";
             string newSourceName = "newSource";
-            string command = $"create source {oldSourceName} (column1 string, column2 int, column3 decimal); alter source {oldSourceName} with name = {newSourceName}";
+            string command = $"create source {oldSourceName} (column1 string(4000), column2 int, column3 double); alter source {oldSourceName} with name = {newSourceName}";
             this.loginName = "AdminLogin";
 
             IKernel kernel = new StandardKernel();
@@ -2704,8 +2711,8 @@ namespace Integra.Space.UnitTests
         public void AlterSourceAddColumns()
         {
             string sourceName = "oldSourceName";
-            string command = $@"create source {sourceName} (column1 string, column2 int, column3 decimal); 
-                                alter source {sourceName} add (columnX string, columnY int, columnZ decimal)";
+            string command = $@"create source {sourceName} (column1 string(4000), column2 int, column3 double); 
+                                alter source {sourceName} add (columnX string(4000), columnY int, columnZ double)";
             this.loginName = "AdminLogin";
 
             IKernel kernel = new StandardKernel();
@@ -2746,8 +2753,8 @@ namespace Integra.Space.UnitTests
         public void AlterSourceRemoveColumns()
         {
             string sourceName = "oldSourceName";
-            string command = $@"create source {sourceName} (column1 string, column2 int, column3 decimal, columnX string, columnY int, columnZ decimal); 
-                                alter source {sourceName} remove (columnX string, columnY int, columnZ decimal)";
+            string command = $@"create source {sourceName} (column1 string(4000), column2 int, column3 double, columnX string(4000), columnY int, columnZ double); 
+                                alter source {sourceName} remove (columnX string(4000), columnY int, columnZ double)";
             this.loginName = "AdminLogin";
 
             IKernel kernel = new StandardKernel();
@@ -2788,8 +2795,8 @@ namespace Integra.Space.UnitTests
         public void AlterSourceRemoveAllColumns()
         {
             string sourceName = "oldSourceName";
-            string command = $@"create source {sourceName} (columnX string, columnY int, columnZ decimal); 
-                                alter source {sourceName} remove columnX string, columnY int, columnZ decimal";
+            string command = $@"create source {sourceName} (columnX string, columnY int, columnZ double); 
+                                alter source {sourceName} remove columnX string, columnY int, columnZ double";
             this.loginName = "AdminLogin";
 
             IKernel kernel = new StandardKernel();
@@ -2816,7 +2823,7 @@ namespace Integra.Space.UnitTests
         public void AlterSourceWithStatusOn()
         {
             string sourceName = "newSource";
-            string command = $"create source {sourceName} (column1 string, column2 int, column3 decimal) with status = off; alter source {sourceName} with status = on";
+            string command = $"create source {sourceName} (column1 string(4000), column2 int, column3 double) with status = off; alter source {sourceName} with status = on";
             this.loginName = "AdminLogin";
 
             IKernel kernel = new StandardKernel();
@@ -2851,7 +2858,7 @@ namespace Integra.Space.UnitTests
         public void AlterSourceWithStatusOff()
         {
             string sourceName = "newSource";
-            string command = $"create source {sourceName} (column1 string, column2 int, column3 decimal) with status = on; alter source {sourceName} with status = off";
+            string command = $"create source {sourceName} (column1 string(4000), column2 int, column3 double) with status = on; alter source {sourceName} with status = off";
             this.loginName = "AdminLogin";
 
             IKernel kernel = new StandardKernel();
@@ -2886,7 +2893,7 @@ namespace Integra.Space.UnitTests
         public void AlterSourceWithPersistentOn()
         {
             string sourceName = "newSource";
-            string command = $"create source {sourceName} (column1 string, column2 int, column3 decimal) with persistent = off; alter source {sourceName} with persistent = on";
+            string command = $"create source {sourceName} (column1 string(4000), column2 int, column3 double) with persistent = off; alter source {sourceName} with persistent = on";
             this.loginName = "AdminLogin";
 
             IKernel kernel = new StandardKernel();
@@ -2925,7 +2932,7 @@ namespace Integra.Space.UnitTests
         public void AlterSourceWithPersistentOff()
         {
             string sourceName = "newSource";
-            string command = $"create source {sourceName} (column1 string, column2 int, column3 decimal) with persistent = on; alter source {sourceName} with persistent = off";
+            string command = $"create source {sourceName} (column1 string(4000), column2 int, column3 double) with persistent = on; alter source {sourceName} with persistent = off";
             this.loginName = "AdminLogin";
 
             IKernel kernel = new StandardKernel();
@@ -2964,7 +2971,7 @@ namespace Integra.Space.UnitTests
         public void AlterSourceWithCacheSize()
         {
             string sourceName = "newSource";
-            string command = $"create source {sourceName} (column1 string, column2 int, column3 decimal) with status = on, cache_size = 100; alter source {sourceName} with status = off, cache_size = 200";
+            string command = $"create source {sourceName} (column1 string(4000), column2 int, column3 double) with status = on, cache_size = 100; alter source {sourceName} with status = off, cache_size = 200";
             this.loginName = "AdminLogin";
 
             IKernel kernel = new StandardKernel();
@@ -3003,7 +3010,7 @@ namespace Integra.Space.UnitTests
         public void AlterSourceWithCacheDurability()
         {
             string sourceName = "newSource";
-            string command = $"create source {sourceName} (column1 string, column2 int, column3 decimal) with status = on, cache_durability = 100; alter source {sourceName} with status = off, cache_durability = 70";
+            string command = $"create source {sourceName} (column1 string(4000), column2 int, column3 double) with status = on, cache_durability = 100; alter source {sourceName} with status = off, cache_durability = 70";
             this.loginName = "AdminLogin";
 
             IKernel kernel = new StandardKernel();
@@ -3042,7 +3049,7 @@ namespace Integra.Space.UnitTests
         public void AlterSourceWithCacheSizeCacheDurability()
         {
             string sourceName = "newSource";
-            string command = $"create source {sourceName} (column1 string, column2 int, column3 decimal) with status = on, cache_size = 100, cache_durability = 100; alter source {sourceName} with status = off, cache_size = 200, cache_durability = 70";
+            string command = $"create source {sourceName} (column1 string(4000), column2 int, column3 double) with status = on, cache_size = 100, cache_durability = 100; alter source {sourceName} with status = off, cache_size = 200, cache_durability = 70";
             this.loginName = "AdminLogin";
 
             IKernel kernel = new StandardKernel();
@@ -3096,7 +3103,7 @@ namespace Integra.Space.UnitTests
                                    //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
                                    $"SELECT (string)t1.PrimaryAccountNumber as c1, t2.PrimaryAccountNumber as c2, 1 as numeroXXX into {sourceName}";
 
-            string command = $"use Database2; create source {sourceName} (c1 string, c2 string, numeroXXX int); create stream {oldStreamName} {{ {eql} }}; alter stream {oldStreamName} with name = {newStreamName}";
+            string command = $"use Database2; create source {sourceName} (c1 string(4000), c2 string(4000), numeroXXX int); create stream {oldStreamName} {{ {eql} }}; alter stream {oldStreamName} with name = {newStreamName}";
             this.loginName = "sa";
 
             IKernel kernel = new StandardKernel();
@@ -3160,7 +3167,7 @@ namespace Integra.Space.UnitTests
                                    //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
                                    $"SELECT (string)t1.PrimaryAccountNumber as c1, 1 as numeroXXX into {sourceName}";
 
-            string command = $"use Database2; create source {sourceName} (c1 string, c2 string, numeroXXX int); create stream {oldStreamName} {{ {eql} }}; alter stream {oldStreamName} with query = {{ {eql2} }}";
+            string command = $"use Database2; create source {sourceName} (c1 string(4000), c2 string(4000), numeroXXX int); create stream {oldStreamName} {{ {eql} }}; alter stream {oldStreamName} with query = {{ {eql2} }}";
             this.loginName = "sa";
 
             IKernel kernel = new StandardKernel();
@@ -3223,7 +3230,7 @@ namespace Integra.Space.UnitTests
                                    //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
                                    $"SELECT (string)t1.PrimaryAccountNumber as c1, t2.PrimaryAccountNumber as c2, 1 as numeroXXX, 2 as numeroYYY into {sourceName}";
 
-            string command = $"use Database2; create source {sourceName} (c1 string, c2 string, numeroXXX int); create stream {oldStreamName} {{ {eql} }}; alter source {sourceName} add (numeroYYY int); alter stream {oldStreamName} with query = {{ {eql2} }}";
+            string command = $"use Database2; create source {sourceName} (c1 string(4000), c2 string(4000), numeroXXX int); create stream {oldStreamName} {{ {eql} }}; alter source {sourceName} add (numeroYYY int); alter stream {oldStreamName} with query = {{ {eql2} }}";
             this.loginName = "sa";
 
             IKernel kernel = new StandardKernel();
@@ -3283,7 +3290,7 @@ namespace Integra.Space.UnitTests
                                    //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
                                    $"SELECT (string)t1.PrimaryAccountNumber as column1, t2.PrimaryAccountNumber as column2, 1 as column3 into {sourceName}";
 
-            string command = $"use Database2; create source {sourceName} (column1 string, column2 string, column3 int, c1 string, c2 string, numeroXXX int); create stream {oldStreamName} {{ {eql} }}; alter stream {oldStreamName} with query = {{ {eql2} }}";
+            string command = $"use Database2; create source {sourceName} (column1 string(4000), column2 string(4000), column3 int, c1 string(4000), c2 string(4000), numeroXXX int); create stream {oldStreamName} {{ {eql} }}; alter stream {oldStreamName} with query = {{ {eql2} }}";
             this.loginName = "sa";
 
             IKernel kernel = new StandardKernel();
@@ -3351,7 +3358,7 @@ namespace Integra.Space.UnitTests
                                    //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
                                    $"SELECT (string)t1.PrimaryAccountNumber as column1, t2.PrimaryAccountNumber as column2, 1 as column3 into {sourceName}";
 
-            string command = $"create source {sourceName} (column1 string, column3 int, c1 string, c2 object, numeroXXX int); create stream {oldStreamName} {{ {eql} }}; alter stream {oldStreamName} with query = {{ {eql2} }}";
+            string command = $"create source {sourceName} (column1 string(4000), column3 int, c1 string, c2 object, numeroXXX int); create stream {oldStreamName} {{ {eql} }}; alter stream {oldStreamName} with query = {{ {eql2} }}";
             this.loginName = "AdminLogin";
 
             IKernel kernel = new StandardKernel();
@@ -3394,7 +3401,7 @@ namespace Integra.Space.UnitTests
                                    //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
                                    $"SELECT (string)t1.PrimaryAccountNumber as c1, t2.PrimaryAccountNumber as c2, 1 as numeroXXX into {sourceName} ";
 
-            string command = $"use Database2; create source {sourceName} (c1 string, c2 string, numeroXXX int); create stream {streamName} {{ {eql} }} with status = off; alter stream {streamName} with status = on";
+            string command = $"use Database2; create source {sourceName} (c1 string(4000), c2 string(4000), numeroXXX int); create stream {streamName} {{ {eql} }} with status = off; alter stream {streamName} with status = on";
             this.loginName = "sa";
 
             IKernel kernel = new StandardKernel();
@@ -3449,7 +3456,7 @@ namespace Integra.Space.UnitTests
                                    //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
                                    $"SELECT (string)t1.PrimaryAccountNumber as c1, t2.PrimaryAccountNumber as c2, 1 as numeroXXX into {sourceName} ";
 
-            string command = $"use Database2; create source {sourceName} (c1 string, c2 string, numeroXXX int); create stream {streamName} {{ {eql} }} with status = on; alter stream {streamName} with status = off";
+            string command = $"use Database2; create source {sourceName} (c1 string(4000), c2 string(4000), numeroXXX int); create stream {streamName} {{ {eql} }} with status = on; alter stream {streamName} with status = off";
             this.loginName = "sa";
 
             IKernel kernel = new StandardKernel();
@@ -3648,7 +3655,7 @@ namespace Integra.Space.UnitTests
         public void DropSource()
         {
             string sourceName = "newSource";
-            string command = $"create source {sourceName} (column1 int, column2 decimal, column3 string); drop source {sourceName}";
+            string command = $"create source {sourceName} (column1 int, column2 double, column3 string(4000)); drop source {sourceName}";
             this.loginName = "AdminLogin";
 
             IKernel kernel = new StandardKernel();
@@ -3691,7 +3698,7 @@ namespace Integra.Space.UnitTests
                                    //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
                                    $"SELECT (string)t1.PrimaryAccountNumber as c1, t2.PrimaryAccountNumber as c2, 1 as numeroXXX into {sourceName} ";
 
-            string command = $"use Database2; create source {sourceName} (c1 string, c2 string, numeroXXX int); create stream {streamName} {{ {eql} }}; drop stream {streamName}";
+            string command = $"use Database2; create source {sourceName} (c1 string(4000), c2 string(4000), numeroXXX int); create stream {streamName} {{ {eql} }}; drop stream {streamName}";
             this.loginName = "sa";
 
             IKernel kernel = new StandardKernel();
@@ -3728,7 +3735,7 @@ namespace Integra.Space.UnitTests
         public void TruncateSource()
         {
             string sourceName = "newSource";
-            string command = $"create source {sourceName} (column1 int, column2 decimal, column3 string); truncate source {sourceName}";
+            string command = $"create source {sourceName} (column1 int, column2 double, column3 string(4000)); truncate source {sourceName}";
             this.loginName = "AdminLogin";
 
             IKernel kernel = new StandardKernel();
@@ -3825,7 +3832,7 @@ namespace Integra.Space.UnitTests
             string sourceNameTest = "source1234";
             string sourceNameTest2 = "sourceForInto";
             string databaseName = "Database2";
-            string firstCommand = $"use {databaseName}; create source {sourceNameTest2} (c1 string, c3 string); create source {sourceNameTest} (MessageType string, RetrievalReferenceNumber string, PrimaryAccountNumber string, SourceTimestamp datetime, column1 int, column2 decimal, column3 string); grant create stream, read on source {sourceNameTest}, write on source {sourceNameTest2} to user {userNameThatCreateTheStream}";
+            string firstCommand = $"use {databaseName}; create source {sourceNameTest2} (c1 string(4000), c3 string(4000)); create source {sourceNameTest} (MessageType string(4000), RetrievalReferenceNumber string(4000), PrimaryAccountNumber string(4000), SourceTimestamp datetime, column1 int, column2 double, column3 string(4000)); grant create stream, read on source {sourceNameTest}, write on source {sourceNameTest2} to user {userNameThatCreateTheStream}";
 
             string newStreamName = "Stream1234";
             string eql = $@"cross 
@@ -3966,7 +3973,7 @@ namespace Integra.Space.UnitTests
             string newSource = "SourceInicial_nueva";
             string userNameThatCreateTheSource = "UserAux";
             string firstCommand = $"grant create source to user {userNameThatCreateTheSource}";
-            string secondCommand = $"create source {newSource} (column1 int, column2 decimal, column3 string)";
+            string secondCommand = $"create source {newSource} (column1 int, column2 double, column3 string(4000))";
             IKernel kernel = new StandardKernel();
 
             using (SpaceDbContext dbContext = new SpaceDbContext())

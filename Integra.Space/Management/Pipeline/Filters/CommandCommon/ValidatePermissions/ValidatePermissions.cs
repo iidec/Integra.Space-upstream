@@ -38,7 +38,7 @@ namespace Integra.Space.Pipeline.Filters
 
             // estructura para validar los owners
             HashSet<CommandObject> objects = context.CommandContext.Command.CommandObjects;
-            IEnumerable<ViewPermission> userPermissions = databaseContext.VWPermissions.Where(x => x.PrincipalId == login.LoginId
+            IEnumerable<PermissionView> userPermissions = databaseContext.VWPermissions.Where(x => x.PrincipalId == login.LoginId
                                                             && x.ServerIdOfPrincipal == login.ServerId); // Enumerable.Empty<ViewPermission>();
 
             // obtengo los permisos del usuario y de los roles de base de datos a los que pertenece
@@ -68,7 +68,7 @@ namespace Integra.Space.Pipeline.Filters
                 // obtengo los permisos de cada rol de base de datos del usuario y los agrego a la lista de permisos del usuario.
                 foreach (DatabaseRole databaseRole in context.SecurityContext.DatabaseRoles)
                 {
-                    IQueryable<ViewPermission> databaseRolePermissions = databaseContext.VWPermissions.Where(x => x.PrincipalId == databaseRole.DbRoleId
+                    IQueryable<PermissionView> databaseRolePermissions = databaseContext.VWPermissions.Where(x => x.PrincipalId == databaseRole.DbRoleId
                                                             && x.DatabaseIdOfPrincipal == databaseRole.DatabaseId
                                                             && x.ServerIdOfPrincipal == databaseRole.ServerId);
 
@@ -191,7 +191,7 @@ namespace Integra.Space.Pipeline.Filters
             objects.RemoveWhere(x => objetosDeLosQueEsOwner.Contains(x, new CommandObjectComparer()));
 
             // obtengo los permisos del contexto de ejecución para el usuario especificado
-            IQueryable<ViewPermission> userPermissionsOfTheContext = null;
+            IQueryable<PermissionView> userPermissionsOfTheContext = null;
             this.GetContextPermissions(action, databaseContext, login, objects, userPermissions, out userPermissionsOfTheContext);
 
             // si no tiene ningun permiso sobre el contexto de ejecución se lanza una excepción.
@@ -258,12 +258,12 @@ namespace Integra.Space.Pipeline.Filters
                 }
 
                 // se obtiene el permiso mas especifico necesario, es decir, el de nivel mas bajo, en el arbol de permisos, necesario para ejecutar el comando.          
-                ViewPermission viewPermission = new ViewPermission();
+                PermissionView viewPermission = new PermissionView();
                 viewPermission.GranularPermissionId = requiredPermissions.First().ChildGPId; // granularPermission.GranularPermissionId;
                 viewPermission.SecurableClassId = requiredPermissions.First().ChildSCId; // securableClass.SecurableClassId;
 
                 // se crea la lista de permisos necesarios para ejecutar el comando. El usuario debe tener por lo menos uno de ellos para poder ejecutar el comando.
-                List<ViewPermission> listOfPermissions = new List<ViewPermission>();
+                List<PermissionView> listOfPermissions = new List<PermissionView>();
 
                 // se agrega el permiso mas especifico a la lista
                 listOfPermissions.Add(viewPermission);
@@ -281,7 +281,7 @@ namespace Integra.Space.Pipeline.Filters
                 // (mas adelante podría retornarse un json desde el sp aunque puede hacer que el performance se reduzca por la deserialización).
                 foreach (string parentPermission in hashSetParentPermissions)
                 {
-                    viewPermission = new ViewPermission();
+                    viewPermission = new PermissionView();
 
                     // se especifica el permiso.
                     string[] permissionAux = parentPermission.Split(' ');
@@ -292,8 +292,8 @@ namespace Integra.Space.Pipeline.Filters
                 }
 
                 // se hace la correlación entre los permisos que tiene el usuario y los permisos requeridos para ejecutar el comando.
-                Func<ViewPermission, dynamic> funcKeySelector = x => new { x.GranularPermissionId, x.SecurableClassId };
-                IEnumerable<ViewPermission> permissionsToExecuteCommand = userPermissionsOfTheContext.Join(listOfPermissions, funcKeySelector, funcKeySelector, (x, y) => x);
+                Func<PermissionView, dynamic> funcKeySelector = x => new { x.GranularPermissionId, x.SecurableClassId };
+                IEnumerable<PermissionView> permissionsToExecuteCommand = userPermissionsOfTheContext.Join(listOfPermissions, funcKeySelector, funcKeySelector, (x, y) => x);
 
                 /* se hace una operacion OR entre todos los niveles del arbol de permisos resultante
                  luego se hace una operación XOR entre los valores de los campos granted y denied resultantes de la operación OR
@@ -301,7 +301,7 @@ namespace Integra.Space.Pipeline.Filters
 
                 bool granted = false;
                 bool denied = false;
-                foreach (ViewPermission permissionToExecuteCommand in permissionsToExecuteCommand)
+                foreach (PermissionView permissionToExecuteCommand in permissionsToExecuteCommand)
                 {
                     if (!granted)
                     {
@@ -366,10 +366,10 @@ namespace Integra.Space.Pipeline.Filters
         /// <param name="objects">Objects of the command.</param>
         /// <param name="userPermissions">User permissions.</param>
         /// <param name="userPermissionsOfTheContext">User context permissions.</param>
-        private void GetContextPermissions(ActionCommandEnum action, SpaceDbContext databaseContext, Login login, HashSet<CommandObject> objects, IEnumerable<ViewPermission> userPermissions, out IQueryable<ViewPermission> userPermissionsOfTheContext)
+        private void GetContextPermissions(ActionCommandEnum action, SpaceDbContext databaseContext, Login login, HashSet<CommandObject> objects, IEnumerable<PermissionView> userPermissions, out IQueryable<PermissionView> userPermissionsOfTheContext)
         {
-            userPermissionsOfTheContext = Enumerable.Empty<ViewPermission>().AsQueryable();
-            List<ViewPermission> userPermissionsList = userPermissions.ToList();
+            userPermissionsOfTheContext = Enumerable.Empty<PermissionView>().AsQueryable();
+            List<PermissionView> userPermissionsList = userPermissions.ToList();
             Schema schemaOld = null;
 
             foreach (CommandObject @object in objects)

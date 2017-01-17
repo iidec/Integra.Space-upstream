@@ -50,37 +50,37 @@ namespace Integra.Space.Pipeline.Filters
             switch (systemSource)
             {
                 case SystemSourceEnum.Servers:
-                    sourceType = typeof(Space.Database.Server);
+                    sourceType = typeof(ServerView);
                     break;
                 case SystemSourceEnum.ServerRoles:
-                    sourceType = typeof(Space.Database.ServerRole);
+                    sourceType = typeof(ServerRoleView);
                     break;
                 case SystemSourceEnum.Logins:
-                    sourceType = typeof(Space.Database.Login);
+                    sourceType = typeof(LoginView);
                     break;
                 case SystemSourceEnum.Databases:
-                    sourceType = typeof(Space.Database.Database);
+                    sourceType = typeof(DatabaseView);
                     break;
                 case SystemSourceEnum.DatabaseRoles:
-                    sourceType = typeof(Space.Database.DatabaseRole);
+                    sourceType = typeof(DatabaseRoleView);
                     break;
                 case SystemSourceEnum.Users:
-                    sourceType = typeof(Space.Database.DatabaseUser);
+                    sourceType = typeof(UserView);
                     break;
                 case SystemSourceEnum.Schemas:
-                    sourceType = typeof(Space.Database.Schema);
+                    sourceType = typeof(SchemaView);
                     break;
                 case SystemSourceEnum.Sources:
-                    sourceType = typeof(Space.Database.Source);
+                    sourceType = typeof(SourceView);
                     break;
                 case SystemSourceEnum.SourceColumns:
-                    sourceType = typeof(Space.Database.SourceColumn);
+                    sourceType = typeof(SourceColumnView);
                     break;
                 case SystemSourceEnum.Streams:
-                    sourceType = typeof(Space.Database.Stream);
+                    sourceType = typeof(StreamView);
                     break;
                 case SystemSourceEnum.StreamColumns:
-                    sourceType = typeof(Space.Database.StreamColumn);
+                    sourceType = typeof(StreamColumnView);
                     break;
             }
 

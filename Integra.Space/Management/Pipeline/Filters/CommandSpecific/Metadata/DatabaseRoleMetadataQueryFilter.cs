@@ -13,35 +13,35 @@ namespace Integra.Space.Pipeline.Filters
     /// <summary>
     /// Create command action class.
     /// </summary>
-    internal class DatabaseRoleMetadataQueryFilter : MetadataQueryParserFilter<DatabaseRole>
+    internal class DatabaseRoleMetadataQueryFilter : MetadataQueryParserFilter<DatabaseRoleView>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="DatabaseRoleMetadataQueryFilter"/> class.
         /// </summary>
-        public DatabaseRoleMetadataQueryFilter() : base(SystemObjectEnum.DatabaseRole, "DbRoleName")
+        public DatabaseRoleMetadataQueryFilter() : base(SystemObjectEnum.DatabaseRole, "DatabaseRoleName")
         {
         }
 
         /// <inheritdoc />
-        protected override DbSet<DatabaseRole> GetDbSet(SpaceDbContext context)
+        protected override DbSet<DatabaseRoleView> GetDbSet(SpaceDbContext context)
         {
-            return context.DatabaseRoles;
+            return context.DatabaseRolesView;
         }
 
         /// <inheritdoc />
-        protected override Func<DatabaseRole, dynamic> GetObjectKeySelector()
+        protected override Func<DatabaseRoleView, dynamic> GetObjectKeySelector()
         {
-            return x => new { x.ServerId, x.DatabaseId, x.DbRoleId };
+            return x => new { x.ServerId, x.DatabaseId, x.DatabaseRoleId };
         }
 
         /// <inheritdoc />
-        protected override Func<DatabaseRole, bool> GetPredicateForExtensionAny(DatabaseRole @object)
+        protected override Func<DatabaseRoleView, bool> GetPredicateForExtensionAny(DatabaseRoleView @object)
         {
-            return x => x.ServerId == @object.ServerId && x.DatabaseId == @object.DatabaseId && x.DbRoleId == @object.DbRoleId;
+            return x => x.ServerId == @object.ServerId && x.DatabaseId == @object.DatabaseId && x.DatabaseRoleId == @object.DatabaseRoleId;
         }
 
         /// <inheritdoc />
-        protected override Func<ViewPermission, dynamic> GetViewPermissionKeySelector()
+        protected override Func<PermissionView, dynamic> GetViewPermissionKeySelector()
         {
             return x => new { x.ServerIdOfSecurable, x.DatabaseIdOfSecurable, x.SecurableId };
         }

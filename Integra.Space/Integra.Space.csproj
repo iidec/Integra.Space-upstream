@@ -114,6 +114,7 @@
     <Compile Include="Management\Pipeline\Filters\CommandSpecific\Metadata\ValidateMetadataOutputColumnsCompatibilityFilter.cs" />
     <Compile Include="Management\Pipeline\Filters\CommandSpecific\Source\AlterSourceTypeFilter.cs" />
     <Compile Include="Management\Pipeline\Filters\CommandSpecific\Source\CreateSourceTypeFilter.cs" />
+    <Compile Include="Management\Pipeline\Filters\CommandSpecific\Source\ValidateInsertFilter.cs" />
     <Compile Include="Management\Pipeline\Filters\CommandSpecific\Source\InsertFilter.cs" />
     <Compile Include="Management\Pipeline\Filters\CommandSpecific\Source\TruncateFilter.cs" />
     <Compile Include="Management\Pipeline\Filters\CommandSpecific\Metadata\ServerRoleMetadataQueryFilter.cs" />

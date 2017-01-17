@@ -118,7 +118,7 @@ namespace Integra.Space.Pipeline.Filters
         /// Gets the function to select the key of the permissions for the join statement between the objects and the permissions.
         /// </summary>
         /// <returns>The function to select the key of the permissions for the join statement between the objects and the permissions.</returns>
-        protected abstract Func<ViewPermission, dynamic> GetViewPermissionKeySelector();
+        protected abstract Func<PermissionView, dynamic> GetViewPermissionKeySelector();
 
         /// <summary>
         /// Gets the function to evaluate whether an object exists at the object result set.
@@ -144,10 +144,10 @@ namespace Integra.Space.Pipeline.Filters
         /// <param name="securableClass">Securable system object class.</param>
         /// <param name="objects">System objects.</param>
         /// <returns>Set of permissions.</returns>
-        protected IEnumerable<ViewPermission> GetPermissions(SecurityContext securityContext, SpaceDbContext databaseContext, Login login, DatabaseUser user, SecurableClass securableClass, DbSet<TIn> objects)
+        protected IEnumerable<PermissionView> GetPermissions(SecurityContext securityContext, SpaceDbContext databaseContext, Login login, DatabaseUser user, SecurableClass securableClass, DbSet<TIn> objects)
         {
             // se obtienen los permisos del usuario
-            IQueryable<ViewPermission> userPermissions = databaseContext.VWPermissions.Where(x => x.PrincipalId == user.DbUsrId
+            IQueryable<PermissionView> userPermissions = databaseContext.VWPermissions.Where(x => x.PrincipalId == user.DbUsrId
                                                         && x.DatabaseIdOfPrincipal == user.DatabaseId
                                                         && x.ServerIdOfPrincipal == user.ServerId
                                                         && x.SecurableClassId == securableClass.SecurableClassId);
@@ -163,7 +163,7 @@ namespace Integra.Space.Pipeline.Filters
             // obtengo los permisos de cada rol de base de datos del usuario y los agrego a la lista de permisos del usuario.
             foreach (DatabaseRole databaseRole in securityContext.DatabaseRoles)
             {
-                IQueryable<ViewPermission> databaseRolePermissions = databaseContext.VWPermissions.Where(x => x.PrincipalId == databaseRole.DbRoleId
+                IQueryable<PermissionView> databaseRolePermissions = databaseContext.VWPermissions.Where(x => x.PrincipalId == databaseRole.DbRoleId
                                                         && x.DatabaseIdOfPrincipal == databaseRole.DatabaseId
                                                         && x.ServerIdOfPrincipal == databaseRole.ServerId
                                                         && x.SecurableClassId == securableClass.SecurableClassId);
@@ -184,12 +184,12 @@ namespace Integra.Space.Pipeline.Filters
             }
 
             // se obtiene el permiso mas especifico necesario, es decir, el de nivel mas bajo, en el arbol de permisos, necesario para ejecutar el comando.          
-            ViewPermission viewPermission = new ViewPermission();
+            PermissionView viewPermission = new PermissionView();
             viewPermission.GranularPermissionId = requiredPermissions.First().ChildGPId; // granularPermission.GranularPermissionId;
             viewPermission.SecurableClassId = requiredPermissions.First().ChildSCId; // securableClass.SecurableClassId;
 
             // se crea la lista de permisos necesarios para ejecutar el comando. El usuario debe tener por lo menos uno de ellos para poder ejecutar el comando.
-            List<ViewPermission> listOfPermissions = new List<ViewPermission>();
+            List<PermissionView> listOfPermissions = new List<PermissionView>();
 
             // se agrega el permiso mas especifico a la lista
             listOfPermissions.Add(viewPermission);
@@ -207,7 +207,7 @@ namespace Integra.Space.Pipeline.Filters
             // (mas adelante podría retornarse un json desde el sp aunque puede hacer que el performance se reduzca por la deserialización).
             foreach (string parentPermission in hashSetParentPermissions)
             {
-                viewPermission = new ViewPermission();
+                viewPermission = new PermissionView();
 
                 // se especifica el permiso.
                 string[] permissionAux = parentPermission.Split(' ');
@@ -218,8 +218,8 @@ namespace Integra.Space.Pipeline.Filters
             }
 
             // se hace la correlación entre los permisos que tiene el usuario y los permisos requeridos para ejecutar el comando.
-            Func<ViewPermission, dynamic> funcKeySelector = x => new { x.GranularPermissionId, x.SecurableClassId };
-            IEnumerable<ViewPermission> permissionsToExecuteCommand = userPermissions.Join(listOfPermissions, funcKeySelector, funcKeySelector, (x, y) => x);
+            Func<PermissionView, dynamic> funcKeySelector = x => new { x.GranularPermissionId, x.SecurableClassId };
+            IEnumerable<PermissionView> permissionsToExecuteCommand = userPermissions.Join(listOfPermissions, funcKeySelector, funcKeySelector, (x, y) => x);
             return permissionsToExecuteCommand;
         }
 
@@ -288,9 +288,9 @@ namespace Integra.Space.Pipeline.Filters
             }
             else
             {
-                IEnumerable<ViewPermission> permissions = this.GetPermissions(context.SecurityContext, databaseContext, login, user, securableClass, fullSetOfObjects);
+                IEnumerable<PermissionView> permissions = this.GetPermissions(context.SecurityContext, databaseContext, login, user, securableClass, fullSetOfObjects);
                 Func<TIn, dynamic> keySelector1 = this.GetObjectKeySelector();
-                Func<ViewPermission, dynamic> keySelector2 = this.GetViewPermissionKeySelector();
+                Func<PermissionView, dynamic> keySelector2 = this.GetViewPermissionKeySelector();
                 List<TIn> objects = fullSetOfObjects.Join(permissions, keySelector1, keySelector2, (x, y) => x).ToList();
 
                 IEnumerable<TIn> ownedObject = this.GetOwnedObjects(login, user, schema, securableClass, databaseContext, objects);

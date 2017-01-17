@@ -129,6 +129,7 @@
     <Compile Include="GrantCommandTests.cs" />
     <Compile Include="SourceTypeFactory.cs" />
     <Compile Include="TestObject1.cs" />
+    <Compile Include="TestRuleValidator.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Integra.Space.Common\Integra.Space.Common.csproj">

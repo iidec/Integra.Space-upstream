@@ -13,7 +13,7 @@ namespace Integra.Space.Pipeline.Filters
     /// <summary>
     /// Create command action class.
     /// </summary>
-    internal class ServerRoleMetadataQueryFilter : MetadataQueryParserFilter<ServerRole>
+    internal class ServerRoleMetadataQueryFilter : MetadataQueryParserFilter<ServerRoleView>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ServerRoleMetadataQueryFilter"/> class.
@@ -23,25 +23,25 @@ namespace Integra.Space.Pipeline.Filters
         }
 
         /// <inheritdoc />
-        protected override DbSet<ServerRole> GetDbSet(SpaceDbContext context)
+        protected override DbSet<ServerRoleView> GetDbSet(SpaceDbContext context)
         {
-            return context.ServerRoles;
+            return context.ServerRolesView;
         }
 
         /// <inheritdoc />
-        protected override Func<ServerRole, dynamic> GetObjectKeySelector()
+        protected override Func<ServerRoleView, dynamic> GetObjectKeySelector()
         {
             return x => new { x.ServerId, x.ServerRoleId };
         }
 
         /// <inheritdoc />
-        protected override Func<ServerRole, bool> GetPredicateForExtensionAny(ServerRole @object)
+        protected override Func<ServerRoleView, bool> GetPredicateForExtensionAny(ServerRoleView @object)
         {
             return x => x.ServerId == @object.ServerId && x.ServerRoleId == @object.ServerRoleId;
         }
 
         /// <inheritdoc />
-        protected override Func<ViewPermission, dynamic> GetViewPermissionKeySelector()
+        protected override Func<PermissionView, dynamic> GetViewPermissionKeySelector()
         {
             return x => new { x.ServerIdOfSecurable, x.SecurableId };
         }

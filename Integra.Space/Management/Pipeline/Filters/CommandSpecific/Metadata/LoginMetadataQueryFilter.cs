@@ -13,7 +13,7 @@ namespace Integra.Space.Pipeline.Filters
     /// <summary>
     /// Create command action class.
     /// </summary>
-    internal class LoginMetadataQueryFilter : MetadataQueryParserFilter<Login>
+    internal class LoginMetadataQueryFilter : MetadataQueryParserFilter<LoginView>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="LoginMetadataQueryFilter"/> class.
@@ -23,25 +23,25 @@ namespace Integra.Space.Pipeline.Filters
         }
 
         /// <inheritdoc />
-        protected override DbSet<Login> GetDbSet(SpaceDbContext context)
+        protected override DbSet<LoginView> GetDbSet(SpaceDbContext context)
         {
-            return context.Logins;
+            return context.LoginsView;
         }
 
         /// <inheritdoc />
-        protected override Func<Login, dynamic> GetObjectKeySelector()
+        protected override Func<LoginView, dynamic> GetObjectKeySelector()
         {
             return x => new { x.ServerId, x.LoginId };
         }
 
         /// <inheritdoc />
-        protected override Func<Login, bool> GetPredicateForExtensionAny(Login @object)
+        protected override Func<LoginView, bool> GetPredicateForExtensionAny(LoginView @object)
         {
             return x => x.ServerId == @object.ServerId && x.LoginId == @object.LoginId;
         }
 
         /// <inheritdoc />
-        protected override Func<ViewPermission, dynamic> GetViewPermissionKeySelector()
+        protected override Func<PermissionView, dynamic> GetViewPermissionKeySelector()
         {
             return x => new { x.ServerIdOfSecurable, x.SecurableId };
         }

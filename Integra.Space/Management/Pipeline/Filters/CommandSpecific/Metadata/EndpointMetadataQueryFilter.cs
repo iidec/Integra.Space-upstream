@@ -13,7 +13,7 @@ namespace Integra.Space.Pipeline.Filters
     /// <summary>
     /// Create command action class.
     /// </summary>
-    internal class EndpointMetadataQueryFilter : MetadataQueryParserFilter<Endpoint>
+    internal class EndpointMetadataQueryFilter : MetadataQueryParserFilter<EndpointView>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="EndpointMetadataQueryFilter"/> class.
@@ -23,25 +23,25 @@ namespace Integra.Space.Pipeline.Filters
         }
 
         /// <inheritdoc />
-        protected override DbSet<Endpoint> GetDbSet(SpaceDbContext context)
+        protected override DbSet<EndpointView> GetDbSet(SpaceDbContext context)
         {
-            return context.Endpoints;
+            return context.EndpointsView;
         }
 
         /// <inheritdoc />
-        protected override Func<Endpoint, dynamic> GetObjectKeySelector()
+        protected override Func<EndpointView, dynamic> GetObjectKeySelector()
         {
             return x => new { x.ServerId, x.EndpointId };
         }
 
         /// <inheritdoc />
-        protected override Func<Endpoint, bool> GetPredicateForExtensionAny(Endpoint @object)
+        protected override Func<EndpointView, bool> GetPredicateForExtensionAny(EndpointView @object)
         {
             return x => x.ServerId == @object.ServerId && x.EndpointId == @object.EndpointId;
         }
 
         /// <inheritdoc />
-        protected override Func<ViewPermission, dynamic> GetViewPermissionKeySelector()
+        protected override Func<PermissionView, dynamic> GetViewPermissionKeySelector()
         {
             return x => new { x.ServerIdOfSecurable, x.SecurableId };
         }

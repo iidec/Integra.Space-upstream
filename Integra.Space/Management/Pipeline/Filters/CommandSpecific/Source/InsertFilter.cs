@@ -28,19 +28,12 @@ namespace Integra.Space.Pipeline.Filters
                                             && x.DatabaseId == schema.DatabaseId
                                             && x.SchemaId == schema.SchemaId
                                             && x.SourceName == command.MainCommandObject.Name);
-
-            IEnumerable<FieldNode> fields = source.Columns.OrderBy(x => x.ColumnIndex).Select(x => new FieldNode(x.ColumnName, Type.GetType(x.ColumnType)));
-
+            
             List<Tuple<byte, object>> listOfValues = new List<Tuple<byte, object>>();
 
             // valido que todas las columnas de la fuente estan definidas en las columnas del insert.
             foreach (SourceColumn column in source.Columns)
             {
-                if (!command.ColumnsWithValues.ContainsKey(column.ColumnName))
-                {
-                    throw new Exception(string.Format("The column '{0}' must be initialized in the insert command.", column.ColumnName));
-                }
-
                 listOfValues.Add(Tuple.Create(column.ColumnIndex, command.ColumnsWithValues[column.ColumnName]));
             }
 

@@ -28,55 +28,51 @@ namespace Integra.Space.UnitTests
 
             if (source.Name.ToString().Equals("servers", StringComparison.InvariantCultureIgnoreCase))
             {
-                return typeof(Database.Server);
+                return typeof(Database.ServerView);
             }
             else if (source.Name.Equals("endpoints", StringComparison.InvariantCultureIgnoreCase))
             {
-                return typeof(Database.Endpoint);
+                return typeof(Database.EndpointView);
             }
             else if (source.Name.Equals("logins", StringComparison.InvariantCultureIgnoreCase))
             {
-                return typeof(Database.Login);
+                return typeof(Database.LoginView);
             }
             else if (source.Name.Equals("serverroles", StringComparison.InvariantCultureIgnoreCase))
             {
-                return typeof(Database.ServerRole);
+                return typeof(Database.ServerRoleView);
             }
             else if (source.Name.Equals("databases", StringComparison.InvariantCultureIgnoreCase))
             {
-                return typeof(Database.Database);
+                return typeof(Database.DatabaseView);
             }
             else if (source.Name.Equals("users", StringComparison.InvariantCultureIgnoreCase))
             {
-                return typeof(Database.DatabaseUser);
+                return typeof(Database.UserView);
             }
             else if (source.Name.Equals("databaseroles", StringComparison.InvariantCultureIgnoreCase))
             {
-                return typeof(Database.DatabaseRole);
+                return typeof(Database.DatabaseRoleView);
             }
             else if (source.Name.Equals("schemas", StringComparison.InvariantCultureIgnoreCase))
             {
-                return typeof(Database.Schema);
+                return typeof(Database.SchemaView);
             }
             else if (source.Name.Equals("sources", StringComparison.InvariantCultureIgnoreCase))
             {
-                return typeof(Database.Source);
+                return typeof(Database.SourceView);
             }
             else if (source.Name.Equals("sourcecolumns", StringComparison.InvariantCultureIgnoreCase))
             {
-                return typeof(Database.SourceColumn);
+                return typeof(Database.SourceColumnView);
             }
             else if (source.Name.Equals("streams", StringComparison.InvariantCultureIgnoreCase))
             {
-                return typeof(Database.Stream);
+                return typeof(Database.StreamView);
             }
             else if (source.Name.Equals("streamcolumns", StringComparison.InvariantCultureIgnoreCase))
             {
-                return typeof(Database.StreamColumn);
-            }
-            else if (source.Name.Equals("views", StringComparison.InvariantCultureIgnoreCase))
-            {
-                return typeof(Database.View);
+                return typeof(Database.StreamColumnView);
             }
             else
             {

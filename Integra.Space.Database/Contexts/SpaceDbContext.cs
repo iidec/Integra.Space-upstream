@@ -19,7 +19,7 @@ namespace Integra.Space.Database
         // securables
         public virtual DbSet<Server> Servers { get; set; }
         public virtual DbSet<Login> Logins { get; set; }
-        public virtual DbSet<Endpoint> Endpoints { get; set; }        
+        public virtual DbSet<Endpoint> Endpoints { get; set; }
         public virtual DbSet<ServerRole> ServerRoles { get; set; }
         public virtual DbSet<Database> Databases { get; set; }
         public virtual DbSet<DatabaseRole> DatabaseRoles { get; set; }
@@ -58,8 +58,23 @@ namespace Integra.Space.Database
         public virtual DbSet<UserAssignedPermissionsToUsers> UserAssignedPermissionsToUsers { get; set; }
         public virtual DbSet<ViewAssignedPermissionsToDBRole> ViewAssignedPermissionsToDBRoles { get; set; }
         public virtual DbSet<ViewAssignedPermissionsToUser> ViewAssignedPermissionsToUsers { get; set; }
-        public virtual DbSet<ViewPermission> VWPermissions { get; set; }
-        
+
+        // Vistas
+        public virtual DbSet<PermissionView> VWPermissions { get; set; }
+
+        public virtual DbSet<DatabaseRoleView> DatabaseRolesView { get; set; }
+        public virtual DbSet<DatabaseView> DatabasesView { get; set; }
+        public virtual DbSet<EndpointView> EndpointsView { get; set; }
+        public virtual DbSet<LoginView> LoginsView { get; set; }
+        public virtual DbSet<SchemaView> SchemasView { get; set; }
+        public virtual DbSet<ServerRoleView> ServerRolesView { get; set; }
+        public virtual DbSet<ServerView> ServersView { get; set; }
+        public virtual DbSet<SourceColumnView> SourcecolumnsView { get; set; }
+        public virtual DbSet<SourceView> SourcesView { get; set; }
+        public virtual DbSet<StreamColumnView> StreamColumnsView { get; set; }
+        public virtual DbSet<StreamView> StreamsView { get; set; }
+        public virtual DbSet<UserView> UsersView { get; set; }
+
         protected override void OnModelCreating(DbModelBuilder modelBuilder)
         {
             modelBuilder.Entity<DatabaseRole>()
@@ -166,7 +181,7 @@ namespace Integra.Space.Database
             modelBuilder.Entity<DatabaseUser>()
                 .HasMany(e => e.Schemas)
                 .WithRequired(e => e.DatabaseUser)
-                .HasForeignKey(e => new { e.OwnerId, e.OwnerServerId, e.OwnerDatabaseId})
+                .HasForeignKey(e => new { e.OwnerId, e.OwnerServerId, e.OwnerDatabaseId })
                 .WillCascadeOnDelete(false);
 
             modelBuilder.Entity<DatabaseUser>()
@@ -190,19 +205,19 @@ namespace Integra.Space.Database
             modelBuilder.Entity<DatabaseUser>()
                 .HasMany(e => e.Streams)
                 .WithRequired(e => e.DatabaseUser)
-                .HasForeignKey(e => new { e.OwnerId, e.OwnerServerId, e.OwnerDatabaseId})
+                .HasForeignKey(e => new { e.OwnerId, e.OwnerServerId, e.OwnerDatabaseId })
                 .WillCascadeOnDelete(false);
 
             modelBuilder.Entity<DatabaseUser>()
                 .HasMany(e => e.UserAssignedPermissionsToDBRoles)
                 .WithRequired(e => e.DatabaseUser)
-                .HasForeignKey(e => new { e.DbUsrId , e.DbUsrServerId, e.DbUsrDatabaseId})
+                .HasForeignKey(e => new { e.DbUsrId, e.DbUsrServerId, e.DbUsrDatabaseId })
                 .WillCascadeOnDelete(false);
 
             modelBuilder.Entity<DatabaseUser>()
                 .HasMany(e => e.UserAssignedPermissionsToUsers)
                 .WithRequired(e => e.DatabaseUser)
-                .HasForeignKey(e => new { e.DbUsrId, e.DbUsrServerId, e.DbUsrDatabaseId})
+                .HasForeignKey(e => new { e.DbUsrId, e.DbUsrServerId, e.DbUsrDatabaseId })
                 .WillCascadeOnDelete(false);
 
             modelBuilder.Entity<DatabaseUser>()
@@ -220,9 +235,9 @@ namespace Integra.Space.Database
             modelBuilder.Entity<DatabaseUser>()
                 .HasMany(e => e.Views)
                 .WithRequired(e => e.DatabaseUser)
-                .HasForeignKey(e => new { e.OwnerId, e.OwnerServerId, e.OwnerDatabaseId})
+                .HasForeignKey(e => new { e.OwnerId, e.OwnerServerId, e.OwnerDatabaseId })
                 .WillCascadeOnDelete(false);
-            
+
             modelBuilder.Entity<Login>()
                 .HasMany(e => e.DatabaseUsers)
                 .WithRequired(e => e.Login)
@@ -293,7 +308,7 @@ namespace Integra.Space.Database
                 .WithRequired(e => e.Login)
                 .HasForeignKey(e => new { e.LoginServerId, e.LoginId })
                 .WillCascadeOnDelete(false);
-                        
+
             modelBuilder.Entity<Login>()
                 .HasMany(e => e.LoginsAssignedPermissionsToLogins)
                 .WithRequired(e => e.Login)
@@ -305,13 +320,13 @@ namespace Integra.Space.Database
                 .WithRequired(e => e.LoginOn)
                 .HasForeignKey(e => new { e.OnLoginServerId, e.OnLoginId })
                 .WillCascadeOnDelete(false);
-                        
+
             modelBuilder.Entity<Login>()
                 .HasMany(e => e.ServersAssignedPermissionsToLogins)
                 .WithRequired(e => e.Login)
                 .HasForeignKey(e => new { e.LoginServerId, e.LoginId })
                 .WillCascadeOnDelete(false);
-            
+
             modelBuilder.Entity<Login>()
                 .HasMany(e => e.ServerRoles)
                 .WithMany(e => e.Logins)
@@ -500,7 +515,7 @@ namespace Integra.Space.Database
                 .WithRequired(e => e.ServerRole)
                 .HasForeignKey(e => new { e.ServerRoleServerId, e.ServerRoleId })
                 .WillCascadeOnDelete(false);
-            
+
             modelBuilder.Entity<ServerRole>()
                 .HasMany(e => e.EndpointsAssignedPermissionsToServerRoles)
                 .WithRequired(e => e.ServerRole)
@@ -512,7 +527,7 @@ namespace Integra.Space.Database
                 .WithRequired(e => e.ServerRole)
                 .HasForeignKey(e => new { e.ServerRoleServerId, e.ServerRoleId })
                 .WillCascadeOnDelete(false);
-            
+
             modelBuilder.Entity<Server>()
                 .HasMany(e => e.Databases)
                 .WithRequired(e => e.Server)
@@ -582,7 +597,7 @@ namespace Integra.Space.Database
                 .WithRequired(e => e.Stream)
                 .HasForeignKey(e => new { e.StreamId, e.StreamServerId, e.StreamDatabaseId, e.StreamSchemaId })
                 .WillCascadeOnDelete(false);
-            
+
             modelBuilder.Entity<Stream>()
                 .HasMany(e => e.Sources)
                 .WithRequired(e => e.Stream)
@@ -609,7 +624,7 @@ namespace Integra.Space.Database
                 .HasMany(e => e.ViewAssignedPermissionsToUsers)
                 .WithRequired(e => e.View)
                 .HasForeignKey(e => new { e.ViewId, e.ViewServerId, e.ViewDatabaseId, e.ViewSchemaId })
-                .WillCascadeOnDelete(false);                      
+                .WillCascadeOnDelete(false);
         }
     }
 }
