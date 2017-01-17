@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
-VisualStudioVersion = 14.0.25123.0
+VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Integra.Space", "Integra.Space\Integra.Space.csproj", "{F2603245-0B0A-4AA3-9084-A06024852B5F}"
 EndProject
@@ -12,6 +12,16 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Integra.Space.Database", "Integra.Space.Database\Integra.Space.Database.csproj", "{9A2A2515-4DBD-44E5-A4AB-D0D15E49396F}"
 EndProject
 Project("{00D1A9C2-B5F0-4AF3-8072-F6C62B433612}") = "Integra.Space.DatabaseScripts", "Integra.Space.DatabaseScripts\Integra.Space.DatabaseScripts.sqlproj", "{C8E324B6-D5B8-499E-B6CE-ED4DC672C1D5}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Orleans", "Orleans", "{8AB27D57-2B05-4F70-B0B7-B1E1F298CE2C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Integra.Space.StreamProvider", "Integra.Space.StreamProvider\Integra.Space.StreamProvider.csproj", "{81CA9B0F-3C18-4E7B-A8EF-2284EEF47B13}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Integra.Space.StreamProviderTests", "Integra.Space.StreamProviderTests\Integra.Space.StreamProviderTests.csproj", "{9C55D9ED-5C21-477F-BFBE-FFFEF41E9A47}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Integra.Space.StreamProvider.TestGrainInterfaces", "Integra.Space.StreamProvider.TestGrainInterfaces\Integra.Space.StreamProvider.TestGrainInterfaces.csproj", "{1269C164-BE5C-4FE3-B657-21B871A7B3C6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Integra.Space.StreamProvider.TestGrains", "Integra.Space.StreamProvider.TestGrains\Integra.Space.StreamProvider.TestGrains.csproj", "{42097FB0-CBE8-442A-BFF3-38B4B66B8885}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -41,8 +51,30 @@ Global
 		{C8E324B6-D5B8-499E-B6CE-ED4DC672C1D5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C8E324B6-D5B8-499E-B6CE-ED4DC672C1D5}.Release|Any CPU.Build.0 = Release|Any CPU
 		{C8E324B6-D5B8-499E-B6CE-ED4DC672C1D5}.Release|Any CPU.Deploy.0 = Release|Any CPU
+		{81CA9B0F-3C18-4E7B-A8EF-2284EEF47B13}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{81CA9B0F-3C18-4E7B-A8EF-2284EEF47B13}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{81CA9B0F-3C18-4E7B-A8EF-2284EEF47B13}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{81CA9B0F-3C18-4E7B-A8EF-2284EEF47B13}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9C55D9ED-5C21-477F-BFBE-FFFEF41E9A47}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9C55D9ED-5C21-477F-BFBE-FFFEF41E9A47}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9C55D9ED-5C21-477F-BFBE-FFFEF41E9A47}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9C55D9ED-5C21-477F-BFBE-FFFEF41E9A47}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1269C164-BE5C-4FE3-B657-21B871A7B3C6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1269C164-BE5C-4FE3-B657-21B871A7B3C6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1269C164-BE5C-4FE3-B657-21B871A7B3C6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1269C164-BE5C-4FE3-B657-21B871A7B3C6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{42097FB0-CBE8-442A-BFF3-38B4B66B8885}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{42097FB0-CBE8-442A-BFF3-38B4B66B8885}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{42097FB0-CBE8-442A-BFF3-38B4B66B8885}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{42097FB0-CBE8-442A-BFF3-38B4B66B8885}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{81CA9B0F-3C18-4E7B-A8EF-2284EEF47B13} = {8AB27D57-2B05-4F70-B0B7-B1E1F298CE2C}
+		{9C55D9ED-5C21-477F-BFBE-FFFEF41E9A47} = {8AB27D57-2B05-4F70-B0B7-B1E1F298CE2C}
+		{1269C164-BE5C-4FE3-B657-21B871A7B3C6} = {8AB27D57-2B05-4F70-B0B7-B1E1F298CE2C}
+		{42097FB0-CBE8-442A-BFF3-38B4B66B8885} = {8AB27D57-2B05-4F70-B0B7-B1E1F298CE2C}
 	EndGlobalSection
 EndGlobal
