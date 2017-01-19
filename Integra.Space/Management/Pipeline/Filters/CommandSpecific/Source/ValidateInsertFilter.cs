@@ -8,7 +8,6 @@ namespace Integra.Space.Pipeline.Filters
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using Compiler;
     using Database;
     using Ninject;
 
@@ -36,7 +35,7 @@ namespace Integra.Space.Pipeline.Filters
             IGrouping<string, SourceColumn> stringGroup = sourceColumns.SingleOrDefault(x => x.Key == typeof(string).AssemblyQualifiedName);
             if (stringGroup != null)
             {
-                stringGroup.ToArray().ForEach(x =>
+                stringGroup.ToList().ForEach(x =>
                 {
                     if (!command.ColumnsWithValues.ContainsKey(x.ColumnName))
                     {
