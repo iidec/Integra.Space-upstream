@@ -1,0 +1,215 @@
+﻿//-----------------------------------------------------------------------
+// <copyright file="SpecificFiltersAggregator.cs" company="Integra.Space">
+//     Copyright (c) Integra.Space. All rights reserved.
+// </copyright>
+//-----------------------------------------------------------------------
+namespace Integra.Space.Pipeline.Filters
+{
+    using System;
+    using System.Linq;
+    using Common;
+    using Database;
+    using Language;
+    using Ninject;
+
+    /// <summary>
+    /// Specific filters aggregator class.
+    /// </summary>
+    internal class SpecificFiltersAggregator : FirstLevelCommandFilter
+    {
+        /// <inheritdoc />
+        public override FirstLevelPipelineContext Execute(FirstLevelPipelineContext context)
+        {
+            foreach (CommandPipelineNode commandNode in context.Commands)
+            {
+                if (commandNode.Command is DDLCommand)
+                {
+                    this.AddSpecificFiltersToDDLCommand(context, commandNode);
+                }
+                else if (commandNode.Command is DMLCommand)
+                {
+                    this.AddSpecificFiltersToDMLCommand(context, commandNode);
+                }
+                else
+                {
+                    throw new Exception("Invalid command type. Must be a DDL or DML command.");
+                }
+            }
+
+            return context;
+        }
+
+        /// <inheritdoc />
+        public override void OnError(FirstLevelPipelineContext e)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// Add specific filters to a DML command.
+        /// </summary>
+        /// <param name="context">Fist level pipeline context.</param>
+        /// <param name="commandNode">Compile command node.</param>
+        private void AddSpecificFiltersToDMLCommand(FirstLevelPipelineContext context, CommandPipelineNode commandNode)
+        {
+            ActionCommandEnum action = commandNode.Command.Action;
+            if (commandNode.Command is QueryCommandForMetadataNode)
+            {
+                QueryCommandForMetadataNode dmlCommand = (QueryCommandForMetadataNode)commandNode.Command;
+                PlanNode fromNode = NodesFinder.FindNode(dmlCommand.ExecutionPlan, new PlanNodeTypeEnum[] { PlanNodeTypeEnum.ObservableFrom }).First();
+                commandNode.Pipeline = SpecificFilterSelector.GetSpecificFilter(new SpecificFilterKey(action, this.GetSystemObject(fromNode.Properties["SourceName"].ToString())));
+            }
+            else if (action == ActionCommandEnum.Truncate)
+            {
+                commandNode.Pipeline = SpecificFilterSelector.GetSpecificFilter(new SpecificFilterKey(action, commandNode.Command.CommandObjects.Single().SecurableClass));
+            }
+            else if (action == ActionCommandEnum.Insert)
+            {
+                commandNode.Pipeline = SpecificFilterSelector.GetSpecificFilter(new SpecificFilterKey(action, commandNode.Command.CommandObjects.Single().SecurableClass));
+            }
+            else if (commandNode.Command is TemporalStreamNode)
+            {
+                throw new NotImplementedException("Temporal stream pipe not implemented.");
+            }
+        }
+
+        /// <summary>
+        /// Gets the system object based in a given metadata source name.
+        /// </summary>
+        /// <param name="sourceName">Source name.</param>
+        /// <returns>System object type.</returns>
+        private SystemObjectEnum GetSystemObject(string sourceName)
+        {
+            if (sourceName.ToString().Equals("servers", StringComparison.InvariantCultureIgnoreCase))
+            {
+                return SystemObjectEnum.Server;
+            }
+            else if (sourceName.Equals("endpoints", StringComparison.InvariantCultureIgnoreCase))
+            {
+                return SystemObjectEnum.Endpoint;
+            }
+            else if (sourceName.Equals("logins", StringComparison.InvariantCultureIgnoreCase))
+            {
+                return SystemObjectEnum.Login;
+            }
+            else if (sourceName.Equals("serverroles", StringComparison.InvariantCultureIgnoreCase))
+            {
+                return SystemObjectEnum.ServerRole;
+            }
+            else if (sourceName.Equals("databases", StringComparison.InvariantCultureIgnoreCase))
+            {
+                return SystemObjectEnum.Database;
+            }
+            else if (sourceName.Equals("users", StringComparison.InvariantCultureIgnoreCase))
+            {
+                return SystemObjectEnum.DatabaseUser;
+            }
+            else if (sourceName.Equals("databaseroles", StringComparison.InvariantCultureIgnoreCase))
+            {
+                return SystemObjectEnum.DatabaseRole;
+            }
+            else if (sourceName.Equals("schemas", StringComparison.InvariantCultureIgnoreCase))
+            {
+                return SystemObjectEnum.Schema;
+            }
+            else if (sourceName.Equals("sources", StringComparison.InvariantCultureIgnoreCase))
+            {
+                return SystemObjectEnum.Source;
+            }
+            else if (sourceName.Equals("sourcecolumns", StringComparison.InvariantCultureIgnoreCase))
+            {
+                return SystemObjectEnum.SourceColumn;
+            }
+            else if (sourceName.Equals("streams", StringComparison.InvariantCultureIgnoreCase))
+            {
+                return SystemObjectEnum.Stream;
+            }
+            else if (sourceName.Equals("streamcolumns", StringComparison.InvariantCultureIgnoreCase))
+            {
+                return SystemObjectEnum.StreamColumn;
+            }
+            else if (sourceName.Equals("views", StringComparison.InvariantCultureIgnoreCase))
+            {
+                return SystemObjectEnum.View;
+            }
+            else
+            {
+                throw new Exception("Invalid source name.");
+            }
+        }
+
+        /// <summary>
+        /// Add specific filters to a DDL command.
+        /// </summary>
+        /// <param name="context">Fist level pipeline context.</param>
+        /// <param name="commandNode">Compile command node.</param>
+        private void AddSpecificFiltersToDDLCommand(FirstLevelPipelineContext context, CommandPipelineNode commandNode)
+        {
+            /* NOTA: el comando use <database> no tiene acciones específicas. */
+            ActionCommandEnum action = commandNode.Command.Action;
+            DDLCommand ddlCommand = (DDLCommand)commandNode.Command;
+            if (action == ActionCommandEnum.Grant || action == ActionCommandEnum.Deny || action == ActionCommandEnum.Revoke)
+            {
+                PermissionsCommandNode command = (PermissionsCommandNode)ddlCommand;
+                SpaceDbContext databaseContext = context.Kernel.Get<SpaceDbContext>();
+                SystemObjectEnum objectType;
+                if (command.Permission.CommandObject == null)
+                {
+                    string securableClassName = databaseContext.GranularPermissions
+                        .Single(gp => gp.GranularPermissionName.Replace(" ", string.Empty).Equals(command.Permission.Permission.ToString(), StringComparison.InvariantCultureIgnoreCase))
+                        .PermissionsBySecurables
+                        .Single()
+                        .SecurableClass
+                        .SecurableName;
+
+                    if (!Enum.TryParse(securableClassName, true, out objectType))
+                    {
+                        throw new Exception("Securable class not defined.");
+                    }
+
+                    // se obtiene el login para obtener el server o base de datos por defecto.
+                    Login login = context.Kernel.Get<SpaceDbContext>().Logins.Single(x => x.LoginName == context.Login);
+
+                    // si es un permiso donde no se especifica el objeto se debe tomar del contexto del comando.
+                    switch (objectType)
+                    {
+                        case SystemObjectEnum.Database:
+                            command.Permission.CommandObject = new CommandObject(objectType, login.Database.DatabaseName, PermissionsEnum.Control, false);
+                            break;
+                        case SystemObjectEnum.Server:
+                            command.Permission.CommandObject = new CommandObject(objectType, login.Server.ServerName, PermissionsEnum.Control, false);
+                            break;
+                        default:
+                            throw new Exception(string.Format("System object not allowed for permission {0}.", command.Permission.Permission.ToString()));
+                    }
+                }
+                else
+                {
+                    objectType = command.Permission.CommandObject.SecurableClass;
+                }
+
+                commandNode.Pipeline = SpecificFilterSelector.GetSpecificFilter(objectType);
+            }
+            else if (action == ActionCommandEnum.Create || action == ActionCommandEnum.Alter || action == ActionCommandEnum.Drop)
+            {
+                commandNode.Pipeline = SpecificFilterSelector.GetSpecificFilter(new SpecificFilterKey(action, ddlCommand.MainCommandObject.SecurableClass));
+            }
+            else if (action == ActionCommandEnum.TakeOwnership)
+            {
+                commandNode.Pipeline = SpecificFilterSelector.GetSpecificFilter(new SpecificFilterKey(ActionCommandEnum.TakeOwnership, ddlCommand.MainCommandObject.SecurableClass));
+            }
+            else if (action == ActionCommandEnum.Add)
+            {
+                commandNode.Pipeline = new AddSecureObjectToRoleFilter();
+            }
+            else if (action == ActionCommandEnum.Remove)
+            {
+                commandNode.Pipeline = new RemoveSecureObjectToRoleFilter();
+            }
+            else if (action == ActionCommandEnum.Use)
+            {
+                commandNode.Pipeline = new UseFilter();
+            }
+        }
+    }
+}
