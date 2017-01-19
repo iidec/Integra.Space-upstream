@@ -60,7 +60,7 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="Integra.Space.Runtime, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Integra.Space.Runtime.Debug.0.0.1\lib\Integra.Space.Runtime.dll</HintPath>
+      <HintPath>..\packages\Integra.Space.Runtime.Debug.0.0.2\lib\Integra.Space.Runtime.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Irony, Version=1.0.0.0, Culture=neutral, PublicKeyToken=ca48ace7223ead47, processorArchitecture=MSIL">
@@ -155,7 +155,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
-    <None Include="packages.config" />
+    <None Include="packages.config">
+      <SubType>Designer</SubType>
+    </None>
   </ItemGroup>
   <Choose>
     <When Condition="'$(VisualStudioVersion)' == '10.0' And '$(IsCodedUITest)' == 'True'">
