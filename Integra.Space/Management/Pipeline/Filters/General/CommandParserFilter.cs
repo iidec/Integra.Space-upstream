@@ -10,6 +10,7 @@ namespace Integra.Space.Pipeline.Filters
     using Common;
     using Integra.Space.Pipeline;
     using Language;
+    using Ninject;
 
     /// <summary>
     /// Filter command parser class.
@@ -19,7 +20,7 @@ namespace Integra.Space.Pipeline.Filters
         /// <inheritdoc />
         public override FirstLevelPipelineContext Execute(FirstLevelPipelineContext context)
         {
-            CommandParser cp = new CommandParser(context.BatchString);
+            CommandParser cp = new CommandParser(context.BatchString, context.Kernel.Get<IGrammarRuleValidator>());
             foreach (SystemCommand command in cp.Evaluate())
             {
                 context.Commands.Add(new CommandPipelineNode(command));

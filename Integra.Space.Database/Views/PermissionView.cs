@@ -5,7 +5,7 @@ namespace Integra.Space.Database
     using System.ComponentModel.DataAnnotations.Schema;
 
     [Table("space.vw_permissions")]
-    public partial class ViewPermission
+    public partial class PermissionView
     {
         [Column("serverIdOfSecurable")]
         public System.Guid? ServerIdOfSecurable { get; set; }

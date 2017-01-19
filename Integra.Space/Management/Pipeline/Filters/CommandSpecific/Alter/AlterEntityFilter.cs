@@ -21,10 +21,10 @@ namespace Integra.Space.Pipeline.Filters
         {
             TCommand command = (TCommand)context.CommandContext.Command;
             Dictionary<TOption, object> options = command.Options;
-            Schema schema = command.MainCommandObject.GetSchema(context.Kernel.Get<SpaceDbContext>(), context.SecurityContext.Login);
             SpaceDbContext databaseContext = context.Kernel.Get<SpaceDbContext>();
-
-            this.EditEntity(command, options, schema, databaseContext);
+            Login login = context.SecurityContext.Login;
+            Schema schema = command.MainCommandObject.GetSchema(databaseContext, login);    
+            this.EditEntity(command, options, login, schema, databaseContext);
             return context;
         }
 
@@ -38,8 +38,9 @@ namespace Integra.Space.Pipeline.Filters
         /// </summary>
         /// <param name="command">Command object.</param>
         /// <param name="options">Options of the command.</param>
+        /// <param name="login">Client login.</param>
         /// <param name="schema">Schema of the command object.</param>
         /// <param name="databaseContext">Database context.</param>
-        protected abstract void EditEntity(TCommand command, Dictionary<TOption, object> options, Schema schema, SpaceDbContext databaseContext);
+        protected abstract void EditEntity(TCommand command, Dictionary<TOption, object> options, Login login, Schema schema, SpaceDbContext databaseContext);
     }
 }

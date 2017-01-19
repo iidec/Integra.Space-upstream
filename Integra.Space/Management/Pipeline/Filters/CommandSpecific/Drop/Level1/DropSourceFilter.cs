@@ -16,13 +16,26 @@ namespace Integra.Space.Pipeline.Filters
         /// <inheritdoc />
         protected override void DropEntity(SpaceDbContext databaseContext, Schema schema, string name)
         {
+            // obtengo la fuente.
             Source source = databaseContext.Sources.Single(x => x.ServerId == schema.ServerId
                                             && x.DatabaseId == schema.DatabaseId
                                             && x.SchemaId == schema.SchemaId
                                             && x.SourceName == name);
 
-            databaseContext.Sources.Remove(source);
-            databaseContext.SaveChanges();
+            if (source.Streams.Count > 0)
+            {
+                throw new System.Exception("Can't delete a source while is being used by one or more streams.");
+            }
+            else
+            {
+                // elimino las columnas de la fuente.
+                databaseContext.SourceColumns.RemoveRange(source.Columns);
+                databaseContext.SaveChanges();
+
+                // elimino la fuente.
+                databaseContext.Sources.Remove(source);
+                databaseContext.SaveChanges();
+            }
         }
     }
 }

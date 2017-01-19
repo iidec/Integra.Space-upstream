@@ -16,7 +16,7 @@ namespace Integra.Space.Pipeline.Filters
     internal class AlterDatabaseFilter : AlterEntityFilter<Language.AlterDatabaseNode, Common.DatabaseOptionEnum>
     {
         /// <inheritdoc />
-        protected override void EditEntity(Language.AlterDatabaseNode command, Dictionary<Common.DatabaseOptionEnum, object> options, Schema schema, SpaceDbContext databaseContext)
+        protected override void EditEntity(Language.AlterDatabaseNode command, Dictionary<Common.DatabaseOptionEnum, object> options, Login login, Schema schema, SpaceDbContext databaseContext)
         {
             Database database = databaseContext.Databases.Single(x => x.ServerId == schema.ServerId
                                             && x.DatabaseName == command.MainCommandObject.Name);

@@ -18,6 +18,21 @@ namespace Integra.Space.Common
         /// <summary>
         /// Status option.
         /// </summary>
-        Status = 2
+        Status = 2,
+
+        /// <summary>
+        /// Cache durability option.
+        /// </summary>
+        Cache_Durability = 3,
+
+        /// <summary>
+        /// Cache size option.
+        /// </summary>
+        Cache_Size = 4,
+
+        /// <summary>
+        /// Persistent option.
+        /// </summary>
+        Persistent = 5
     }
 }

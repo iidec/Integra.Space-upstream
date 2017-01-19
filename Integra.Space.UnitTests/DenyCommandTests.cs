@@ -5,6 +5,9 @@ using Ninject;
 using Integra.Space.Database;
 using System.Data.Entity;
 using System.Linq;
+using System.Reflection.Emit;
+using Integra.Space.Compiler;
+using Ninject.Planning.Bindings;
 
 namespace Integra.Space.UnitTests
 {
@@ -15,6 +18,12 @@ namespace Integra.Space.UnitTests
 
         private FirstLevelPipelineContext ProcessCommand(string command, IKernel kernel)
         {
+            IBinding binding = kernel.GetBindings(typeof(Language.IGrammarRuleValidator)).FirstOrDefault();
+            if (binding != null)
+            {
+                kernel.RemoveBinding(binding);
+            }
+            kernel.Bind<Language.IGrammarRuleValidator>().ToConstant(new TestRuleValidator());
             CommandPipelineBuilder cpb = new CommandPipelineBuilder();
             Filter<FirstLevelPipelineContext, FirstLevelPipelineContext> pipeline = cpb.Build();
 
@@ -916,7 +925,7 @@ namespace Integra.Space.UnitTests
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     Schema schema = dbContext.Schemas.Single(x => x.SchemaName == oldSchemaName);
-                    DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.DbUsrName == existingUserName);
+                    DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.DatabaseId == schema.DatabaseId && x.DbUsrName == existingUserName);
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("alter", StringComparison.InvariantCultureIgnoreCase));
                     SecurableClass sc = dbContext.SecurableClasses.Single(x => x.SecurableName.Equals("schema", StringComparison.InvariantCultureIgnoreCase));
                     bool exists = dbContext.SchemaAssignedPermissionsToUsers.Any(x => x.SchemaServerId == schema.ServerId && x.SchemaDatabaseId == schema.DatabaseId && x.SchemaId == schema.SchemaId
@@ -955,19 +964,20 @@ namespace Integra.Space.UnitTests
             string userName = "UserAux";
             string databaseName = "Database1";
             string sourceNameTest = "source1234";
+            string sourceForInto = "SourceForInto";
             string otherLogin = "LoginAux";
             string eql = "cross " +
-                                  $@"JOIN {sourceNameTest} as t1 WHERE t1.@event.Message.#0.#0 == ""0100""" +
-                                  $@"WITH {sourceNameTest} as t2 WHERE t2.@event.Message.#0.#0 == ""0110""" +
-                                  $@"ON (string)t1.@event.Message.#1.#0 == (string)t2.@event.Message.#1.#0 and (string)t1.@event.Message.#1.#1 == (string)t2.@event.Message.#1.#1 " +
+                                  $@"JOIN {sourceNameTest} as t1 WHERE t1.MessageType == ""0100""" +
+                                  $@"WITH {sourceNameTest} as t2 WHERE t2.MessageType == ""0110""" +
+                                  $@"ON (string)t1.PrimaryAccountNumber == (string)t2.PrimaryAccountNumber and (string)t1.RetrievalReferenceNumber == (string)t2.RetrievalReferenceNumber " +
                                   $@"TIMEOUT '00:00:01.5' " +
-                                  $@"WHERE isnull(t2.@event.SourceTimestamp, '01/01/2017') - isnull(t1.@event.SourceTimestamp, '01/01/2016') <= '00:00:01' " +
+                                  $@"WHERE isnull(t2.SourceTimestamp, '01/01/2017') - isnull(t1.SourceTimestamp, '01/01/2016') <= '00:00:01' " +
                                   $@"SELECT " +
-                                          $@"t1.@event.Message.#1.#0 as c1, " +
-                                          $@"t2.@event.Message.#1.#0 as c3 ";
+                                          $@"t1.PrimaryAccountNumber as c1, " +
+                                          $@"t2.PrimaryAccountNumber as c3  into {sourceForInto} ";
 
-            string command = $"create source {sourceNameTest}; create stream {oldStreamName} {{ {eql} }}; grant connect on database {databaseName} to user {userName}; grant alter on stream {oldStreamName}, read on source {sourceNameTest} to user {userName}; deny alter on stream {oldStreamName} to user {userName}";
-            string command2 = $"use Database1; alter stream {oldStreamName} with name = {newStreamName}";
+            string command = $"use {databaseName}; create source {sourceForInto} (c1 string(4000), c3 string(4000)); create source {sourceNameTest} (MessageType string(4000), PrimaryAccountNumber string(4000), RetrievalReferenceNumber string(4000), SourceTimestamp datetime); create stream {oldStreamName} {{ {eql} }}; grant connect on database {databaseName} to user {userName}; grant alter on stream {oldStreamName}, read on source {sourceNameTest}, write on source {sourceForInto} to user {userName}; deny alter on stream {oldStreamName} to user {userName}";
+            string command2 = $"use {databaseName}; alter stream {oldStreamName} with name = {newStreamName}";
 
             IKernel kernel = new StandardKernel();
             using (SpaceDbContext dbContext = new SpaceDbContext())
@@ -977,6 +987,9 @@ namespace Integra.Space.UnitTests
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
 
                     this.loginName = "AdminLogin";
+                    kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
+                    kernel.Bind<ISource>().ToConstructor(x => new ConcreteSource());
+
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     Stream stream = dbContext.Streams.Single(x => x.StreamName == oldStreamName);
@@ -984,7 +997,7 @@ namespace Integra.Space.UnitTests
                     Assert.IsTrue(stream.IsActive);
                     Assert.AreEqual(eql.Replace('\n', '\0').Trim(), stream.Query);
 
-                    DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.DbUsrName == userName);
+                    DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == databaseName && x.DbUsrName == userName);
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("alter", StringComparison.InvariantCultureIgnoreCase));
                     SecurableClass sc = dbContext.SecurableClasses.Single(x => x.SecurableName.Equals("stream", StringComparison.InvariantCultureIgnoreCase));
                     bool exists = dbContext.StreamAssignedPermissionsToUsers.Any(x => x.StreamServerId == stream.ServerId && x.StreamDatabaseId == stream.DatabaseId && x.StreamSchemaId == stream.SchemaId && x.StreamId == stream.StreamId
@@ -995,8 +1008,14 @@ namespace Integra.Space.UnitTests
 
                     Assert.IsTrue(exists);
 
+                    Assert.IsTrue(stream.ProjectionColumns.Any(x => x.ColumnName == "c1" && x.ColumnType == typeof(string).AssemblyQualifiedName));
+                    Assert.IsTrue(stream.ProjectionColumns.Any(x => x.ColumnName == "c3" && x.ColumnType == typeof(string).AssemblyQualifiedName));
+
                     try
                     {
+                        kernel = new StandardKernel();
+                        kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
+                        kernel.Bind<ISource>().ToConstructor(x => new ConcreteSource());
                         this.loginName = otherLogin;
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
@@ -1025,29 +1044,30 @@ namespace Integra.Space.UnitTests
             string databaseName = "Database1";
             string sourceNameTest = "source1234";
             string otherLogin = "LoginAux";
+            string sourceForInto = "sourceForInto";
             string eql = "cross " +
-                                  $@"JOIN {sourceNameTest} as t1 WHERE t1.@event.Message.#0.#0 == ""0100""" +
-                                  $@"WITH {sourceNameTest} as t2 WHERE t2.@event.Message.#0.#0 == ""0110""" +
-                                  $@"ON (string)t1.@event.Message.#1.#0 == (string)t2.@event.Message.#1.#0 and (string)t1.@event.Message.#1.#1 == (string)t2.@event.Message.#1.#1 " +
+                                  $@"JOIN {sourceNameTest} as t1 WHERE t1.MessageType == ""0100""" +
+                                  $@"WITH {sourceNameTest} as t2 WHERE t2.MessageType == ""0110""" +
+                                  $@"ON (string)t1.PrimaryAccountNumber == (string)t2.PrimaryAccountNumber and (string)t1.RetrievalReferenceNumber == (string)t2.RetrievalReferenceNumber " +
                                   $@"TIMEOUT '00:00:01.5' " +
-                                  $@"WHERE isnull(t2.@event.SourceTimestamp, '01/01/2017') - isnull(t1.@event.SourceTimestamp, '01/01/2016') <= '00:00:01' " +
+                                  $@"WHERE isnull(t2.SourceTimestamp, '01/01/2017') - isnull(t1.SourceTimestamp, '01/01/2016') <= '00:00:01' " +
                                   $@"SELECT " +
-                                          $@"t1.@event.Message.#1.#0 as c1, " +
-                                          $@"t2.@event.Message.#1.#0 as c3 ";
+                                          $@"t1.PrimaryAccountNumber as c1, " +
+                                          $@"t2.PrimaryAccountNumber as c3 into {sourceForInto} ";
 
-            string command = $"create source {sourceNameTest}; create stream {oldStreamName} {{ {eql} }}; grant connect on database {databaseName} to user {userName}; grant alter on stream {oldStreamName}, read on source {sourceNameTest} to user {userName}; deny read on source {sourceNameTest} to user {userName}";
+            string command = $"use {databaseName}; create source {sourceForInto} (c1 string(4000), c3 string(4000)); create source {sourceNameTest} (MessageType string(4000), PrimaryAccountNumber string(4000), RetrievalReferenceNumber string(4000), SourceTimestamp datetime); create stream {oldStreamName} {{ {eql} }}; grant connect on database {databaseName} to user {userName}; grant alter on stream {oldStreamName}, read on source {sourceNameTest}, write on source {sourceForInto} to user {userName}; deny read on source {sourceNameTest} to user {userName}";
 
             string newEql = "inner " +
-                                  $@"JOIN {sourceNameTest} as t1 WHERE t1.@event.Message.#0.#0 == ""0100""" +
-                                  $@"WITH {sourceNameTest} as t2 WHERE t2.@event.Message.#0.#0 == ""0110""" +
-                                  $@"ON (string)t1.@event.Message.#1.#0 == (string)t2.@event.Message.#1.#0 and (string)t1.@event.Message.#1.#1 == (string)t2.@event.Message.#1.#1 " +
+                                  $@"JOIN {sourceNameTest} as t1 WHERE t1.MessageType == ""0100""" +
+                                  $@"WITH {sourceNameTest} as t2 WHERE t2.MessageType == ""0110""" +
+                                  $@"ON (string)t1.PrimaryAccountNumber == (string)t2.PrimaryAccountNumber and (string)t1.RetrievalReferenceNumber == (string)t2.RetrievalReferenceNumber " +
                                   $@"TIMEOUT '00:00:03.5' " +
-                                  $@"WHERE isnull(t2.@event.SourceTimestamp, '01/01/2017') - isnull(t1.@event.SourceTimestamp, '01/01/2016') <= '00:00:01' " +
+                                  $@"WHERE isnull(t2.SourceTimestamp, '01/01/2017') - isnull(t1.SourceTimestamp, '01/01/2016') <= '00:00:01' " +
                                   $@"SELECT " +
-                                          $@"t2.@event.Message.#1.#0 as c1, " +
-                                          $@"t1.@event.Message.#1.#0 as c3 ";
+                                          $@"t2.PrimaryAccountNumber as c1, " +
+                                          $@"t1.PrimaryAccountNumber as c3 into {sourceForInto}";
 
-            string command2 = $"use Database1; alter stream {oldStreamName} with query = {newEql}";
+            string command2 = $"use {databaseName}; alter stream {oldStreamName} with query = {newEql}";
 
             IKernel kernel = new StandardKernel();
             using (SpaceDbContext dbContext = new SpaceDbContext())
@@ -1055,6 +1075,13 @@ namespace Integra.Space.UnitTests
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
+                    SpaceAssemblyBuilder sasmBuilder = new SpaceAssemblyBuilder("Test");
+                    AssemblyBuilder asmBuilder = sasmBuilder.CreateAssemblyBuilder();
+                    SpaceModuleBuilder smodBuilder = new SpaceModuleBuilder(asmBuilder);
+                    smodBuilder.CreateModuleBuilder();
+                    kernel.Bind<AssemblyBuilder>().ToConstant(asmBuilder);
+                    kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
+                    kernel.Bind<ISource>().ToConstructor(x => new ConcreteSource());
 
                     this.loginName = "AdminLogin";
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
@@ -1065,7 +1092,7 @@ namespace Integra.Space.UnitTests
                     Assert.AreEqual(eql.Replace('\n', '\0').Trim(), stream.Query);
 
                     Source source = dbContext.Sources.Single(x => x.SourceName == sourceNameTest);
-                    DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.DbUsrName == userName);
+                    DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == databaseName && x.DbUsrName == userName);
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("read", StringComparison.InvariantCultureIgnoreCase));
                     SecurableClass sc = dbContext.SecurableClasses.Single(x => x.SecurableName.Equals("source", StringComparison.InvariantCultureIgnoreCase));
                     bool exists = dbContext.SourceAssignedPermissionsToUsers.Any(x => x.SourceServerId == source.ServerId && x.SourceDatabaseId == source.DatabaseId && x.SourceSchemaId == source.SchemaId && x.SourceId == source.SourceId
@@ -1076,8 +1103,18 @@ namespace Integra.Space.UnitTests
 
                     Assert.IsTrue(exists);
 
+                    Assert.IsTrue(stream.ProjectionColumns.Any(x => x.ColumnName == "c1" && x.ColumnType == typeof(string).AssemblyQualifiedName));
+                    Assert.IsTrue(stream.ProjectionColumns.Any(x => x.ColumnName == "c3" && x.ColumnType == typeof(string).AssemblyQualifiedName));
+
                     try
                     {
+                        SpaceAssemblyBuilder sasmBuilder2 = new SpaceAssemblyBuilder("Test");
+                        AssemblyBuilder asmBuilder2 = sasmBuilder2.CreateAssemblyBuilder();
+                        SpaceModuleBuilder smodBuilder2 = new SpaceModuleBuilder(asmBuilder2);
+                        smodBuilder2.CreateModuleBuilder();
+                        kernel.Bind<AssemblyBuilder>().ToConstant(asmBuilder2);
+                        kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
+                        kernel.Bind<ISource>().ToConstructor(x => new ConcreteSource());
                         this.loginName = otherLogin;
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
@@ -1105,7 +1142,7 @@ namespace Integra.Space.UnitTests
             string userName = "UserAux";
             string databaseName = "Database1";
             string otherLogin = "LoginAux";
-            string command = $"create source {oldSourceName}; grant connect on database {databaseName}, alter on source {oldSourceName} to user {userName}; deny connect on database {databaseName}, alter on source {oldSourceName} to user {userName}";
+            string command = $"use Database1; create source {oldSourceName} (column1 int, column2 double, column3 string(4000)); grant connect on database {databaseName}, alter on source {oldSourceName} to user {userName}; deny connect on database {databaseName}, alter on source {oldSourceName} to user {userName}";
             string command2 = $"use Database1; alter source {oldSourceName} with name = {newSourceName}";
 
             IKernel kernel = new StandardKernel();
@@ -1114,6 +1151,11 @@ namespace Integra.Space.UnitTests
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
+                    SpaceAssemblyBuilder sasmBuilder = new SpaceAssemblyBuilder("Test");
+                    AssemblyBuilder asmBuilder = sasmBuilder.CreateAssemblyBuilder();
+                    SpaceModuleBuilder smodBuilder = new SpaceModuleBuilder(asmBuilder);
+                    smodBuilder.CreateModuleBuilder();
+                    kernel.Bind<AssemblyBuilder>().ToConstant(asmBuilder);
 
                     this.loginName = "AdminLogin";
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
@@ -1122,7 +1164,7 @@ namespace Integra.Space.UnitTests
                     Assert.AreEqual(oldSourceName, source.SourceName);
                     Assert.IsTrue(source.IsActive);
                     
-                    DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.DbUsrName == userName);
+                    DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == "Database1" && x.DbUsrName == userName);
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("alter", StringComparison.InvariantCultureIgnoreCase));
                     SecurableClass sc = dbContext.SecurableClasses.Single(x => x.SecurableName.Equals("source", StringComparison.InvariantCultureIgnoreCase));
                     bool exists = dbContext.SourceAssignedPermissionsToUsers.Any(x => x.SourceServerId == source.ServerId && x.SourceDatabaseId == source.DatabaseId && x.SourceSchemaId == source.SchemaId && x.SourceId == source.SourceId
@@ -1131,6 +1173,7 @@ namespace Integra.Space.UnitTests
                                                                             && x.SecurableClassId == sc.SecurableClassId
                                                                             && x.Granted && x.Denied);
                     Assert.IsTrue(exists);
+
                     try
                     {
                         this.loginName = otherLogin;
@@ -1181,7 +1224,7 @@ namespace Integra.Space.UnitTests
 
                     bool exists = dbContext.ServersAssignedPermissionsToLogins.Any(x => x.ServerId == server.ServerId
                                                                         && x.LoginServerId == onLogin.ServerId && x.LoginId == onLogin.LoginId
-                                                                        && x.Granted && x.Denied);
+                                                                        && x.Granted == true && x.Denied == true);
                     Assert.IsTrue(exists);
 
                     try
@@ -1473,18 +1516,19 @@ namespace Integra.Space.UnitTests
             string userName = "UserAux";
             string databaseName = "Database1";
             string sourceNameTest = "source1234";
+            string sourceForInto = "sourceForInto";
             string eql = "cross " +
-                                  $@"JOIN {sourceNameTest} as t1 WHERE t1.@event.Message.#0.#0 == ""0100""" +
-                                  $@"WITH {sourceNameTest} as t2 WHERE t2.@event.Message.#0.#0 == ""0110""" +
-                                  $@"ON (string)t1.@event.Message.#1.#0 == (string)t2.@event.Message.#1.#0 and (string)t1.@event.Message.#1.#1 == (string)t2.@event.Message.#1.#1 " +
+                                  $@"JOIN {sourceNameTest} as t1 WHERE t1.MessageType == ""0100""" +
+                                  $@"WITH {sourceNameTest} as t2 WHERE t2.MessageType == ""0110""" +
+                                  $@"ON (string)t1.PrimaryAccountNumber == (string)t2.PrimaryAccountNumber and (string)t1.RetrievalReferenceNumber == (string)t2.RetrievalReferenceNumber " +
                                   $@"TIMEOUT '00:00:01.5' " +
-                                  $@"WHERE isnull(t2.@event.SourceTimestamp, '01/01/2017') - isnull(t1.@event.SourceTimestamp, '01/01/2016') <= '00:00:01' " +
+                                  $@"WHERE isnull(t2.SourceTimestamp, '01/01/2017') - isnull(t1.SourceTimestamp, '01/01/2016') <= '00:00:01' " +
                                   $@"SELECT " +
-                                          $@"t1.@event.Message.#1.#0 as c1, " +
-                                          $@"t2.@event.Message.#1.#0 as c3 ";
+                                          $@"t1.PrimaryAccountNumber as c1, " +
+                                          $@"t2.PrimaryAccountNumber as c3 into {sourceForInto}";
 
-            string command = $"create source {sourceNameTest}; create stream {oldStreamName} {{ {eql} }}; grant connect on database {databaseName} to user {userName}; grant alter any schema, read on source {sourceNameTest} to user {userName}; deny alter any schema, read on source {sourceNameTest} to user {userName}";
-            string command2 = $"use Database1; alter stream {oldStreamName} with name = {newStreamName}";
+            string command = $"use {databaseName}; create source {sourceForInto} (c1 string(4000), c3 string(4000)); create source {sourceNameTest} (MessageType string(4000), PrimaryAccountNumber string(4000), RetrievalReferenceNumber string(4000), SourceTimestamp datetime); create stream {oldStreamName} {{ {eql} }}; grant connect on database {databaseName} to user {userName}; grant alter any schema, read on source {sourceNameTest} to user {userName}; deny alter any schema, read on source {sourceNameTest}, write on source {sourceForInto} to user {userName}";
+            string command2 = $"use {databaseName}; alter stream {oldStreamName} with name = {newStreamName}";
 
             IKernel kernel = new StandardKernel();
             using (SpaceDbContext dbContext = new SpaceDbContext())
@@ -1492,6 +1536,8 @@ namespace Integra.Space.UnitTests
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
+                    kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
+                    kernel.Bind<ISource>().ToConstructor(x => new ConcreteSource());
                     this.loginName = "AdminLogin";
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
@@ -1528,7 +1574,7 @@ namespace Integra.Space.UnitTests
             string newSourceName = "newSource";
             string userName = "UserAux";
             string databaseName = "Database1";
-            string command = $"create source {oldSourceName}; grant connect on database {databaseName}, alter any schema to user {userName}; deny connect on database {databaseName}, alter any schema to user {userName}";
+            string command = $"create source {oldSourceName} (column1 int, column2 double, column3 string(4000)); grant connect on database {databaseName}, alter any schema to user {userName}; deny connect on database {databaseName}, alter any schema to user {userName}";
             string command2 = $"use Database1; alter source {oldSourceName} with name = {newSourceName}";
 
             IKernel kernel = new StandardKernel();
@@ -1537,6 +1583,13 @@ namespace Integra.Space.UnitTests
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
+                    SpaceAssemblyBuilder sasmBuilder = new SpaceAssemblyBuilder("Test");
+                    AssemblyBuilder asmBuilder = sasmBuilder.CreateAssemblyBuilder();
+                    SpaceModuleBuilder smodBuilder = new SpaceModuleBuilder(asmBuilder);
+                    smodBuilder.CreateModuleBuilder();
+                    kernel.Bind<AssemblyBuilder>().ToConstant(asmBuilder);
+                    kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
+                    kernel.Bind<ISource>().ToConstructor(x => new ConcreteSource());
 
                     this.loginName = "AdminLogin";
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
@@ -1807,9 +1860,9 @@ namespace Integra.Space.UnitTests
                     this.loginName = "AdminLogin";
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    Schema schema = dbContext.Schemas.Single(x => x.SchemaName == oldSchemaName);
+                    Schema schema = dbContext.Schemas.Single(x => x.Database.DatabaseName == databaseName && x.SchemaName == oldSchemaName);
                     Assert.AreEqual(oldSchemaName, schema.SchemaName);
-                    DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.DbUsrName == existingUserName);
+                    DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == databaseName && x.DbUsrName == existingUserName);
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("control", StringComparison.InvariantCultureIgnoreCase));
                     SecurableClass sc = dbContext.SecurableClasses.Single(x => x.SecurableName.Equals("schema", StringComparison.InvariantCultureIgnoreCase));
                     bool exists = dbContext.SchemaAssignedPermissionsToUsers.Any(x => x.SchemaServerId == schema.ServerId && x.SchemaDatabaseId == schema.DatabaseId && x.SchemaId == schema.SchemaId
@@ -1849,18 +1902,19 @@ namespace Integra.Space.UnitTests
             string userName = "UserAux";
             string databaseName = "Database1";
             string sourceNameTest = "source1234";
+            string sourceForInto = "sourceForInto";
             string eql = "cross " +
-                                  $@"JOIN {sourceNameTest} as t1 WHERE t1.@event.Message.#0.#0 == ""0100""" +
-                                  $@"WITH {sourceNameTest} as t2 WHERE t2.@event.Message.#0.#0 == ""0110""" +
-                                  $@"ON (string)t1.@event.Message.#1.#0 == (string)t2.@event.Message.#1.#0 and (string)t1.@event.Message.#1.#1 == (string)t2.@event.Message.#1.#1 " +
+                                  $@"JOIN {sourceNameTest} as t1 WHERE t1.MessageType == ""0100""" +
+                                  $@"WITH {sourceNameTest} as t2 WHERE t2.MessageType == ""0110""" +
+                                  $@"ON (string)t1.PrimaryAccountNumber == (string)t2.PrimaryAccountNumber and (string)t1.RetrievalReferenceNumber == (string)t2.RetrievalReferenceNumber " +
                                   $@"TIMEOUT '00:00:01.5' " +
-                                  $@"WHERE isnull(t2.@event.SourceTimestamp, '01/01/2017') - isnull(t1.@event.SourceTimestamp, '01/01/2016') <= '00:00:01' " +
+                                  $@"WHERE isnull(t2.SourceTimestamp, '01/01/2017') - isnull(t1.SourceTimestamp, '01/01/2016') <= '00:00:01' " +
                                   $@"SELECT " +
-                                          $@"t1.@event.Message.#1.#0 as c1, " +
-                                          $@"t2.@event.Message.#1.#0 as c3 ";
+                                          $@"t1.PrimaryAccountNumber as c1, " +
+                                          $@"t2.PrimaryAccountNumber as c3 into {sourceForInto} ";
 
-            string command = $"create source {sourceNameTest}; create stream {oldStreamName} {{ {eql} }}; grant connect on database {databaseName} to user {userName}; grant control on stream {oldStreamName}, read on source {sourceNameTest} to user {userName}; deny control on stream {oldStreamName} to user {userName}";
-            string command2 = $"use Database1; alter stream {oldStreamName} with name = {newStreamName}";
+            string command = $"use {databaseName}; create source {sourceForInto} (c1 string(4000), c3 string(4000)); create source {sourceNameTest} (MessageType string(4000), PrimaryAccountNumber string(4000), RetrievalReferenceNumber string(4000), SourceTimestamp datetime); create stream {oldStreamName} {{ {eql} }}; grant connect on database {databaseName} to user {userName}; grant control on stream {oldStreamName}, read on source {sourceNameTest}, write on source {sourceForInto} to user {userName}; deny control on stream {oldStreamName} to user {userName}";
+            string command2 = $"use {databaseName}; alter stream {oldStreamName} with name = {newStreamName}";
 
             IKernel kernel = new StandardKernel();
             using (SpaceDbContext dbContext = new SpaceDbContext())
@@ -1868,6 +1922,8 @@ namespace Integra.Space.UnitTests
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
+                    kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
+                    kernel.Bind<ISource>().ToConstructor(x => new ConcreteSource());
                     this.loginName = "AdminLogin";
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
@@ -1876,7 +1932,7 @@ namespace Integra.Space.UnitTests
                     Assert.IsTrue(stream.IsActive);
                     Assert.AreEqual(eql.Replace('\n', '\0').Trim(), stream.Query);
 
-                    DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.DbUsrName == userName);
+                    DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == databaseName && x.DbUsrName == userName);
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("control", StringComparison.InvariantCultureIgnoreCase));
                     SecurableClass sc = dbContext.SecurableClasses.Single(x => x.SecurableName.Equals("stream", StringComparison.InvariantCultureIgnoreCase));
                     bool exists = dbContext.StreamAssignedPermissionsToUsers.Any(x => x.StreamServerId == stream.ServerId && x.StreamDatabaseId == stream.DatabaseId && x.StreamSchemaId == stream.SchemaId && x.StreamId == stream.StreamId
@@ -1886,6 +1942,9 @@ namespace Integra.Space.UnitTests
                                                                             && x.Granted && x.Denied);
 
                     Assert.IsTrue(exists);
+
+                    Assert.IsTrue(stream.ProjectionColumns.Any(x => x.ColumnName == "c1" && x.ColumnType == typeof(string).AssemblyQualifiedName));
+                    Assert.IsTrue(stream.ProjectionColumns.Any(x => x.ColumnName == "c3" && x.ColumnType == typeof(string).AssemblyQualifiedName));
 
                     try
                     {
@@ -1915,8 +1974,8 @@ namespace Integra.Space.UnitTests
             string newSourceName = "newSource";
             string userName = "UserAux";
             string databaseName = "Database1";
-            string command = $"create source {oldSourceName}; grant connect on database {databaseName}, control on source {oldSourceName} to user {userName}; deny control on source {oldSourceName} to user {userName}";
-            string command2 = $"use Database1; alter source {oldSourceName} with name = {newSourceName}";
+            string command = $"use {databaseName}; create source {oldSourceName} (column1 int, column2 double, column3 string(4000)); grant connect on database {databaseName}, control on source {oldSourceName} to user {userName}; deny control on source {oldSourceName} to user {userName}";
+            string command2 = $"use {databaseName}; alter source {oldSourceName} with name = {newSourceName}";
 
             IKernel kernel = new StandardKernel();
             using (SpaceDbContext dbContext = new SpaceDbContext())
@@ -1924,6 +1983,11 @@ namespace Integra.Space.UnitTests
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
+                    SpaceAssemblyBuilder sasmBuilder = new SpaceAssemblyBuilder("Test");
+                    AssemblyBuilder asmBuilder = sasmBuilder.CreateAssemblyBuilder();
+                    SpaceModuleBuilder smodBuilder = new SpaceModuleBuilder(asmBuilder);
+                    smodBuilder.CreateModuleBuilder();
+                    kernel.Bind<AssemblyBuilder>().ToConstant(asmBuilder);
 
                     this.loginName = "AdminLogin";
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
@@ -1932,7 +1996,7 @@ namespace Integra.Space.UnitTests
                     Assert.AreEqual(oldSourceName, source.SourceName);
                     Assert.IsTrue(source.IsActive);
 
-                    DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.DbUsrName == userName);
+                    DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == databaseName && x.DbUsrName == userName);
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("control", StringComparison.InvariantCultureIgnoreCase));
                     SecurableClass sc = dbContext.SecurableClasses.Single(x => x.SecurableName.Equals("source", StringComparison.InvariantCultureIgnoreCase));
                     bool exists = dbContext.SourceAssignedPermissionsToUsers.Any(x => x.SourceServerId == source.ServerId && x.SourceDatabaseId == source.DatabaseId && x.SourceSchemaId == source.SchemaId && x.SourceId == source.SourceId
@@ -2102,7 +2166,7 @@ namespace Integra.Space.UnitTests
                     Login login = dbContext.Logins.Single(x => x.Server.ServerName == "Server1" && x.LoginName == loginName);
                     Database.Database database = dbContext.Databases.Single(x => x.ServerId == login.ServerId && x.DatabaseName == databaseName);
                     Database.Schema schema = dbContext.Schemas.Single(x => x.ServerId == login.ServerId && x.DatabaseId == database.DatabaseId && x.SchemaName == schemaName);
-                    DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.DbUsrName == existingUserName);
+                    DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.DatabaseId == database.DatabaseId && x.DbUsrName == existingUserName);
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("take ownership", StringComparison.InvariantCultureIgnoreCase));
                     SecurableClass sc = dbContext.SecurableClasses.Single(x => x.SecurableName.Equals("schema", StringComparison.InvariantCultureIgnoreCase));
                     bool exists = dbContext.SchemaAssignedPermissionsToUsers.Any(x => x.SchemaServerId == schema.ServerId && x.SchemaDatabaseId == schema.DatabaseId && x.SchemaId == schema.SchemaId
@@ -2140,7 +2204,7 @@ namespace Integra.Space.UnitTests
             string oldSourceName = "oldSourceName";
             string userName = "UserAux";
             string databaseName = "Database1";
-            string command = $"create source {oldSourceName}; grant connect on database {databaseName}, take ownership on source {oldSourceName} to user {userName}; deny take ownership on source {oldSourceName} to user {userName}";
+            string command = $"create source {oldSourceName} (column1 int, column2 double, column3 string(4000)); grant connect on database {databaseName}, take ownership on source {oldSourceName} to user {userName}; deny take ownership on source {oldSourceName} to user {userName}";
             string command2 = $"use {databaseName}; take ownership on source {oldSourceName}";
             string schemaName = "schema1";
 
@@ -2151,6 +2215,11 @@ namespace Integra.Space.UnitTests
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
+                    SpaceAssemblyBuilder sasmBuilder = new SpaceAssemblyBuilder("Test");
+                    AssemblyBuilder asmBuilder = sasmBuilder.CreateAssemblyBuilder();
+                    SpaceModuleBuilder smodBuilder = new SpaceModuleBuilder(asmBuilder);
+                    smodBuilder.CreateModuleBuilder();
+                    kernel.Bind<AssemblyBuilder>().ToConstant(asmBuilder);
 
                     this.loginName = "AdminLogin";
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
@@ -2161,7 +2230,7 @@ namespace Integra.Space.UnitTests
                     Database.Source source = dbContext.Sources.Single(x => x.ServerId == login.ServerId && x.DatabaseId == database.DatabaseId && x.SchemaId == schema.SchemaId && x.SourceName == oldSourceName);
                     Assert.AreEqual<string>("AdminUser", source.DatabaseUser.DbUsrName);
                     
-                    DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.DbUsrName == userName);
+                    DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.DatabaseId == database.DatabaseId && x.DbUsrName == userName);
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("take ownership", StringComparison.InvariantCultureIgnoreCase));
                     SecurableClass sc = dbContext.SecurableClasses.Single(x => x.SecurableName.Equals("source", StringComparison.InvariantCultureIgnoreCase));
                     bool exists = dbContext.SourceAssignedPermissionsToUsers.Any(x => x.SourceServerId == source.ServerId && x.SourceDatabaseId == source.DatabaseId && x.SourceSchemaId == source.SchemaId && x.SourceId == source.SourceId
@@ -2200,17 +2269,18 @@ namespace Integra.Space.UnitTests
             string userName = "UserAux";
             string databaseName = "Database1";
             string sourceNameTest = "source1234";
+            string sourceForInto = "sourceForInto";
             string eql = "cross " +
-                                  $@"JOIN {sourceNameTest} as t1 WHERE t1.@event.Message.#0.#0 == ""0100""" +
-                                  $@"WITH {sourceNameTest} as t2 WHERE t2.@event.Message.#0.#0 == ""0110""" +
-                                  $@"ON (string)t1.@event.Message.#1.#0 == (string)t2.@event.Message.#1.#0 and (string)t1.@event.Message.#1.#1 == (string)t2.@event.Message.#1.#1 " +
+                                  $@"JOIN {sourceNameTest} as t1 WHERE t1.MessageType == ""0100""" +
+                                  $@"WITH {sourceNameTest} as t2 WHERE t2.MessageType == ""0110""" +
+                                  $@"ON (string)t1.PrimaryAccountNumber == (string)t2.PrimaryAccountNumber and (string)t1.RetrievalReferenceNumber == (string)t2.RetrievalReferenceNumber " +
                                   $@"TIMEOUT '00:00:01.5' " +
-                                  $@"WHERE isnull(t2.@event.SourceTimestamp, '01/01/2017') - isnull(t1.@event.SourceTimestamp, '01/01/2016') <= '00:00:01' " +
+                                  $@"WHERE isnull(t2.SourceTimestamp, '01/01/2017') - isnull(t1.SourceTimestamp, '01/01/2016') <= '00:00:01' " +
                                   $@"SELECT " +
-                                          $@"t1.@event.Message.#1.#0 as c1, " +
-                                          $@"t2.@event.Message.#1.#0 as c3 ";
+                                          $@"t1.PrimaryAccountNumber as c1, " +
+                                          $@"t2.PrimaryAccountNumber as c3 into {sourceForInto} ";
 
-            string command = $"use {databaseName}; create source {sourceNameTest}; create stream {oldStreamName} {{ {eql} }}; grant connect on database {databaseName} to user {userName}; grant take ownership on stream {oldStreamName}, read on source {sourceNameTest} to user {userName}; deny take ownership on stream {oldStreamName} to user {userName}";
+            string command = $"use {databaseName}; create source {sourceForInto} (c1 string(4000), c3 string(4000)); create source {sourceNameTest} (MessageType string(4000), PrimaryAccountNumber string(4000), RetrievalReferenceNumber string(4000), SourceTimestamp datetime); create stream {oldStreamName} {{ {eql} }}; grant connect on database {databaseName} to user {userName}; grant take ownership on stream {oldStreamName}, read on source {sourceNameTest}, write on source {sourceForInto} to user {userName}; deny take ownership on stream {oldStreamName} to user {userName}";
             string command2 = $"use {databaseName}; take ownership on stream {oldStreamName}";
 
             IKernel kernel = new StandardKernel();
@@ -2222,6 +2292,13 @@ namespace Integra.Space.UnitTests
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
 
                     this.loginName = "AdminLogin";
+                    SpaceAssemblyBuilder sasmBuilder1 = new SpaceAssemblyBuilder("Test");
+                    AssemblyBuilder asmBuilder1 = sasmBuilder1.CreateAssemblyBuilder();
+                    SpaceModuleBuilder smodBuilder1 = new SpaceModuleBuilder(asmBuilder1);
+                    smodBuilder1.CreateModuleBuilder();
+                    kernel.Bind<AssemblyBuilder>().ToConstant(asmBuilder1);
+                    kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
+                    kernel.Bind<ISource>().ToConstructor(x => new ConcreteSource());
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
                     
                     Login login = dbContext.Logins.Single(x => x.Server.ServerName == "Server1" && x.LoginName == loginName);
@@ -2230,7 +2307,7 @@ namespace Integra.Space.UnitTests
                     Database.Stream stream = dbContext.Streams.Single(x => x.ServerId == login.ServerId && x.DatabaseId == database.DatabaseId && x.SchemaId == schema.SchemaId && x.StreamName == oldStreamName);
                     Assert.AreEqual<string>("AdminUser", stream.DatabaseUser.DbUsrName);
 
-                    DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.DbUsrName == userName);
+                    DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.DatabaseId == database.DatabaseId && x.DbUsrName == userName);
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("take ownership", StringComparison.InvariantCultureIgnoreCase));
                     SecurableClass sc = dbContext.SecurableClasses.Single(x => x.SecurableName.Equals("stream", StringComparison.InvariantCultureIgnoreCase));
                     bool exists = dbContext.StreamAssignedPermissionsToUsers.Any(x => x.StreamServerId == stream.ServerId && x.StreamDatabaseId == stream.DatabaseId && x.StreamSchemaId == stream.SchemaId && x.StreamId == stream.StreamId
@@ -2239,6 +2316,9 @@ namespace Integra.Space.UnitTests
                                                                             && x.SecurableClassId == sc.SecurableClassId
                                                                             && x.Granted && x.Denied);
                     Assert.IsTrue(exists);
+                    
+                    Assert.IsTrue(stream.ProjectionColumns.Any(x => x.ColumnName == "c1" && x.ColumnType == typeof(string).AssemblyQualifiedName));
+                    Assert.IsTrue(stream.ProjectionColumns.Any(x => x.ColumnName == "c3" && x.ColumnType == typeof(string).AssemblyQualifiedName));
 
                     try
                     {
@@ -2936,7 +3016,7 @@ namespace Integra.Space.UnitTests
                                                                             && x.GranularPermissionId == gp.GranularPermissionId
                                                                             && x.SecurableClassId == sc.SecurableClassId
                                                                             && x.Granted && x.Denied);
-
+                    
                     try
                     {
                         Assert.IsTrue(exists);
@@ -3250,8 +3330,9 @@ namespace Integra.Space.UnitTests
             string otherLogin = "LoginAux";
             string schemaName = "Schema1";
             string userName = "UserAux";
-            string command = $"grant view definition on schema {schemaName} to user {userName}; deny view definition on schema {schemaName} to user {userName}";
-            string command2 = "from sys.schemas select ServerId as servId";
+            string databaseName = "Database1";
+            string command = $"use {databaseName}; grant view definition on schema {schemaName} to user {userName}; deny view definition on schema {schemaName} to user {userName}";
+            string command2 = $"use {databaseName}; from sys.schemas select ServerId as servId";
 
             IKernel kernel = new StandardKernel();
             using (SpaceDbContext dbContext = new SpaceDbContext())
@@ -3265,7 +3346,7 @@ namespace Integra.Space.UnitTests
 
                     Schema schema = dbContext.Schemas.Single(x => x.SchemaName == schemaName);
                     Assert.AreEqual(schemaName, schema.SchemaName);
-                    DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.DbUsrName == userName);
+                    DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == databaseName && x.DbUsrName == userName);
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("view definition", StringComparison.InvariantCultureIgnoreCase));
                     SecurableClass sc = dbContext.SecurableClasses.Single(x => x.SecurableName.Equals("schema", StringComparison.InvariantCultureIgnoreCase));
                     bool exists = dbContext.SchemaAssignedPermissionsToUsers.Any(x => x.SchemaServerId == schema.ServerId && x.SchemaDatabaseId == schema.DatabaseId && x.SchemaId == schema.SchemaId
@@ -3301,8 +3382,9 @@ namespace Integra.Space.UnitTests
             string otherLogin = "LoginAux";
             string sourceName = "SourceInicial";
             string userName = "UserAux";
-            string command = $"grant view definition on source {sourceName} to user {userName}; deny view definition on source {sourceName} to user {userName}";
-            string command2 = "from sys.sources select ServerId as servId";
+            string databaseName = "Database1";
+            string command = $"use {databaseName}; grant view definition on source {sourceName} to user {userName}; deny view definition on source {sourceName} to user {userName}";
+            string command2 = $"use {databaseName}; from sys.sources select ServerId as servId";
 
             IKernel kernel = new StandardKernel();
             using (SpaceDbContext dbContext = new SpaceDbContext())
@@ -3318,7 +3400,7 @@ namespace Integra.Space.UnitTests
                     Assert.AreEqual(sourceName, source.SourceName);
                     Assert.IsTrue(source.IsActive);
 
-                    DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.DbUsrName == userName);
+                    DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == databaseName && x.DbUsrName == userName);
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("view definition", StringComparison.InvariantCultureIgnoreCase));
                     SecurableClass sc = dbContext.SecurableClasses.Single(x => x.SecurableName.Equals("source", StringComparison.InvariantCultureIgnoreCase));
                     bool exists = dbContext.SourceAssignedPermissionsToUsers.Any(x => x.SourceServerId == source.ServerId && x.SourceDatabaseId == source.DatabaseId && x.SourceSchemaId == source.SchemaId && x.SourceId == source.SourceId
@@ -3353,8 +3435,8 @@ namespace Integra.Space.UnitTests
             string otherLogin = "LoginAux";
             string userName = "UserAux";
             string streamName = "Stream123";
-            string command = $"grant view definition on stream {streamName} to user {userName}; deny view definition on stream {streamName} to user {userName}";
-            string command2 = "from sys.streams select ServerId as servId";
+            string command = $"use Database1; grant view definition on stream Schema1.{streamName} to user Database2.{userName}; deny view definition on stream Schema1.{streamName} to user Database2.{userName}";
+            string command2 = "use Database2; from sys.streams select ServerId as serverId into dbo.SourceParaMetadata";
 
             IKernel kernel = new StandardKernel();
             using (SpaceDbContext dbContext = new SpaceDbContext())
@@ -3363,14 +3445,14 @@ namespace Integra.Space.UnitTests
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = "sa";
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     Stream stream = dbContext.Streams.Single(x => x.StreamName == streamName);
                     Assert.AreEqual(streamName, stream.StreamName);
                     Assert.IsTrue(stream.IsActive);
 
-                    DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.DbUsrName == userName);
+                    DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.DbUsrName == userName && x.Database.DatabaseName == "Database2");
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("view definition", StringComparison.InvariantCultureIgnoreCase));
                     SecurableClass sc = dbContext.SecurableClasses.Single(x => x.SecurableName.Equals("stream", StringComparison.InvariantCultureIgnoreCase));
                     bool exists = dbContext.StreamAssignedPermissionsToUsers.Any(x => x.StreamServerId == stream.ServerId && x.StreamDatabaseId == stream.DatabaseId && x.StreamSchemaId == stream.SchemaId && x.StreamId == stream.StreamId
@@ -3405,8 +3487,9 @@ namespace Integra.Space.UnitTests
             string otherLogin = "LoginAux";
             string viewName = "ViewForTest";
             string userName = "userAux";
-            string command = $"grant view definition on view ViewForTest to user UserAux; deny view definition on view ViewForTest to user UserAux";
-            string command2 = "from sys.views select ServerId as servId";
+            string databaseName = "Database1";
+            string command = $"use {databaseName}; grant view definition on view ViewForTest to user UserAux; deny view definition on view ViewForTest to user UserAux";
+            string command2 = $"use {databaseName}; from sys.views select ServerId as servId";
 
             IKernel kernel = new StandardKernel();
             using (SpaceDbContext dbContext = new SpaceDbContext())
@@ -3421,7 +3504,7 @@ namespace Integra.Space.UnitTests
                     View view = dbContext.Views.Single(x => x.ViewName == viewName);
                     Assert.AreEqual(viewName, view.ViewName);
 
-                    DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.DbUsrName == userName);
+                    DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == databaseName && x.DbUsrName == userName);
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("view definition", StringComparison.InvariantCultureIgnoreCase));
                     SecurableClass sc = dbContext.SecurableClasses.Single(x => x.SecurableName.Equals("view", StringComparison.InvariantCultureIgnoreCase));
                     bool exists = dbContext.ViewAssignedPermissionsToUsers.Any(x => x.ViewServerId == view.ServerId && x.ViewDatabaseId == view.DatabaseId && x.ViewSchemaId == view.SchemaId && x.ViewId == view.ViewId
@@ -4283,7 +4366,7 @@ namespace Integra.Space.UnitTests
                                                                         && x.GranularPermissionId == gp.GranularPermissionId
                                                                         && x.SecurableClassId == sc.SecurableClassId
                                                                         && x.Granted && x.Denied);
-
+                    
                     try
                     {
                         Assert.IsTrue(exists);
@@ -4466,7 +4549,7 @@ namespace Integra.Space.UnitTests
                                                                         && x.GranularPermissionId == gp.GranularPermissionId
                                                                         && x.SecurableClassId == sc.SecurableClassId
                                                                         && x.Granted && x.Denied);
-
+                    
                     try
                     {
                         Assert.IsTrue(exists);

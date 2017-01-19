@@ -26,9 +26,17 @@ namespace Integra.Space.Pipeline.Filters
             SpaceDbContext databaseContext = context.Kernel.Get<SpaceDbContext>();
             Login login = context.SecurityContext.Login;
             Database database = command.MainCommandObject.GetDatabase(databaseContext, login);
-            DatabaseUser user = login.DatabaseUsers.Where(x => x.DatabaseId == database.DatabaseId && x.ServerId == database.ServerId).Single();
+            DatabaseUser user = login.DatabaseUsers.Where(x => x.DatabaseId == database.DatabaseId && x.ServerId == database.ServerId).SingleOrDefault();
 
-            this.CreateEntity(command, options, login, user, schema, databaseContext);
+            if (user != null)
+            {
+                this.CreateEntity(command, options, login, user, schema, databaseContext);
+            }
+            else
+            {
+                throw new System.Exception("You need to have a user mapped for the login '{0}' at the database '{1}' before you create an entity.");
+            }
+
             return context;
         }
 

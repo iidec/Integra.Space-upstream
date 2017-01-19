@@ -6,6 +6,7 @@
 namespace Integra.Space.Pipeline
 {
     using System.Linq;
+    using Common;
     using Database;
 
     /// <summary>
@@ -21,11 +22,11 @@ namespace Integra.Space.Pipeline
         /// <param name="login">Login of the user.</param>
         /// <param name="database">The database to which the object belongs.</param>
         /// <returns>Schema of the command object.</returns>
-        public static Space.Database.Schema GetSchema(this Language.CommandObject commandObject, SpaceDbContext context, Login login, Database database)
+        public static Schema GetSchema(this CommandObject commandObject, SpaceDbContext context, Login login, Database database)
         {
             string schemaName = commandObject.SchemaName;
 
-            Space.Database.Schema schemaAux = null;
+            Schema schemaAux = null;
             if (schemaName != null)
             {
                 if (context.Schemas.Select(x => x.SchemaName).Contains(schemaName))
@@ -65,7 +66,7 @@ namespace Integra.Space.Pipeline
         /// <param name="context">Space database context.</param>
         /// <param name="login">Login of the user.</param>
         /// <returns>Schema of the command object.</returns>
-        public static Space.Database.Schema GetSchema(this Language.CommandObject commandObject, SpaceDbContext context, Login login)
+        public static Schema GetSchema(this CommandObject commandObject, SpaceDbContext context, Login login)
         {
             Database database = GetDatabase(commandObject, context, login);
             return GetSchema(commandObject, context, login, database);
@@ -78,7 +79,7 @@ namespace Integra.Space.Pipeline
         /// <param name="context">Space database context.</param>
         /// <param name="login">Login of the user.</param>
         /// <returns>The database of the command object.</returns>
-        public static Database GetDatabase(this Language.CommandObject commandObject, SpaceDbContext context, Login login)
+        public static Database GetDatabase(this CommandObject commandObject, SpaceDbContext context, Login login)
         {
             string databaseName = commandObject.DatabaseName;
             Database databaseAux = null;
@@ -101,7 +102,7 @@ namespace Integra.Space.Pipeline
         /// <param name="context">Space database context.</param>
         /// <param name="login">Login of the user.</param>
         /// <returns>The database user for the specified database and login.</returns>
-        public static DatabaseUser GetUser(this Language.CommandObject commandObject, SpaceDbContext context, Login login)
+        public static DatabaseUser GetUser(this CommandObject commandObject, SpaceDbContext context, Login login)
         {
             Database db = GetDatabase(commandObject, context, login);
             return login.DatabaseUsers.Where(x => x.DatabaseId == db.DatabaseId && x.ServerId == db.ServerId).Single();

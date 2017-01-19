@@ -9,7 +9,7 @@ namespace Integra.Space
     using System.Configuration;
     using System.Linq.Expressions;
     using System.Reactive.Concurrency;
-    using Integra.Space.Scheduler;
+    using Scheduler;
 
     /// <summary>
     /// Management scheduler factory class.
@@ -31,7 +31,7 @@ namespace Integra.Space
                 return factory;
             }
         }
-                
+
         /// <inheritdoc />
         public Expression GetScheduler()
         {

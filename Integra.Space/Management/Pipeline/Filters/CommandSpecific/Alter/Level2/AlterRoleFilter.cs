@@ -30,13 +30,13 @@ namespace Integra.Space.Pipeline.Filters
             this.login = context.SecurityContext.Login;
             Schema schema = command.MainCommandObject.GetSchema(context.Kernel.Get<SpaceDbContext>(), this.login);
             SpaceDbContext databaseContext = context.Kernel.Get<SpaceDbContext>();
-
-            this.EditEntity(command, options, schema, databaseContext);
+            Login login = context.SecurityContext.Login;
+            this.EditEntity(command, options, login, schema, databaseContext);
             return context;
         }
 
         /// <inheritdoc />
-        protected override void EditEntity(AlterRoleNode command, Dictionary<RoleOptionEnum, object> options, Schema schema, SpaceDbContext databaseContext)
+        protected override void EditEntity(AlterRoleNode command, Dictionary<RoleOptionEnum, object> options, Login login, Schema schema, SpaceDbContext databaseContext)
         {
             DatabaseRole role = databaseContext.DatabaseRoles.Single(x => x.ServerId == schema.ServerId
                                             && x.DatabaseId == schema.DatabaseId
@@ -54,10 +54,10 @@ namespace Integra.Space.Pipeline.Filters
 
             if (command.Options.ContainsKey(RoleOptionEnum.Add))
             {
-                HashSet<Language.CommandObject> users = (HashSet<Language.CommandObject>)command.Options[RoleOptionEnum.Add];
+                HashSet<CommandObject> users = (HashSet<CommandObject>)command.Options[RoleOptionEnum.Add];
                 DatabaseUser databaseUser = null;
                 Schema schemaOfTheUser = null;
-                foreach (Language.CommandObject userToAdd in users)
+                foreach (CommandObject userToAdd in users)
                 {
                     schemaOfTheUser = userToAdd.GetSchema(databaseContext, this.login);
                     databaseUser = databaseContext.DatabaseUsers.Single(x => x.ServerId == schemaOfTheUser.Database.Server.ServerId && x.DatabaseId == schemaOfTheUser.DatabaseId && x.DbUsrName == userToAdd.Name);
@@ -70,10 +70,10 @@ namespace Integra.Space.Pipeline.Filters
 
             if (command.Options.ContainsKey(RoleOptionEnum.Remove))
             {
-                HashSet<Language.CommandObject> users = (HashSet<Language.CommandObject>)command.Options[RoleOptionEnum.Remove];
+                HashSet<CommandObject> users = (HashSet<CommandObject>)command.Options[RoleOptionEnum.Remove];
                 DatabaseUser databaseUser = null;
                 Schema schemaOfTheUser = null;
-                foreach (Language.CommandObject userToRemove in users)
+                foreach (CommandObject userToRemove in users)
                 {
                     schemaOfTheUser = userToRemove.GetSchema(databaseContext, this.login);
                     databaseUser = databaseContext.DatabaseUsers.Single(x => x.ServerId == schemaOfTheUser.Database.Server.ServerId && x.DatabaseId == schemaOfTheUser.DatabaseId && x.DbUsrName == userToRemove.Name);

@@ -73,6 +73,9 @@
     <Folder Include="ServerPermissions\Servers" />
     <Folder Include="StoreProcedures" />
     <Folder Include="ServerPermissions\Database" />
+    <Folder Include="Securables\Sources" />
+    <Folder Include="Securables\Streams" />
+    <Folder Include="Views" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="DatabasePermissions\DatabaseRoles\DBRolesAssignedPermissionsToDBRoles.sql" />
@@ -97,8 +100,6 @@
     <Build Include="Securables\Schemas.sql" />
     <Build Include="Securables\ServerRoles.sql" />
     <Build Include="Securables\Servers.sql" />
-    <Build Include="Securables\Sources.sql" />
-    <Build Include="Securables\Streams.sql" />
     <Build Include="Securables\Views.sql" />
     <Build Include="Security\Permissions.sql" />
     <Build Include="ServerPermissions\Endpoints\EndpointsAssignedPermissionsToLogins.sql" />
@@ -110,7 +111,6 @@
     <Build Include="space_dev_usr.sql" />
     <Build Include="spaceLogin.sql" />
     <Build Include="spaceSchema.sql" />
-    <Build Include="vw_permissions.sql" />
     <Build Include="StoreProcedures\GetPermissionsWithParents.sql" />
     <Build Include="Security\PermissionsBySecurables.sql" />
     <Build Include="Security\SecurableClasses.sql" />
@@ -118,6 +118,24 @@
     <Build Include="Security\ServerRolesByLogins.sql" />
     <Build Include="Security\DatabaseRolesByUsers.sql" />
     <Build Include="Security\HierarchyPermissions.sql" />
+    <Build Include="Securables\Sources\Sources.sql" />
+    <Build Include="Securables\Sources\SourceColumns.sql" />
+    <Build Include="Securables\SourcesByStreams.sql" />
+    <Build Include="Securables\Streams\Streams.sql" />
+    <Build Include="Securables\Streams\StreamColumns.sql" />
+    <Build Include="Views\vw_permissions.sql" />
+    <Build Include="Views\vw_servers.sql" />
+    <Build Include="Views\vw_server_roles.sql" />
+    <Build Include="Views\vw_databases.sql" />
+    <Build Include="Views\vw_logins.sql" />
+    <Build Include="Views\vw_endpoints.sql" />
+    <Build Include="Views\vw_database_roles.sql" />
+    <Build Include="Views\vw_users.sql" />
+    <Build Include="Views\vw_schemas.sql" />
+    <Build Include="Views\vw_sources.sql" />
+    <Build Include="Views\vw_streams.sql" />
+    <Build Include="Views\vw_stream_columns.sql" />
+    <Build Include="Views\vw_source_columns.sql" />
   </ItemGroup>
   <ItemGroup>
     <RefactorLog Include="Integra.Space.DatabaseScripts.refactorlog" />

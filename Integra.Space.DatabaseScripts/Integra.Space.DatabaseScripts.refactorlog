@@ -504,4 +504,67 @@
     <Property Name="ParentElementType" Value="SqlTable" />
     <Property Name="NewName" Value="[srvrole_srv_id]" />
   </Operation>
+  <Operation Name="Rename Refactor" Key="7430f412-211f-4421-92f8-939e7d779643" ChangeDateTime="10/27/2016 19:30:42">
+    <Property Name="ElementName" Value="[space].[sources].[cache_duration]" />
+    <Property Name="ElementType" Value="SqlSimpleColumn" />
+    <Property Name="ParentElementName" Value="[space].[sources]" />
+    <Property Name="ParentElementType" Value="SqlTable" />
+    <Property Name="NewName" Value="cache_durability" />
+  </Operation>
+  <Operation Name="Rename Refactor" Key="ad29f0bb-b744-44ab-8c30-848954dc7d6f" ChangeDateTime="10/27/2016 19:47:19">
+    <Property Name="ElementName" Value="[dbo].[source_columns].[Id]" />
+    <Property Name="ElementType" Value="SqlSimpleColumn" />
+    <Property Name="ParentElementName" Value="[dbo].[source_columns]" />
+    <Property Name="ParentElementType" Value="SqlTable" />
+    <Property Name="NewName" Value="src_id" />
+  </Operation>
+  <Operation Name="Rename Refactor" Key="02ec6b0c-0a39-479a-9f58-394f84e83dce" ChangeDateTime="11/17/2016 18:14:11">
+    <Property Name="ElementName" Value="[dbo].[sources_by_streams].[Id]" />
+    <Property Name="ElementType" Value="SqlSimpleColumn" />
+    <Property Name="ParentElementName" Value="[dbo].[sources_by_streams]" />
+    <Property Name="ParentElementType" Value="SqlTable" />
+    <Property Name="NewName" Value="so_id" />
+  </Operation>
+  <Operation Name="Rename Refactor" Key="e9fcf52a-fb8d-48cc-95ea-307fd903adc1" ChangeDateTime="11/17/2016 18:14:59">
+    <Property Name="ElementName" Value="[dbo].[sources_by_streams].[sch_id]" />
+    <Property Name="ElementType" Value="SqlSimpleColumn" />
+    <Property Name="ParentElementName" Value="[dbo].[sources_by_streams]" />
+    <Property Name="ParentElementType" Value="SqlTable" />
+    <Property Name="NewName" Value="src_sch_id" />
+  </Operation>
+  <Operation Name="Rename Refactor" Key="8ab0b659-f2c5-4ae8-97f9-92cc66f38457" ChangeDateTime="11/17/2016 18:15:02">
+    <Property Name="ElementName" Value="[dbo].[sources_by_streams].[so_id]" />
+    <Property Name="ElementType" Value="SqlSimpleColumn" />
+    <Property Name="ParentElementName" Value="[dbo].[sources_by_streams]" />
+    <Property Name="ParentElementType" Value="SqlTable" />
+    <Property Name="NewName" Value="src_id" />
+  </Operation>
+  <Operation Name="Rename Refactor" Key="cfbaa540-b52d-4e00-bf92-0bd0595f9e6e" ChangeDateTime="11/17/2016 18:15:05">
+    <Property Name="ElementName" Value="[dbo].[sources_by_streams].[db_id]" />
+    <Property Name="ElementType" Value="SqlSimpleColumn" />
+    <Property Name="ParentElementName" Value="[dbo].[sources_by_streams]" />
+    <Property Name="ParentElementType" Value="SqlTable" />
+    <Property Name="NewName" Value="src_db_id" />
+  </Operation>
+  <Operation Name="Rename Refactor" Key="4ec54fba-5216-402d-83f0-96665c3aa52f" ChangeDateTime="11/17/2016 18:15:07">
+    <Property Name="ElementName" Value="[dbo].[sources_by_streams].[srv_id]" />
+    <Property Name="ElementType" Value="SqlSimpleColumn" />
+    <Property Name="ParentElementName" Value="[dbo].[sources_by_streams]" />
+    <Property Name="ParentElementType" Value="SqlTable" />
+    <Property Name="NewName" Value="src_srv_id" />
+  </Operation>
+  <Operation Name="Rename Refactor" Key="af6d68b7-5b7a-44dd-9efe-9c9d2f887003" ChangeDateTime="11/17/2016 18:17:17">
+    <Property Name="ElementName" Value="[dbo].[sources_by_streams].[direction]" />
+    <Property Name="ElementType" Value="SqlSimpleColumn" />
+    <Property Name="ParentElementName" Value="[dbo].[sources_by_streams]" />
+    <Property Name="ParentElementType" Value="SqlTable" />
+    <Property Name="NewName" Value="is_input" />
+  </Operation>
+  <Operation Name="Rename Refactor" Key="f8239bd1-3108-4bdd-a3c8-240c200dc358" ChangeDateTime="11/17/2016 18:18:48">
+    <Property Name="ElementName" Value="[dbo].[sources_by_streams].[is_input]" />
+    <Property Name="ElementType" Value="SqlSimpleColumn" />
+    <Property Name="ParentElementName" Value="[dbo].[sources_by_streams]" />
+    <Property Name="ParentElementType" Value="SqlTable" />
+    <Property Name="NewName" Value="is_input_source" />
+  </Operation>
 </Operations>

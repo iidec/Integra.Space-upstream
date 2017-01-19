@@ -13,7 +13,7 @@ namespace Integra.Space.Pipeline.Filters
     /// <summary>
     /// Create command action class.
     /// </summary>
-    internal class DatabaseMetadataQueryFilter : MetadataQueryParserFilter<Space.Database.Database>
+    internal class DatabaseMetadataQueryFilter : MetadataQueryParserFilter<DatabaseView>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="DatabaseMetadataQueryFilter"/> class.
@@ -23,25 +23,25 @@ namespace Integra.Space.Pipeline.Filters
         }
 
         /// <inheritdoc />
-        protected override DbSet<Space.Database.Database> GetDbSet(SpaceDbContext context)
+        protected override DbSet<DatabaseView> GetDbSet(SpaceDbContext context)
         {
-            return context.Databases;
+            return context.DatabasesView;
         }
 
         /// <inheritdoc />
-        protected override Func<Space.Database.Database, dynamic> GetObjectKeySelector()
+        protected override Func<Space.Database.DatabaseView, dynamic> GetObjectKeySelector()
         {
             return x => new { x.ServerId, x.DatabaseId };
         }
 
         /// <inheritdoc />
-        protected override Func<Space.Database.Database, bool> GetPredicateForExtensionAny(Space.Database.Database @object)
+        protected override Func<DatabaseView, bool> GetPredicateForExtensionAny(DatabaseView @object)
         {
             return x => x.ServerId == @object.ServerId && x.DatabaseId == @object.DatabaseId;
         }
 
         /// <inheritdoc />
-        protected override Func<ViewPermission, dynamic> GetViewPermissionKeySelector()
+        protected override Func<PermissionView, dynamic> GetViewPermissionKeySelector()
         {
             return x => new { x.ServerIdOfSecurable, x.SecurableId };
         }

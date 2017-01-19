@@ -153,6 +153,11 @@ namespace Integra.Space.Common
         /// <summary>
         /// Connect SQL for logins.
         /// </summary>
-        ConnectSQL = 28
+        ConnectSQL = 28,
+
+        /// <summary>
+        /// Permission write.
+        /// </summary>
+        Write = 29
     }
 }

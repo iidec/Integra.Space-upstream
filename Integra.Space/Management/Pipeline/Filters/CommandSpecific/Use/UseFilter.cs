@@ -22,11 +22,13 @@ namespace Integra.Space.Pipeline.Filters
             SpaceDbContext databaseContext = context.Kernel.Get<SpaceDbContext>();
             Schema schema = command.MainCommandObject.GetSchema(databaseContext, login);
 
+            /*
             bool exists = databaseContext.DatabaseUsers.Any(x => x.ServerId == schema.ServerId && x.DatabaseId == schema.DatabaseId && x.LoginServerId == login.ServerId && x.LoginId == login.LoginId);
             if (!exists)
             {
                 throw new System.Exception(string.Format("Not user mapped at database '{0}' for login '{1}'", command.MainCommandObject.Name, login.LoginName));
             }
+            */
 
             return context;
         }
