@@ -45,7 +45,6 @@ namespace Integra.Space.Pipeline.Filters
             bool isTestMode = false;
 
             CodeGeneratorConfiguration config = new CodeGeneratorConfiguration(
-                login,
                 dsf,
                 asmBuilder,
                 kernel,

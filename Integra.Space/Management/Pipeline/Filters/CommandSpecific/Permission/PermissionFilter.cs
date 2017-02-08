@@ -32,7 +32,7 @@ namespace Integra.Space.Pipeline.Filters
                 SystemObjectEnum permissionObjectType = permission.CommandObject.SecurableClass;
 
                 Schema schemaOfPrincipal = principal.GetSchema(databaseContext, login);
-                if (principal.SecurableClass.Equals(SystemObjectEnum.DatabaseUser))
+                if (principal.SecurableClass == SystemObjectEnum.DatabaseUser)
                 {
                     if (permissionObjectType == SystemObjectEnum.Server || permissionObjectType == SystemObjectEnum.Endpoint || permissionObjectType == SystemObjectEnum.Login)
                     {
@@ -44,7 +44,7 @@ namespace Integra.Space.Pipeline.Filters
                         this.SavePermissionForUser(databaseContext, login, schemaOfPrincipal, schemaOfSecurable, command, permission, databaseUser);
                     }
                 }
-                else if (principal.SecurableClass.Equals(SystemObjectEnum.Login))
+                else if (principal.SecurableClass == SystemObjectEnum.Login)
                 {
                     if (permissionObjectType == SystemObjectEnum.Server || permissionObjectType == SystemObjectEnum.Endpoint || permissionObjectType == SystemObjectEnum.Login)
                     {
@@ -56,7 +56,7 @@ namespace Integra.Space.Pipeline.Filters
                         throw new Exception(string.Format("Invalid principal for the permission '{0}' for object type '{1}'.", command.Permission.Permission, permissionObjectType));
                     }
                 }
-                else if (principal.SecurableClass.Equals(SystemObjectEnum.DatabaseRole))
+                else if (principal.SecurableClass == SystemObjectEnum.DatabaseRole)
                 {
                     if (permissionObjectType == SystemObjectEnum.Server || permissionObjectType == SystemObjectEnum.Endpoint || permissionObjectType == SystemObjectEnum.Login)
                     {

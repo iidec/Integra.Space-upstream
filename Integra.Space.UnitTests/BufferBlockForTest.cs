@@ -1,16 +1,30 @@
-﻿namespace Integra.Space.UnitTests
+﻿//-----------------------------------------------------------------------
+// <copyright file="BufferBlockForTest.cs" company="Integra.Space.UnitTests">
+//     Copyright (c) Integra.Space. All rights reserved.
+// </copyright>
+//-----------------------------------------------------------------------
+namespace Integra.Space.UnitTests
 {
     using System.Threading.Tasks.Dataflow;
 
+    /// <summary>
+    /// Buffer block for test class.
+    /// </summary>
     internal class BufferBlockForTest
     {
+        /// <summary>
+        /// buffer block to simulate a source.
+        /// </summary>
         private static BufferBlock<EventBase> bufferBlock1;
 
+        /// <summary>
+        /// Gets the buffer block to simulate a source.
+        /// </summary>
         public static BufferBlock<EventBase> BufferBlock1
         {
             get
             {
-                if(bufferBlock1 == null)
+                if (bufferBlock1 == null)
                 {
                     bufferBlock1 = new BufferBlock<EventBase>();
                 }

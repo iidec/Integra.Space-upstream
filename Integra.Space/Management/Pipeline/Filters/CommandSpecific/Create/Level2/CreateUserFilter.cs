@@ -66,8 +66,8 @@ namespace Integra.Space.Pipeline.Filters
             databaseContext.DatabaseUsers.Add(newUser);
             databaseContext.SaveChanges();
 
-            PermissionBySecurable pbs = databaseContext.PermissionsBySecurables.Single(x => x.GranularPermission.GranularPermissionName.Equals(PermissionsEnum.Connect.ToString(), StringComparison.InvariantCultureIgnoreCase)
-                                                                                            && x.SecurableClass.SecurableName.Equals(SystemObjectEnum.Database.ToString(), StringComparison.InvariantCultureIgnoreCase));
+            PermissionBySecurable pbs = databaseContext.PermissionsBySecurables.Single(x => x.GranularPermission.GranularPermissionName.ToLower() == PermissionsEnum.Connect.ToString().ToLower()
+                                                                                            && x.SecurableClass.SecurableName.ToLower() == SystemObjectEnum.Database.ToString().ToLower());
             DatabaseAssignedPermissionsToUser permission = new DatabaseAssignedPermissionsToUser()
             {
                 Database = newUser.Database,

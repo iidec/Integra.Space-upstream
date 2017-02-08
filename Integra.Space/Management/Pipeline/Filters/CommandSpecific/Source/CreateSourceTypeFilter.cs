@@ -8,7 +8,6 @@ namespace Integra.Space.Pipeline.Filters
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using System.Reflection.Emit;
     using Compiler;
     using Database;
     using Language;
@@ -27,9 +26,9 @@ namespace Integra.Space.Pipeline.Filters
             SpaceDbContext databaseContext = context.Kernel.Get<SpaceDbContext>();
             Schema schema = command.MainCommandObject.GetSchema(databaseContext, login);
             Source source = databaseContext.Sources.Single(x => x.ServerId == schema.ServerId
-                                            && x.DatabaseId == schema.DatabaseId
-                                            && x.SchemaId == schema.SchemaId
-                                            && x.SourceName == command.MainCommandObject.Name);
+                                                                    && x.DatabaseId == schema.DatabaseId 
+                                                                    && x.SchemaId == schema.SchemaId
+                                                                    && x.SourceName == command.MainCommandObject.Name);
             
             string typeSignature = string.Format("{0}_{1}", context.AssemblyBuilder.GetName(), source.SourceName); // string.Format("{0}_{1}_{2}_{3}", schema.Database.Server.ServerName.Replace(' ', '\0'), schema.Database.DatabaseName.Replace(' ', '\0'), schema.SchemaName.Replace(' ', '\0'), source.SourceName.Replace(' ', '\0'));
 

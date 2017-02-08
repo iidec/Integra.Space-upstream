@@ -16,6 +16,7 @@ namespace Integra.Space.Pipeline.Filters
         public override FirstLevelPipelineContext Execute(FirstLevelPipelineContext context)
         {
             PipelineExecutor cpe = null;
+
             foreach (CommandPipelineNode commandNode in context.Commands)
             {
                 if (commandNode.Pipeline == null)
@@ -25,6 +26,29 @@ namespace Integra.Space.Pipeline.Filters
 
                 cpe = new PipelineExecutor(commandNode.Pipeline);
                 cpe.Execute(new PipelineContext(((Language.CompiledCommand)commandNode.Command).CommandText, commandNode.Command, context.Login, context.Kernel));
+
+                /*System.Data.Common.DbTransaction tran = context.Kernel.Get<SpaceDbContext>().Database.Connection.BeginTransaction();
+                
+                DbContextTransaction tran = context.Kernel.Get<SpaceDbContext>().Database.CurrentTransaction;
+
+                if (tran == null)
+                {
+                    tran = context.Kernel.Get<SpaceDbContext>().Database.BeginTransaction();
+                }
+
+                using (tran)
+                {
+                    try
+                    {
+                        cpe.Execute(new PipelineContext(((Language.CompiledCommand)commandNode.Command).CommandText, commandNode.Command, context.Login, context.Kernel));
+                        tran.Commit();
+                    }
+                    catch (Exception e)
+                    {
+                        tran.Rollback();
+                        throw new Exception(string.Format("Error executing the command:\n{0}", ((Language.CompiledCommand)commandNode.Command).CommandText), e);
+                    }
+                }*/
             }
 
             return context;
