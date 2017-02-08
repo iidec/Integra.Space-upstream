@@ -29,6 +29,11 @@ namespace Integra.Space.Pipeline.Filters
 
             if (options.ContainsKey(Common.LoginOptionEnum.Name))
             {
+                if (loginFromDatabase.LoginName == "sa")
+                {
+                    throw new System.InvalidOperationException("Can't change the name of the sa login.");
+                }
+
                 loginFromDatabase.LoginName = options[Common.LoginOptionEnum.Name].ToString();
             }
 

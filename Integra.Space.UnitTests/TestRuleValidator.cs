@@ -1,6 +1,6 @@
 ﻿//-----------------------------------------------------------------------
-// <copyright file="TestRuleValidator.cs" company="Integra.Space.Language">
-//     Copyright (c) Integra.Space.Language. All rights reserved.
+// <copyright file="TestRuleValidator.cs" company="ARITEC">
+// Copyright (c) ARITEC. All rights reserved.
 // </copyright>
 //-----------------------------------------------------------------------
 namespace Integra.Space.UnitTests
