@@ -1,23 +1,23 @@
 ﻿//-----------------------------------------------------------------------
-// <copyright file="BufferBlockForTest.cs" company="Integra.Space.UnitTests">
-//     Copyright (c) Integra.Space. All rights reserved.
+// <copyright file="CommandTests.cs" company="ARITEC">
+// Copyright (c) ARITEC. All rights reserved.
 // </copyright>
 //-----------------------------------------------------------------------
 namespace Integra.Space.UnitTests
 {
     using System;
-    using System.Linq;
-    using Microsoft.VisualStudio.TestTools.UnitTesting;
-    using Pipeline;
-    using Ninject;
-    using Database;
     using System.Data.Entity;
-    using Compiler;
+    using System.Linq;
+    using System.Reactive.Linq;
+    using System.Reflection;
     using System.Reflection.Emit;
     using System.Threading.Tasks.Dataflow;
-    using System.Reflection;
-    using System.Reactive.Linq;
+    using Compiler;
+    using Database;
+    using Microsoft.VisualStudio.TestTools.UnitTesting;
+    using Ninject;
     using Ninject.Planning.Bindings;
+    using Pipeline;
 
     /// <summary>
     /// A class that contains the test for space commands executed as an adminstrator login.
@@ -39,59 +39,11 @@ namespace Integra.Space.UnitTests
             var dependency = typeof(System.Data.Entity.SqlServer.SqlProviderServices);
         }
 
-        /// <summary>
-        /// This method create a pipeline context and execute the specified command.
-        /// </summary>
-        /// <param name="command">Command to execute.</param>
-        /// <param name="kernel">DI kernel.</param>
-        /// <returns></returns>
-        private FirstLevelPipelineContext ProcessCommand(string command, IKernel kernel)
-        {
-            IBinding binding = kernel.GetBindings(typeof(Language.IGrammarRuleValidator)).FirstOrDefault();
-            if (binding != null)
-            {
-                kernel.RemoveBinding(binding);
-            }
-
-            kernel.Bind<Language.IGrammarRuleValidator>().ToConstant(new TestRuleValidator());
-            CommandPipelineBuilder cpb = new CommandPipelineBuilder();
-            Filter<FirstLevelPipelineContext, FirstLevelPipelineContext> pipeline = cpb.Build();
-
-            FirstLevelPipelineExecutor cpe = new FirstLevelPipelineExecutor(pipeline);
-            FirstLevelPipelineContext context = new FirstLevelPipelineContext(command, loginName, kernel);
-            FirstLevelPipelineContext result = cpe.Execute(context);
-            return result;
-        }
-
-        private CodeGeneratorConfiguration GetCodeGeneratorConfig(ManagementSchedulerFactory dsf, IKernel kernel)
-        {
-            bool printLog = false;
-            bool debugMode = false;
-            bool measureElapsedTime = false;
-            bool isTestMode = false;
-            Login login = new SpaceDbContext(initializer: null).Logins.Single(x => x.LoginName == DatabaseConstants.SA_LOGIN_NAME);
-            SpaceAssemblyBuilder sasmBuilder = new SpaceAssemblyBuilder("Test");
-            AssemblyBuilder asmBuilder = sasmBuilder.CreateAssemblyBuilder();
-            SpaceModuleBuilder smodBuilder = new SpaceModuleBuilder(asmBuilder);
-            smodBuilder.CreateModuleBuilder();
-            kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
-            kernel.Bind<ISource>().ToConstructor(x => new ConcreteSource());
-            CodeGeneratorConfiguration config = new CodeGeneratorConfiguration(
-                dsf,
-                asmBuilder,
-                kernel,
-                printLog: printLog,
-                debugMode: debugMode,
-                measureElapsedTime: measureElapsedTime,
-                isTestMode: isTestMode,
-                queryName: "QueryTest"
-                );
-
-            return config;
-        }
-
         #region insert
 
+        /// <summary>
+        /// First insert an event to a source, then a stream receive it and finally the output result is validated.
+        /// </summary>
         [TestMethod]
         public void Insert1()
         {
@@ -152,7 +104,7 @@ namespace Integra.Space.UnitTests
 
             #endregion command
 
-            loginName = DatabaseConstants.SA_LOGIN_NAME;
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
             IKernel kernel = new StandardKernel();
             using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
@@ -183,7 +135,7 @@ namespace Integra.Space.UnitTests
                         return BufferBlockForTest.BufferBlock1.AsObservable().Subscribe(y => x.OnNext((TestObject1)y));
                     });
 
-                    IObservable<object> resultObservable = ((IObservable<object>)result.Invoke(queryObject, new object[] { o /*, dsf.TestScheduler*/ }));
+                    IObservable<object> resultObservable = (IObservable<object>)result.Invoke(queryObject, new object[] { o /*, dsf.TestScheduler*/ });
 
                     #endregion create stream
 
@@ -210,6 +162,9 @@ namespace Integra.Space.UnitTests
 
         #region metadata query
 
+        /// <summary>
+        /// Get the streams metadata using a query with from, where, apply window of, select, order by and into statements.
+        /// </summary>
         [TestMethod]
         public void GetMetadataFromWhereSelectOrderByTest()
         {
@@ -219,7 +174,7 @@ namespace Integra.Space.UnitTests
                                 select ServerId as serverId, max(1) as entero 
                                 order by desc serverId, entero 
                                 into {DatabaseConstants.METADATA_OUTPUT_SOURCE_NAME}";
-            loginName = DatabaseConstants.SA_LOGIN_NAME;
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
             using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
@@ -234,13 +189,16 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Get the streams metadata using a query with from, select and into statements.
+        /// </summary>
         [TestMethod]
         public void GetMetadataFromSelectTest()
         {
             string command = $@"use {DatabaseConstants.TEST_DATABASE_NAME};
                                 from sys.streams as x select ServerId as serverId, 2 as entero into {DatabaseConstants.METADATA_OUTPUT_SOURCE_NAME}";
 
-            loginName = DatabaseConstants.SA_LOGIN_NAME;
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
             IKernel kernel = new StandardKernel();
 
             using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
@@ -259,13 +217,16 @@ namespace Integra.Space.UnitTests
 
         #region take ownership
 
+        /// <summary>
+        /// Takes ownership of a database role.
+        /// </summary>
         [TestMethod]
         public void TakeOwnershipOnDbRole()
         {
             string entityName = DatabaseConstants.ROLE_1_NAME;
             string command = $"take ownership on role {entityName}";
             string databaseName = DatabaseConstants.MASTER_DATABASE_NAME;
-            loginName = DatabaseConstants.SA_LOGIN_NAME;
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
             IKernel kernel = new StandardKernel();
 
             using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
@@ -276,7 +237,7 @@ namespace Integra.Space.UnitTests
 
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    Login login = dbContext.Logins.Single(x => x.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.LoginName == loginName);
+                    Login login = dbContext.Logins.Single(x => x.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.LoginName == this.loginName);
                     Space.Database.Database database = dbContext.Databases.Single(x => x.ServerId == login.ServerId && x.DatabaseName == databaseName);
                     DatabaseRole role = dbContext.DatabaseRoles.Single(x => x.ServerId == login.ServerId && x.DatabaseId == database.DatabaseId && x.DbRoleName == entityName);
                     Assert.AreEqual<string>(DatabaseConstants.DBO_USER_NAME, role.DatabaseUser.DbUsrName);
@@ -287,12 +248,15 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Takes ownership of a database.
+        /// </summary>
         [TestMethod]
         public void TakeOwnershipOnDatabase()
         {
             string entityName = DatabaseConstants.TEST_DATABASE_NAME;
             string command = $"take ownership on database {entityName}";
-            loginName = DatabaseConstants.SA_LOGIN_NAME;
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
             IKernel kernel = new StandardKernel();
 
             using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
@@ -303,7 +267,7 @@ namespace Integra.Space.UnitTests
 
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    Login login = dbContext.Logins.Single(x => x.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.LoginName == loginName);
+                    Login login = dbContext.Logins.Single(x => x.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.LoginName == this.loginName);
                     Space.Database.Database database = dbContext.Databases.Single(x => x.ServerId == login.ServerId && x.DatabaseName == entityName);
                     Assert.AreEqual<string>(DatabaseConstants.SA_LOGIN_NAME, database.Login.LoginName);
 
@@ -313,12 +277,15 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Takes ownership of an endpoint.
+        /// </summary>
         [TestMethod]
         public void TakeOwnershipOnEndpoint()
         {
             string entityName = DatabaseConstants.TCP_ENDPOINT_NAME;
             string command = $"take ownership on endpoint {entityName}";
-            loginName = DatabaseConstants.SA_LOGIN_NAME;
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
             IKernel kernel = new StandardKernel();
 
             using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
@@ -329,7 +296,7 @@ namespace Integra.Space.UnitTests
 
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    Login login = dbContext.Logins.Single(x => x.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.LoginName == loginName);
+                    Login login = dbContext.Logins.Single(x => x.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.LoginName == this.loginName);
                     Space.Database.Endpoint endpoint = dbContext.Endpoints.Single(x => x.ServerId == login.ServerId && x.EnpointName == entityName);
                     Assert.AreEqual<string>(DatabaseConstants.SA_LOGIN_NAME, endpoint.Login.LoginName);
 
@@ -339,13 +306,16 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Takes ownership of an schema.
+        /// </summary>
         [TestMethod]
         public void TakeOwnershipOnSchema()
         {
             string entityName = DatabaseConstants.TEST_SCHEMA_NAME;
             string databaseName = DatabaseConstants.MASTER_DATABASE_NAME;
             string command = $"use {databaseName}; take ownership on schema {entityName}";
-            loginName = DatabaseConstants.SA_LOGIN_NAME;
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
             IKernel kernel = new StandardKernel();
 
             using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
@@ -356,7 +326,7 @@ namespace Integra.Space.UnitTests
 
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    Login login = dbContext.Logins.Single(x => x.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.LoginName == loginName);
+                    Login login = dbContext.Logins.Single(x => x.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.LoginName == this.loginName);
                     Space.Database.Database database = dbContext.Databases.Single(x => x.ServerId == login.ServerId && x.DatabaseName == databaseName);
                     Space.Database.Schema schema = dbContext.Schemas.Single(x => x.ServerId == login.ServerId && x.DatabaseId == database.DatabaseId && x.SchemaName == entityName);
                     Assert.AreEqual<string>(DatabaseConstants.DBO_USER_NAME, schema.DatabaseUser.DbUsrName);
@@ -367,6 +337,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Takes ownership of a source.
+        /// </summary>
         [TestMethod]
         public void TakeOwnershipOnSource()
         {
@@ -374,7 +347,7 @@ namespace Integra.Space.UnitTests
             string databaseName = DatabaseConstants.MASTER_DATABASE_NAME;
             string command = $"take ownership on source {entityName}";
             string schemaName = DatabaseConstants.DBO_SCHEMA_NAME;
-            loginName = DatabaseConstants.SA_LOGIN_NAME;
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
             IKernel kernel = new StandardKernel();
 
             using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
@@ -385,7 +358,7 @@ namespace Integra.Space.UnitTests
 
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    Login login = dbContext.Logins.Single(x => x.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.LoginName == loginName);
+                    Login login = dbContext.Logins.Single(x => x.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.LoginName == this.loginName);
                     Space.Database.Database database = dbContext.Databases.Single(x => x.ServerId == login.ServerId && x.DatabaseName == databaseName);
                     Space.Database.Schema schema = dbContext.Schemas.Single(x => x.ServerId == database.ServerId && x.DatabaseId == database.DatabaseId && x.SchemaName == schemaName);
                     Space.Database.Source source = dbContext.Sources.Single(x => x.ServerId == login.ServerId && x.DatabaseId == database.DatabaseId && x.SchemaId == schema.SchemaId && x.SourceName == entityName);
@@ -397,6 +370,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Takes ownership of a stream.
+        /// </summary>
         [TestMethod]
         public void TakeOwnershipOnStream()
         {
@@ -404,7 +380,7 @@ namespace Integra.Space.UnitTests
             string command = $"take ownership on stream {entityName}";
             string databaseName = DatabaseConstants.MASTER_DATABASE_NAME;
             string schemaName = DatabaseConstants.DBO_SCHEMA_NAME;
-            loginName = DatabaseConstants.SA_LOGIN_NAME;
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
             IKernel kernel = new StandardKernel();
 
             using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
@@ -415,7 +391,7 @@ namespace Integra.Space.UnitTests
 
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    Login login = dbContext.Logins.Single(x => x.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.LoginName == loginName);
+                    Login login = dbContext.Logins.Single(x => x.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.LoginName == this.loginName);
                     Space.Database.Database database = dbContext.Databases.Single(x => x.ServerId == login.ServerId && x.DatabaseName == databaseName);
                     Space.Database.Schema schema = dbContext.Schemas.Single(x => x.ServerId == database.ServerId && x.DatabaseId == database.DatabaseId && x.SchemaName == schemaName);
                     Space.Database.Stream stream = dbContext.Streams.Single(x => x.ServerId == login.ServerId && x.DatabaseId == database.DatabaseId && x.SchemaId == schema.SchemaId && x.StreamName == entityName);
@@ -431,12 +407,15 @@ namespace Integra.Space.UnitTests
 
         #region add
 
+        /// <summary>
+        /// Add a user to a database role.
+        /// </summary>
         [TestMethod]
         public void AddUserToRole()
         {
             string roleName = DatabaseConstants.ROLE_1_NAME;
             string userName = DatabaseConstants.NORMAL_USER_1_NAME;
-            loginName = DatabaseConstants.SA_LOGIN_NAME;
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
             string command = $"add {userName} to {roleName}";
 
             IKernel kernel = new StandardKernel();
@@ -461,6 +440,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Add a user to multiple roles.
+        /// </summary>
         [TestMethod]
         public void AddUserToRoles()
         {
@@ -468,7 +450,7 @@ namespace Integra.Space.UnitTests
             string roleName2 = DatabaseConstants.ROLE_2_NAME;
             string userName = DatabaseConstants.NORMAL_USER_1_NAME;
             string command = $"add {userName} to {roleName1}, {roleName2}";
-            loginName = DatabaseConstants.SA_LOGIN_NAME;
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
             using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
@@ -494,6 +476,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Add multiple users to a single database role.
+        /// </summary>
         [TestMethod]
         public void AddUserListToRole()
         {
@@ -501,7 +486,7 @@ namespace Integra.Space.UnitTests
             string userName1 = DatabaseConstants.NORMAL_USER_1_NAME;
             string userName2 = DatabaseConstants.NORMAL_USER_2_NAME;
             string command = $"add {userName1}, {userName2} to {roleName}";
-            loginName = DatabaseConstants.SA_LOGIN_NAME;
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
             using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
@@ -527,6 +512,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Add multple users to multiple database roles.
+        /// </summary>
         [TestMethod]
         public void AddUserListToRoles()
         {
@@ -535,7 +523,7 @@ namespace Integra.Space.UnitTests
             string userName1 = DatabaseConstants.NORMAL_USER_1_NAME;
             string userName2 = DatabaseConstants.NORMAL_USER_2_NAME;
             string command = $"add {userName1}, {userName2} to {roleName1}, {roleName2}";
-            loginName = DatabaseConstants.SA_LOGIN_NAME;
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
             using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
@@ -571,12 +559,15 @@ namespace Integra.Space.UnitTests
 
         #region remove
 
+        /// <summary>
+        /// Removes a user from a role.
+        /// </summary>
         [TestMethod]
         public void RemoveUserToRole()
         {
             string roleName = DatabaseConstants.ROLE_1_NAME;
             string userName = DatabaseConstants.NORMAL_USER_1_NAME;
-            loginName = DatabaseConstants.SA_LOGIN_NAME;
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
             string command = $"add {userName} to {roleName}";
             command += $"; remove {userName} to {roleName}";
 
@@ -602,6 +593,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Removes a user from multiple roles.
+        /// </summary>
         [TestMethod]
         public void RemoveUserToRoles()
         {
@@ -610,7 +604,7 @@ namespace Integra.Space.UnitTests
             string userName = DatabaseConstants.NORMAL_USER_1_NAME;
             string command = $"add {userName} to {roleName1}, {roleName2}";
             command += $"; remove {userName} to {roleName1}, {roleName2}";
-            loginName = DatabaseConstants.SA_LOGIN_NAME;
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
             using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
@@ -635,6 +629,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Removes multiple users from a role.
+        /// </summary>
         [TestMethod]
         public void RemoveUserListToRole()
         {
@@ -643,7 +640,7 @@ namespace Integra.Space.UnitTests
             string userName2 = DatabaseConstants.NORMAL_USER_2_NAME;
             string command = $"add {userName1}, {userName2} to {roleName}";
             command += $"; remove {userName1}, {userName2} to {roleName}";
-            loginName = DatabaseConstants.SA_LOGIN_NAME;
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
             using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
@@ -668,6 +665,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Remove multiple users from multiple roles.
+        /// </summary>
         [TestMethod]
         public void RemoveUserListToRoles()
         {
@@ -677,7 +677,7 @@ namespace Integra.Space.UnitTests
             string userName2 = DatabaseConstants.NORMAL_USER_2_NAME;
             string command = $"add {userName1}, {userName2} to {roleName1}, {roleName2}";
             command += $"; remove {userName1}, {userName2} to {roleName1}, {roleName2}";
-            loginName = DatabaseConstants.SA_LOGIN_NAME;
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
             using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
@@ -711,6 +711,9 @@ namespace Integra.Space.UnitTests
 
         #region create login
 
+        /// <summary>
+        /// Creates a new login without specifying options.
+        /// </summary>
         [TestMethod]
         public void CreateLogin()
         {
@@ -742,6 +745,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Creates a new login with status on.
+        /// </summary>
         [TestMethod]
         public void CreateLoginWithStatusOn()
         {
@@ -774,6 +780,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Creates a new login with status off.
+        /// </summary>
         [TestMethod]
         public void CreateLoginWithStatusOff()
         {
@@ -806,6 +815,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Creates a new login with a default database.
+        /// </summary>
         [TestMethod]
         public void CreateLoginWithDefaultDatabase()
         {
@@ -839,6 +851,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Creates a new login with a default database and status on.
+        /// </summary>
         [TestMethod]
         public void CreateLoginWithDefaultDatabaseAndStatusOn()
         {
@@ -873,6 +888,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Creates a new login with a default database and status off.
+        /// </summary>
         [TestMethod]
         public void CreateLoginWithDefaultDatabaseAndStatusOff()
         {
@@ -911,6 +929,9 @@ namespace Integra.Space.UnitTests
 
         #region create database
 
+        /// <summary>
+        /// Creates a new database without specifying options.
+        /// </summary>
         [TestMethod]
         public void CreateDatabase()
         {
@@ -940,6 +961,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Creates a new database with status on.
+        /// </summary>
         [TestMethod]
         public void CreateDatabaseWithStatusOn()
         {
@@ -970,6 +994,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Creates a new database with status off.
+        /// </summary>
         [TestMethod]
         public void CreateDatabaseWithStatusOff()
         {
@@ -1004,6 +1031,9 @@ namespace Integra.Space.UnitTests
 
         #region create user
 
+        /// <summary>
+        /// Creates a new user without specifying options.
+        /// </summary>
         [TestMethod]
         public void CreateUserWithLogin()
         {
@@ -1036,6 +1066,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Creates a new user with default schema.
+        /// </summary>
         [TestMethod]
         public void CreateUserWithLoginDefaultSchema()
         {
@@ -1070,6 +1103,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Creates a new user with status on.
+        /// </summary>
         [TestMethod]
         public void CreateUserWithStatusOn()
         {
@@ -1102,6 +1138,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Creates a new user with status off.
+        /// </summary>
         [TestMethod]
         public void CreateUserWithStatusOff()
         {
@@ -1134,6 +1173,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Creates a new user with default schema and status off.
+        /// </summary>
         [TestMethod]
         public void CreateUserWithDefaultSchemaLoginStatusOff()
         {
@@ -1168,6 +1210,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Creates a new user with default schema and status on.
+        /// </summary>
         [TestMethod]
         public void CreateUserWithDefaultSchemaLoginStatusOn()
         {
@@ -1206,6 +1251,9 @@ namespace Integra.Space.UnitTests
 
         #region create role
 
+        /// <summary>
+        /// Creates a new database role without specifying options.
+        /// </summary>
         [TestMethod]
         public void CreateRole()
         {
@@ -1236,6 +1284,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Creates a new role with status on.
+        /// </summary>
         [TestMethod]
         public void CreateRoleWithStatusOn()
         {
@@ -1266,6 +1317,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Creates a new role with status off.
+        /// </summary>
         [TestMethod]
         public void CreateRoleWithStatusOff()
         {
@@ -1296,6 +1350,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Creates a new role with a user.
+        /// </summary>
         [TestMethod]
         public void CreateRoleAddUser()
         {
@@ -1330,6 +1387,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Creates a new role with users.
+        /// </summary>
         [TestMethod]
         public void CreateRoleAddUsers()
         {
@@ -1374,6 +1434,9 @@ namespace Integra.Space.UnitTests
 
         #region create schema
 
+        /// <summary>
+        /// Creates a new schema without specifying opitons.
+        /// </summary>
         [TestMethod]
         public void CreateSchema()
         {
@@ -1407,6 +1470,9 @@ namespace Integra.Space.UnitTests
 
         #region create source
 
+        /// <summary>
+        /// Creates a new source without specifying option.
+        /// </summary>
         [TestMethod]
         public void CreateSource()
         {
@@ -1447,6 +1513,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Creates a new source with status on.
+        /// </summary>
         [TestMethod]
         public void CreateSourceWithStatusOn()
         {
@@ -1482,6 +1551,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Creates a new source with status off.
+        /// </summary>
         [TestMethod]
         public void CreateSourceWithStatusOff()
         {
@@ -1517,6 +1589,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Creates a new source with cache size.
+        /// </summary>
         [TestMethod]
         public void CreateSourceWithCacheSize()
         {
@@ -1557,6 +1632,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Creates a new source with cache durability.
+        /// </summary>
         [TestMethod]
         public void CreateSourceWithCacheDurability()
         {
@@ -1597,6 +1675,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Creates a new source with cache durability and cache size.
+        /// </summary>
         [TestMethod]
         public void CreateSourceWithCacheDurabilityCacheSize()
         {
@@ -1641,6 +1722,9 @@ namespace Integra.Space.UnitTests
 
         #region create stream
 
+        /// <summary>
+        /// Creates a new stream without specifying options.
+        /// </summary>
         [TestMethod]
         public void CreateStream()
         {
@@ -1698,6 +1782,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Creates a stream referencing a incompatible source.
+        /// </summary>
         [TestMethod]
         public void CreateStreamSourceIncompatible()
         {
@@ -1708,10 +1795,9 @@ namespace Integra.Space.UnitTests
                                    "WITH SourceInicial as t2 WHERE t2.PrimaryAccountNumber == \"9999941616073663_2\" " +
                                    "ON t1.AcquiringInstitutionIdentificationCode == t2.AcquiringInstitutionIdentificationCode " +
                                    "TIMEOUT '00:00:02' " +
-                                   //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
-                                   $"SELECT (string)t1.PrimaryAccountNumber as c1, t2.PrimaryAccountNumber as c2, 1 as numeroXXX into {sourceName} ";
+                                   $"SELECT t1.PrimaryAccountNumber as c1, t2.PrimaryAccountNumber as c2, 1 as numeroXXX into {sourceName} ";
 
-            string command = $"create source {sourceName} (c1 string, c2 object); create stream {streamName} {{ {eql} }}";
+            string command = $"create source {sourceName} (c1 string(4000), c2 string(4000)); create stream {streamName} {{ {eql} }}";
             this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
@@ -1726,7 +1812,7 @@ namespace Integra.Space.UnitTests
                         tran.Rollback();
                         Assert.Fail("Un stream con proyección incompatible con la funente especificada en el into fue creado.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                         tran.Rollback();
                     }
@@ -1734,6 +1820,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Creates a stream with status on.
+        /// </summary>
         [TestMethod]
         public void CreateStreamWithStatusOn()
         {
@@ -1744,7 +1833,6 @@ namespace Integra.Space.UnitTests
                                    $@"WITH {DatabaseConstants.INPUT_SOURCE_NAME} as t2 WHERE t2.PrimaryAccountNumber == ""9999941616073663_2"" " +
                                    "ON t1.AcquiringInstitutionIdentificationCode == t2.AcquiringInstitutionIdentificationCode " +
                                    "TIMEOUT '00:00:02' " +
-                                   //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
                                    $"SELECT (string)t1.PrimaryAccountNumber as c1, t2.PrimaryAccountNumber as c2, 1 as numeroXXX into {sourceName} ";
 
             string command = $"create source {sourceName} (c1 string(4000), c2 string(4000), numeroXXX int); create stream {streamName} {{ {eql} }} with status = on";
@@ -1789,6 +1877,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Creates a stream with status off.
+        /// </summary>
         [TestMethod]
         public void CreateStreamWithStatusOff()
         {
@@ -1799,7 +1890,6 @@ namespace Integra.Space.UnitTests
                                    $@"WITH {DatabaseConstants.INPUT_SOURCE_NAME} as t2 WHERE t2.PrimaryAccountNumber == ""9999941616073663_2"" " +
                                    "ON t1.AcquiringInstitutionIdentificationCode == t2.AcquiringInstitutionIdentificationCode " +
                                    "TIMEOUT '00:00:02' " +
-                                   //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
                                    $"SELECT (string)t1.PrimaryAccountNumber as c1, t2.PrimaryAccountNumber as c2, 1 as numeroXXX into {sourceName} ";
 
             string command = $"create source {sourceName} (c1 string(4000), c2 string(4000), numeroXXX int); create stream {streamName} {{ {eql} }} with status = off";
@@ -1852,6 +1942,9 @@ namespace Integra.Space.UnitTests
 
         #region alter login
 
+        /// <summary>
+        /// Alters the login name.
+        /// </summary>
         [TestMethod]
         public void AlterLoginName()
         {
@@ -1884,6 +1977,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters the password of the login.
+        /// </summary>
         [TestMethod]
         public void AlterLoginPassword()
         {
@@ -1916,6 +2012,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Changes the status of the login to on.
+        /// </summary>
         [TestMethod]
         public void AlterLoginWithStatusOn()
         {
@@ -1948,6 +2047,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Changes the status of the login to off.
+        /// </summary>
         [TestMethod]
         public void AlterLoginWithStatusOff()
         {
@@ -1980,6 +2082,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters the default database of the login.
+        /// </summary>
         [TestMethod]
         public void AlterLoginWithDefaultDatabase()
         {
@@ -2014,6 +2119,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters the password, default database and status to 'on' of the login.
+        /// </summary>
         [TestMethod]
         public void AlterLoginWithPasswordDefaultDatabaseAndStatusOn()
         {
@@ -2050,6 +2158,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters the password, default database and status to 'off' of the login.
+        /// </summary>
         [TestMethod]
         public void AlterLoginWithPasswordDefaultDatabaseAndStatusOff()
         {
@@ -2090,6 +2201,9 @@ namespace Integra.Space.UnitTests
 
         #region alter database
 
+        /// <summary>
+        /// Alters the database name.
+        /// </summary>
         [TestMethod]
         public void AlterDatabaseName()
         {
@@ -2120,6 +2234,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters the database status to on.
+        /// </summary>
         [TestMethod]
         public void AlterDatabaseWithStatusOn()
         {
@@ -2150,6 +2267,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters the database status to off.
+        /// </summary>
         [TestMethod]
         public void AlterDatabaseWithStatusOff()
         {
@@ -2184,6 +2304,9 @@ namespace Integra.Space.UnitTests
 
         #region alter user
 
+        /// <summary>
+        /// Alters the user name of an existing role.
+        /// </summary>
         [TestMethod]
         public void AlterUserWithName()
         {
@@ -2217,6 +2340,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters the login mapped of the user.
+        /// </summary>
         [TestMethod]
         public void AlterUserWithLogin()
         {
@@ -2250,6 +2376,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters the user mapped login and default schema.
+        /// </summary>
         [TestMethod]
         public void AlterUserWithLoginDefaultSchema()
         {
@@ -2286,6 +2415,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters the user status to on.
+        /// </summary>
         [TestMethod]
         public void AlterUserWithStatusOn()
         {
@@ -2318,6 +2450,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters the user status to off.
+        /// </summary>
         [TestMethod]
         public void AlterUserWithStatusOff()
         {
@@ -2350,6 +2485,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters the user mapped login, default schema and status to off of the user.
+        /// </summary>
         [TestMethod]
         public void AlterUserWithLoginDefaultSchemaLoginStatusOff()
         {
@@ -2386,6 +2524,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters the user mapped login, default schema and status to on of the user.
+        /// </summary>
         [TestMethod]
         public void AlterUserWithDefaultSchemaLoginStatusOn()
         {
@@ -2426,6 +2567,9 @@ namespace Integra.Space.UnitTests
 
         #region alter role
 
+        /// <summary>
+        /// Alters the role name of an existing role.
+        /// </summary>
         [TestMethod]
         public void AlterRoleName()
         {
@@ -2457,6 +2601,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters the role status to on.
+        /// </summary>
         [TestMethod]
         public void AlterRoleWithStatusOn()
         {
@@ -2487,6 +2634,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters the role status to off.
+        /// </summary>
         [TestMethod]
         public void AlterRoleWithStatusOff()
         {
@@ -2517,6 +2667,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters a role adding a user.
+        /// </summary>
         [TestMethod]
         public void AlterRoleAddUser()
         {
@@ -2551,6 +2704,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters a role adding multiple users.
+        /// </summary>
         [TestMethod]
         public void AlterRoleAddUsers()
         {
@@ -2591,6 +2747,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters a role removing a user.
+        /// </summary>
         [TestMethod]
         public void AlterRoleRemoveUser()
         {
@@ -2625,6 +2784,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters a role removing multiple users.
+        /// </summary>
         [TestMethod]
         public void AlterRoleRemoveUsers()
         {
@@ -2667,8 +2829,11 @@ namespace Integra.Space.UnitTests
 
         #region alter schema
 
+        /// <summary>
+        /// Alters a schema name.
+        /// </summary>
         [TestMethod]
-        public void CreateSchemaWithName()
+        public void AlterSchemaWithName()
         {
             string oldSchemaName = "oldSchema";
             string newSchemaName = "newSchema";
@@ -2691,6 +2856,7 @@ namespace Integra.Space.UnitTests
                     catch (Exception e)
                     {
                         tran.Rollback();
+
                         Assert.Fail($"Error al crear el rol de base de datos '{newSchemaName}'. Mensaje: {e.Message}");
                     }
                 }
@@ -2701,6 +2867,9 @@ namespace Integra.Space.UnitTests
 
         #region alter source
 
+        /// <summary>
+        /// Alters the name of an existing source.
+        /// </summary>
         [TestMethod]
         public void AlterSourceWithName()
         {
@@ -2740,6 +2909,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters the source structure adding columns.
+        /// </summary>
         [TestMethod]
         public void AlterSourceAddColumns()
         {
@@ -2782,6 +2954,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters the source structure removing columns.
+        /// </summary>
         [TestMethod]
         public void AlterSourceRemoveColumns()
         {
@@ -2824,6 +2999,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters the source structure trying to remove all columns, however this is not allowed.
+        /// </summary>
         [TestMethod]
         public void AlterSourceRemoveAllColumns()
         {
@@ -2844,7 +3022,7 @@ namespace Integra.Space.UnitTests
                         tran.Rollback();
                         Assert.Fail("Dejó eliminar todas las columnas de la fuente");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                         tran.Rollback();
                     }
@@ -2852,6 +3030,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters a source changing its status to on.
+        /// </summary>
         [TestMethod]
         public void AlterSourceWithStatusOn()
         {
@@ -2887,6 +3068,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters a source changing its status to off.
+        /// </summary>
         [TestMethod]
         public void AlterSourceWithStatusOff()
         {
@@ -2922,6 +3106,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters a source changing its persistent flag to on.
+        /// </summary>
         [TestMethod]
         public void AlterSourceWithPersistentOn()
         {
@@ -2961,6 +3148,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters a source changing its persistent flag to on.
+        /// </summary>
         [TestMethod]
         public void AlterSourceWithPersistentOff()
         {
@@ -3000,6 +3190,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters a source changing its cache size.
+        /// </summary>
         [TestMethod]
         public void AlterSourceWithCacheSize()
         {
@@ -3039,6 +3232,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters a source changing its cache durability.
+        /// </summary>
         [TestMethod]
         public void AlterSourceWithCacheDurability()
         {
@@ -3078,6 +3274,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters a source changing its cache size and cache durability.
+        /// </summary>
         [TestMethod]
         public void AlterSourceWithCacheSizeCacheDurability()
         {
@@ -3122,6 +3321,9 @@ namespace Integra.Space.UnitTests
 
         #region alter stream
 
+        /// <summary>
+        /// Alters the name of an existing stream.
+        /// </summary>
         [TestMethod]
         public void AlterStreamWithName()
         {
@@ -3133,7 +3335,6 @@ namespace Integra.Space.UnitTests
                                    $@"WITH {DatabaseConstants.INPUT_SOURCE_NAME} as t2 WHERE t2.PrimaryAccountNumber == ""9999941616073663_2"" " +
                                    "ON t1.AcquiringInstitutionIdentificationCode == t2.AcquiringInstitutionIdentificationCode " +
                                    "TIMEOUT '00:00:02' " +
-                                   //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
                                    $"SELECT (string)t1.PrimaryAccountNumber as c1, t2.PrimaryAccountNumber as c2, 1 as numeroXXX into {sourceName}";
 
             string command = $"create source {sourceName} (c1 string(4000), c2 string(4000), numeroXXX int); create stream {oldStreamName} {{ {eql} }}; alter stream {oldStreamName} with name = {newStreamName}";
@@ -3178,6 +3379,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters the query of a stream removing columns of its projection, i. e. the select statement.
+        /// </summary>
         [TestMethod]
         public void AlterStreamRemoveProjectionColumns()
         {
@@ -3189,7 +3393,6 @@ namespace Integra.Space.UnitTests
                                    $@"WITH {DatabaseConstants.INPUT_SOURCE_NAME} as t2 WHERE t2.PrimaryAccountNumber == ""9999941616073663_2"" " +
                                    "ON t1.AcquiringInstitutionIdentificationCode == t2.AcquiringInstitutionIdentificationCode " +
                                    "TIMEOUT '00:00:02' " +
-                                   //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
                                    $"SELECT (string)t1.PrimaryAccountNumber as c1, t2.PrimaryAccountNumber as c2, 1 as numeroXXX into {sourceName}";
 
             string eql2 = "cross " +
@@ -3197,7 +3400,6 @@ namespace Integra.Space.UnitTests
                                    $@"WITH {DatabaseConstants.INPUT_SOURCE_NAME} as t2 WHERE t2.PrimaryAccountNumber == ""9999941616073663_2"" " +
                                    "ON t1.AcquiringInstitutionIdentificationCode == t2.AcquiringInstitutionIdentificationCode " +
                                    "TIMEOUT '00:00:02' " +
-                                   //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
                                    $"SELECT (string)t1.PrimaryAccountNumber as c1, 1 as numeroXXX into {sourceName}";
 
             string command = $"create source {sourceName} (c1 string(4000), c2 string(4000), numeroXXX int); create stream {oldStreamName} {{ {eql} }}; alter stream {oldStreamName} with query = {{ {eql2} }}";
@@ -3241,6 +3443,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters the query of a stream adding columns of its projection, i. e. the select statement.
+        /// </summary>
         [TestMethod]
         public void AlterStreamAddProjectionColumns()
         {
@@ -3252,7 +3457,6 @@ namespace Integra.Space.UnitTests
                                    $@"WITH {DatabaseConstants.INPUT_SOURCE_NAME} as t2 WHERE t2.PrimaryAccountNumber == ""9999941616073663_2"" " +
                                    "ON t1.AcquiringInstitutionIdentificationCode == t2.AcquiringInstitutionIdentificationCode " +
                                    "TIMEOUT '00:00:02' " +
-                                   //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
                                    $"SELECT (string)t1.PrimaryAccountNumber as c1, t2.PrimaryAccountNumber as c2, 1 as numeroXXX into {sourceName}";
 
             string eql2 = "cross " +
@@ -3260,7 +3464,6 @@ namespace Integra.Space.UnitTests
                                    $@"WITH {DatabaseConstants.INPUT_SOURCE_NAME} as t2 WHERE t2.PrimaryAccountNumber == ""9999941616073663_2"" " +
                                    "ON t1.AcquiringInstitutionIdentificationCode == t2.AcquiringInstitutionIdentificationCode " +
                                    "TIMEOUT '00:00:02' " +
-                                   //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
                                    $"SELECT (string)t1.PrimaryAccountNumber as c1, t2.PrimaryAccountNumber as c2, 1 as numeroXXX, 2 as numeroYYY into {sourceName}";
 
             string command = $"create source {sourceName} (c1 string(4000), c2 string(4000), numeroXXX int); create stream {oldStreamName} {{ {eql} }}; alter source {sourceName} add (numeroYYY int); alter stream {oldStreamName} with query = {{ {eql2} }}";
@@ -3301,6 +3504,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters the query of a stream renaming columns of its projection, i. e. the select statement.
+        /// </summary>
         [TestMethod]
         public void AlterStreamRenameProjectionColumns()
         {
@@ -3312,7 +3518,6 @@ namespace Integra.Space.UnitTests
                                    $@"WITH {DatabaseConstants.INPUT_SOURCE_NAME} as t2 WHERE t2.PrimaryAccountNumber == ""9999941616073663_2"" " +
                                    "ON t1.AcquiringInstitutionIdentificationCode == t2.AcquiringInstitutionIdentificationCode " +
                                    "TIMEOUT '00:00:02' " +
-                                   //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
                                    $"SELECT (string)t1.PrimaryAccountNumber as c1, t2.PrimaryAccountNumber as c2, 1 as numeroXXX into {sourceName}";
 
             string eql2 = "cross " +
@@ -3320,7 +3525,6 @@ namespace Integra.Space.UnitTests
                                    $@"WITH {DatabaseConstants.INPUT_SOURCE_NAME} as t2 WHERE t2.PrimaryAccountNumber == ""9999941616073663_2"" " +
                                    "ON t1.AcquiringInstitutionIdentificationCode == t2.AcquiringInstitutionIdentificationCode " +
                                    "TIMEOUT '00:00:02' " +
-                                   //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
                                    $"SELECT (string)t1.PrimaryAccountNumber as column1, t2.PrimaryAccountNumber as column2, 1 as column3 into {sourceName}";
 
             string command = $"create source {sourceName} (column1 string(4000), column2 string(4000), column3 int, c1 string(4000), c2 string(4000), numeroXXX int); create stream {oldStreamName} {{ {eql} }}; alter stream {oldStreamName} with query = {{ {eql2} }}";
@@ -3369,18 +3573,20 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters the query of a stream renaming a column of its projection, i. e. the select statement, making it incompatible with the output source column structure.
+        /// </summary>
         [TestMethod]
         public void AlterStreamRenameProjectionColumnsSourceIncompatible()
         {
             string oldStreamName = "oldStream";
-            string newStreamName = "newStream";
             string sourceName = "newSource";
             string eql = "cross " +
                                    $@"JOIN {DatabaseConstants.INPUT_SOURCE_NAME} as t1 WHERE t1.PrimaryAccountNumber == ""9999941616073663_1"" " +
                                    $@"WITH {DatabaseConstants.INPUT_SOURCE_NAME} as t2 WHERE t2.PrimaryAccountNumber == ""9999941616073663_2"" " +
                                    "ON t1.AcquiringInstitutionIdentificationCode == t2.AcquiringInstitutionIdentificationCode " +
                                    "TIMEOUT '00:00:02' " +
-                                   //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
+                                   /* "WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " + */
                                    $"SELECT (string)t1.PrimaryAccountNumber as c1, t2.PrimaryAccountNumber as c2, 1 as numeroXXX into {sourceName}";
 
             string eql2 = "cross " +
@@ -3388,7 +3594,7 @@ namespace Integra.Space.UnitTests
                                    $@"WITH {DatabaseConstants.INPUT_SOURCE_NAME} as t2 WHERE t2.PrimaryAccountNumber == ""9999941616073663_2"" " +
                                    "ON t1.AcquiringInstitutionIdentificationCode == t2.AcquiringInstitutionIdentificationCode " +
                                    "TIMEOUT '00:00:02' " +
-                                   //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
+                                   /* "WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " + */
                                    $"SELECT (string)t1.PrimaryAccountNumber as column1, t2.PrimaryAccountNumber as column2, 1 as column3 into {sourceName}";
 
             string command = $"create source {sourceName} (column1 string(4000), column3 int, c1 string, c2 object, numeroXXX int); create stream {oldStreamName} {{ {eql} }}; alter stream {oldStreamName} with query = {{ {eql2} }}";
@@ -3413,7 +3619,7 @@ namespace Integra.Space.UnitTests
                         tran.Rollback();
                         Assert.Fail("Un stream con proyección incompatible con la funente especificada en el into fue creado.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                         tran.Rollback();
                     }
@@ -3421,6 +3627,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters the stream status to on.
+        /// </summary>
         [TestMethod]
         public void AlterStreamWithStatusOn()
         {
@@ -3431,7 +3640,6 @@ namespace Integra.Space.UnitTests
                                    $@"WITH {DatabaseConstants.INPUT_SOURCE_NAME} as t2 WHERE t2.PrimaryAccountNumber == ""9999941616073663_2"" " +
                                    "ON t1.AcquiringInstitutionIdentificationCode == t2.AcquiringInstitutionIdentificationCode " +
                                    "TIMEOUT '00:00:02' " +
-                                   //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
                                    $"SELECT (string)t1.PrimaryAccountNumber as c1, t2.PrimaryAccountNumber as c2, 1 as numeroXXX into {sourceName} ";
 
             string command = $"create source {sourceName} (c1 string(4000), c2 string(4000), numeroXXX int); create stream {streamName} {{ {eql} }} with status = off; alter stream {streamName} with status = on";
@@ -3476,6 +3684,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters the stream status to off.
+        /// </summary>
         [TestMethod]
         public void AlterStreamWithStatusOff()
         {
@@ -3486,7 +3697,6 @@ namespace Integra.Space.UnitTests
                                    $@"WITH {DatabaseConstants.INPUT_SOURCE_NAME} as t2 WHERE t2.PrimaryAccountNumber == ""9999941616073663_2"" " +
                                    "ON t1.AcquiringInstitutionIdentificationCode == t2.AcquiringInstitutionIdentificationCode " +
                                    "TIMEOUT '00:00:02' " +
-                                   //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
                                    $"SELECT (string)t1.PrimaryAccountNumber as c1, t2.PrimaryAccountNumber as c2, 1 as numeroXXX into {sourceName} ";
 
             string command = $"create source {sourceName} (c1 string(4000), c2 string(4000), numeroXXX int); create stream {streamName} {{ {eql} }} with status = on; alter stream {streamName} with status = off";
@@ -3537,6 +3747,9 @@ namespace Integra.Space.UnitTests
 
         #region drop
 
+        /// <summary>
+        /// Drops a login.
+        /// </summary>
         [TestMethod]
         public void DropLogin()
         {
@@ -3567,6 +3780,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Drops a database.
+        /// </summary>
         [TestMethod]
         public void DropDatabase()
         {
@@ -3596,6 +3812,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Drops a user.
+        /// </summary>
         [TestMethod]
         public void DropUser()
         {
@@ -3626,6 +3845,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Drops a database role.
+        /// </summary>
         [TestMethod]
         public void DropDatabaseRole()
         {
@@ -3655,6 +3877,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Drops a schema.
+        /// </summary>
         [TestMethod]
         public void DropSchema()
         {
@@ -3684,6 +3909,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Drops a source.
+        /// </summary>
         [TestMethod]
         public void DropSource()
         {
@@ -3718,6 +3946,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Drops a stream.
+        /// </summary>
         [TestMethod]
         public void DropStream()
         {
@@ -3728,7 +3959,6 @@ namespace Integra.Space.UnitTests
                                    $@"WITH {DatabaseConstants.INPUT_SOURCE_NAME} as t2 WHERE t2.PrimaryAccountNumber == ""9999941616073663_2"" " +
                                    "ON t1.AcquiringInstitutionIdentificationCode == t2.AcquiringInstitutionIdentificationCode " +
                                    "TIMEOUT '00:00:02' " +
-                                   //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
                                    $"SELECT (string)t1.PrimaryAccountNumber as c1, t2.PrimaryAccountNumber as c2, 1 as numeroXXX into {sourceName} ";
 
             string command = $"create source {sourceName} (c1 string(4000), c2 string(4000), numeroXXX int); create stream {streamName} {{ {eql} }}; drop stream {streamName}";
@@ -3765,6 +3995,9 @@ namespace Integra.Space.UnitTests
 
         #region truncate
 
+        /// <summary>
+        /// Truncates a source deleting all messages "saved" (pending of review) in it.
+        /// </summary>
         [TestMethod]
         public void TruncateSource()
         {
@@ -3803,10 +4036,13 @@ namespace Integra.Space.UnitTests
 
         #region otros
 
+        /// <summary>
+        /// Grants permission test.
+        /// </summary>
         [TestMethod]
         public void TestGrantPermissionOnDatabase()
         {
-            loginName = DatabaseConstants.SA_LOGIN_NAME;
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
             string principalName = DatabaseConstants.DBO_USER_NAME;
             string command = $"grant alter any user to user {principalName}";
             IKernel kernel = new StandardKernel();
@@ -3825,10 +4061,13 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Creates multiple schemas.
+        /// </summary>
         [TestMethod]
-        public void TestCreateSchema()
+        public void TestCreateSchemas()
         {
-            loginName = DatabaseConstants.SA_LOGIN_NAME;
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
             string newSchemaName = "Schema123";
             string command = $"create schema {newSchemaName}; create schema {newSchemaName + "XX"}; create schema {newSchemaName + "YY"}";
             IKernel kernel = new StandardKernel();
@@ -3859,6 +4098,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Creates a new stream with a non administrator login and user.
+        /// </summary>
         [TestMethod]
         public void TestCreateStream()
         {
@@ -3883,7 +4125,7 @@ namespace Integra.Space.UnitTests
                                           t2.PrimaryAccountNumber as c3 
                                   INTO {sourceNameTest2} ";
 
-            string secondCommand = $"use {databaseName}; create stream {newStreamName} {{\n{ eql }\n}}";
+            string secondCommand = $"use {databaseName}; create stream {newStreamName} {{\n{eql}\n}}";
             IKernel kernel = new StandardKernel();
 
             using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
@@ -3917,10 +4159,13 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Creates a new role.
+        /// </summary>
         [TestMethod]
         public void TestCreateRole()
         {
-            loginName = DatabaseConstants.SA_LOGIN_NAME;
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
             string newRoleName = "Role123";
             string command = "create role " + newRoleName;
             IKernel kernel = new StandardKernel();
@@ -3945,6 +4190,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Creates a new database.
+        /// </summary>
         [TestMethod]
         public void TestCreateDatabase()
         {
@@ -3972,6 +4220,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Creates a new login with a non administrator login and user.
+        /// </summary>
         [TestMethod]
         public void TestCreateLogin()
         {
@@ -4004,6 +4255,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Creates a new source with a non administrator login and user.
+        /// </summary>
         [TestMethod]
         public void TestCreateSource()
         {
@@ -4043,5 +4297,61 @@ namespace Integra.Space.UnitTests
         }
 
         #endregion otros
+
+        /// <summary>
+        /// This method create a pipeline context and execute the specified command.
+        /// </summary>
+        /// <param name="command">Command to execute.</param>
+        /// <param name="kernel">DI kernel.</param>
+        /// <returns>Pipeline context.</returns>
+        private FirstLevelPipelineContext ProcessCommand(string command, IKernel kernel)
+        {
+            IBinding binding = kernel.GetBindings(typeof(Language.IGrammarRuleValidator)).FirstOrDefault();
+            if (binding != null)
+            {
+                kernel.RemoveBinding(binding);
+            }
+
+            kernel.Bind<Language.IGrammarRuleValidator>().ToConstant(new TestRuleValidator());
+            CommandPipelineBuilder cpb = new CommandPipelineBuilder();
+            Filter<FirstLevelPipelineContext, FirstLevelPipelineContext> pipeline = cpb.Build();
+
+            FirstLevelPipelineExecutor cpe = new FirstLevelPipelineExecutor(pipeline);
+            FirstLevelPipelineContext context = new FirstLevelPipelineContext(command, this.loginName, kernel);
+            FirstLevelPipelineContext result = cpe.Execute(context);
+            return result;
+        }
+
+        /// <summary>
+        /// Creates a code generator configuration object.
+        /// </summary>
+        /// <param name="dsf">A scheduler factory.</param>
+        /// <param name="kernel">DI kernel.</param>
+        /// <returns>Code generator configuration object.</returns>
+        private CodeGeneratorConfiguration GetCodeGeneratorConfig(ManagementSchedulerFactory dsf, IKernel kernel)
+        {
+            bool printLog = false;
+            bool debugMode = false;
+            bool measureElapsedTime = false;
+            bool isTestMode = false;
+            Login login = new SpaceDbContext(initializer: null).Logins.Single(x => x.LoginName == DatabaseConstants.SA_LOGIN_NAME);
+            SpaceAssemblyBuilder sasmBuilder = new SpaceAssemblyBuilder("Test");
+            AssemblyBuilder asmBuilder = sasmBuilder.CreateAssemblyBuilder();
+            SpaceModuleBuilder smodBuilder = new SpaceModuleBuilder(asmBuilder);
+            smodBuilder.CreateModuleBuilder();
+            kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
+            kernel.Bind<ISource>().ToConstructor(x => new ConcreteSource());
+            CodeGeneratorConfiguration config = new CodeGeneratorConfiguration(
+                dsf,
+                asmBuilder,
+                kernel,
+                printLog: printLog,
+                debugMode: debugMode,
+                measureElapsedTime: measureElapsedTime,
+                isTestMode: isTestMode,
+                queryName: "QueryTest");
+
+            return config;
+        }
     }
 }

@@ -1,42 +1,35 @@
-﻿using System;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Integra.Space.Pipeline;
-using Ninject;
-using Integra.Space.Database;
-using System.Data.Entity;
-using System.Linq;
-using System.Reflection.Emit;
-using Integra.Space.Compiler;
-using Ninject.Planning.Bindings;
+﻿// <copyright file="GrantCommandTests.cs" company="ARITEC">
+// Copyright (c) ARITEC. All rights reserved.
+// </copyright>
 
 namespace Integra.Space.UnitTests
 {
+    using System;
+    using System.Data.Entity;
+    using System.Linq;
+    using System.Reflection.Emit;
+    using Compiler;
+    using Database;
+    using Microsoft.VisualStudio.TestTools.UnitTesting;
+    using Ninject;
+    using Ninject.Planning.Bindings;
+    using Pipeline;
+
+    /// <summary>
+    /// A class containing the tests for grant permissions.
+    /// </summary>
     [TestClass]
     public class GrantCommandTests
     {
         private string loginName = DatabaseConstants.NORMAL_LOGIN_1_NAME;
 
-        private FirstLevelPipelineContext ProcessCommand(string command, IKernel kernel)
-        {
-            IBinding binding = kernel.GetBindings(typeof(Language.IGrammarRuleValidator)).FirstOrDefault();
-            if (binding != null)
-            {
-                kernel.RemoveBinding(binding);
-            }
-            kernel.Bind<Language.IGrammarRuleValidator>().ToConstant(new TestRuleValidator());
-            CommandPipelineBuilder cpb = new CommandPipelineBuilder();
-            Filter<FirstLevelPipelineContext, FirstLevelPipelineContext> pipeline = cpb.Build();
-
-            FirstLevelPipelineExecutor cpe = new FirstLevelPipelineExecutor(pipeline);
-            FirstLevelPipelineContext context = new FirstLevelPipelineContext(command, loginName, kernel);
-            FirstLevelPipelineContext result = cpe.Execute(context);
-            return result;
-        }
-
         #region grant
 
         #region grant alter
 
+        /// <summary>
+        /// Grants alter permission on a specific database to user.
+        /// </summary>
         [TestMethod]
         public void GrantAlterOnDatabase()
         {
@@ -59,7 +52,7 @@ namespace Integra.Space.UnitTests
                     this.loginName = otherLogin;
                     FirstLevelPipelineContext result2 = this.ProcessCommand(command2, kernel);
 
-                    Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseNewName);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseNewName);
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == databaseNewName && x.DbUsrName == userName);
 
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("alter", StringComparison.InvariantCultureIgnoreCase));
@@ -76,6 +69,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants alter permission on a specific database to user.
+        /// </summary>
         [TestMethod]
         public void GrantAlterOnDatabaseRole()
         {
@@ -113,6 +109,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants alter permission on a specific database role to user.
+        /// </summary>
         [TestMethod]
         public void GrantAlterOnDatabaseRoleAddUserToRole()
         {
@@ -138,7 +137,7 @@ namespace Integra.Space.UnitTests
 
                     try
                     {
-                        Database.DatabaseUser dbUser = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName).DatabaseUsers.Single(x => x.DbUsrName == userName);
+                        Space.Database.DatabaseUser dbUser = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName).DatabaseUsers.Single(x => x.DbUsrName == userName);
                         Assert.AreEqual(userName, dbUser.DbUsrName);
                         tran.Rollback();
                     }
@@ -151,6 +150,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants alter permission on multiple roles to user.
+        /// </summary>
         [TestMethod]
         public void GrantAlterOnDatabaseRoleAddUserToRoles()
         {
@@ -177,9 +179,9 @@ namespace Integra.Space.UnitTests
 
                     try
                     {
-                        Database.DatabaseUser dbUser1 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName1).DatabaseUsers.Single(x => x.DbUsrName == userName);
+                        Space.Database.DatabaseUser dbUser1 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName1).DatabaseUsers.Single(x => x.DbUsrName == userName);
                         Assert.AreEqual(userName, dbUser1.DbUsrName);
-                        Database.DatabaseUser dbUser2 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName2).DatabaseUsers.Single(x => x.DbUsrName == userName);
+                        Space.Database.DatabaseUser dbUser2 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName2).DatabaseUsers.Single(x => x.DbUsrName == userName);
                         Assert.AreEqual(userName, dbUser2.DbUsrName);
                         tran.Rollback();
                     }
@@ -192,6 +194,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants alter permission on a specific database role to multiple users.
+        /// </summary>
         [TestMethod]
         public void GrantAlterOnDatabaseRoleAddUserListToRole1()
         {
@@ -219,9 +224,9 @@ namespace Integra.Space.UnitTests
 
                     try
                     {
-                        Database.DatabaseUser dbUser1 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName).DatabaseUsers.Single(x => x.DbUsrName == userName1);
+                        DatabaseUser dbUser1 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName).DatabaseUsers.Single(x => x.DbUsrName == userName1);
                         Assert.AreEqual(userName1, dbUser1.DbUsrName);
-                        Database.DatabaseUser dbUser2 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName).DatabaseUsers.Single(x => x.DbUsrName == userName2);
+                        DatabaseUser dbUser2 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName).DatabaseUsers.Single(x => x.DbUsrName == userName2);
                         Assert.AreEqual(userName2, dbUser2.DbUsrName);
                         tran.Rollback();
                     }
@@ -234,6 +239,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants alter permission on a specific database role to multiple users.
+        /// </summary>
         [TestMethod]
         public void GrantAlterOnDatabaseRoleAddUserListToRole2()
         {
@@ -261,9 +269,9 @@ namespace Integra.Space.UnitTests
 
                     try
                     {
-                        Database.DatabaseUser dbUser1 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName).DatabaseUsers.Single(x => x.DbUsrName == userName1);
+                        DatabaseUser dbUser1 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName).DatabaseUsers.Single(x => x.DbUsrName == userName1);
                         Assert.AreEqual(userName1, dbUser1.DbUsrName);
-                        Database.DatabaseUser dbUser2 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName).DatabaseUsers.Single(x => x.DbUsrName == userName2);
+                        DatabaseUser dbUser2 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName).DatabaseUsers.Single(x => x.DbUsrName == userName2);
                         Assert.AreEqual(userName2, dbUser2.DbUsrName);
                         tran.Rollback();
                     }
@@ -276,6 +284,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants alter permission on multiple database roles to multiple users.
+        /// </summary>
         [TestMethod]
         public void GrantAlterOnDatabaseRoleAddUserListToRoles1()
         {
@@ -304,14 +315,14 @@ namespace Integra.Space.UnitTests
 
                     try
                     {
-                        Database.DatabaseUser dbUser1 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName1).DatabaseUsers.Single(x => x.DbUsrName == userName1);
+                        DatabaseUser dbUser1 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName1).DatabaseUsers.Single(x => x.DbUsrName == userName1);
                         Assert.AreEqual(userName1, dbUser1.DbUsrName);
-                        Database.DatabaseUser dbUser2 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName2).DatabaseUsers.Single(x => x.DbUsrName == userName1);
+                        DatabaseUser dbUser2 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName2).DatabaseUsers.Single(x => x.DbUsrName == userName1);
                         Assert.AreEqual(userName1, dbUser2.DbUsrName);
 
-                        Database.DatabaseUser dbUser3 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName1).DatabaseUsers.Single(x => x.DbUsrName == userName2);
+                        DatabaseUser dbUser3 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName1).DatabaseUsers.Single(x => x.DbUsrName == userName2);
                         Assert.AreEqual(userName2, dbUser3.DbUsrName);
-                        Database.DatabaseUser dbUser4 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName2).DatabaseUsers.Single(x => x.DbUsrName == userName2);
+                        DatabaseUser dbUser4 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName2).DatabaseUsers.Single(x => x.DbUsrName == userName2);
                         Assert.AreEqual(userName2, dbUser4.DbUsrName);
 
                         tran.Rollback();
@@ -325,6 +336,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants alter permission on multiple database roles to multiple users.
+        /// </summary>
         [TestMethod]
         public void GrantAlterOnDatabaseRoleAddUserListToRoles2()
         {
@@ -353,14 +367,14 @@ namespace Integra.Space.UnitTests
 
                     try
                     {
-                        Database.DatabaseUser dbUser1 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName1).DatabaseUsers.Single(x => x.DbUsrName == userName1);
+                        DatabaseUser dbUser1 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName1).DatabaseUsers.Single(x => x.DbUsrName == userName1);
                         Assert.AreEqual(userName1, dbUser1.DbUsrName);
-                        Database.DatabaseUser dbUser2 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName2).DatabaseUsers.Single(x => x.DbUsrName == userName1);
+                        DatabaseUser dbUser2 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName2).DatabaseUsers.Single(x => x.DbUsrName == userName1);
                         Assert.AreEqual(userName1, dbUser2.DbUsrName);
 
-                        Database.DatabaseUser dbUser3 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName1).DatabaseUsers.Single(x => x.DbUsrName == userName2);
+                        DatabaseUser dbUser3 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName1).DatabaseUsers.Single(x => x.DbUsrName == userName2);
                         Assert.AreEqual(userName2, dbUser3.DbUsrName);
-                        Database.DatabaseUser dbUser4 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName2).DatabaseUsers.Single(x => x.DbUsrName == userName2);
+                        DatabaseUser dbUser4 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName2).DatabaseUsers.Single(x => x.DbUsrName == userName2);
                         Assert.AreEqual(userName2, dbUser4.DbUsrName);
 
                         tran.Rollback();
@@ -374,6 +388,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants alter permission on a specific database role to user.
+        /// </summary>
         [TestMethod]
         public void GrantAlterOnDatabaseRoleRemoveUserToRole()
         {
@@ -413,6 +430,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants alter permission on multiple database role to user.
+        /// </summary>
         [TestMethod]
         public void GrantAlterOnDatabaseRoleRemoveUserToRoles()
         {
@@ -454,6 +474,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants alter permission on a specific database role to multiple user.
+        /// </summary>
         [TestMethod]
         public void GrantAlterOnDatabaseRoleRemoveUserListToRole1()
         {
@@ -496,6 +519,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants alter permission on a specific database role to multiple user.
+        /// </summary>
         [TestMethod]
         public void GrantAlterOnDatabaseRoleRemoveUserListToRole2()
         {
@@ -538,6 +564,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants alter permission on multiple database roles to multiple user.
+        /// </summary>
         [TestMethod]
         public void GrantAlterOnDatabaseRoleRemoveUserListToRoles1()
         {
@@ -584,6 +613,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants alter permission on multiple database roles to multiple user.
+        /// </summary>
         [TestMethod]
         public void GrantAlterOnDatabaseRoleRemoveUserListToRoles2()
         {
@@ -630,6 +662,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants alter permission on specific database to user.
+        /// </summary>
         [TestMethod]
         public void GrantAlterOnDatabaseUser()
         {
@@ -672,6 +707,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants alter permission on specific login to login.
+        /// </summary>
         [TestMethod]
         public void GrantAlterOnLogin1()
         {
@@ -723,6 +761,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants alter permission on specific schema to user.
+        /// </summary>
         [TestMethod]
         public void GrantAlterOnSchema()
         {
@@ -762,6 +803,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants alter permission on specific stream to user and; read and write on specific source.
+        /// </summary>
         [TestMethod]
         public void GrantAlterOnStreamAndReadSource()
         {
@@ -823,6 +867,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants alter permission on specific source to user.
+        /// </summary>
         [TestMethod]
         public void GrantAlterOnSource()
         {
@@ -876,6 +923,9 @@ namespace Integra.Space.UnitTests
 
         #region grant alter any
 
+        /// <summary>
+        /// Grants alter any database permission.
+        /// </summary>
         [TestMethod]
         public void GrantAlterAnyDatabase()
         {
@@ -912,6 +962,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants alter any database role permission.
+        /// </summary>
         [TestMethod]
         public void GrantAlterAnyDatabaseRole()
         {
@@ -936,7 +989,7 @@ namespace Integra.Space.UnitTests
                     this.loginName = otherLogin;
                     FirstLevelPipelineContext result2 = this.ProcessCommand(command2, kernel);
 
-                    Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseName);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseName);
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == databaseName && x.DbUsrName == userName);
 
                     bool exists = dbContext.DatabaseAssignedPermissionsToUsers.Any(x => x.DatabaseServerId == database.ServerId && x.DatabaseId == database.DatabaseId
@@ -949,6 +1002,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants alter any user.
+        /// </summary>
         [TestMethod]
         public void GrantAlterAnyDatabaseUser()
         {
@@ -975,7 +1031,7 @@ namespace Integra.Space.UnitTests
                     try
                     {
                         DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == databaseName && x.DbUsrName == newUserName);
-                        Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseName);
+                        Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseName);
                         GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("alter any user", StringComparison.InvariantCultureIgnoreCase));
                         SecurableClass sc = dbContext.SecurableClasses.Single(x => x.SecurableName.Equals("database", StringComparison.InvariantCultureIgnoreCase));
                         bool exists = dbContext.DatabaseAssignedPermissionsToUsers.Any(x => x.DbUsrServerId == user.ServerId && x.DbUsrDatabaseId == user.DatabaseId && x.DbUsrId == user.DbUsrId
@@ -996,6 +1052,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants alter any login.
+        /// </summary>
         [TestMethod]
         public void GrantAlterAnyLogin()
         {
@@ -1047,6 +1106,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants alter any login.
+        /// </summary>
         [TestMethod]
         public void GrantAlterAnyLogin2()
         {
@@ -1098,6 +1160,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants alter any schema.
+        /// </summary>
         [TestMethod]
         public void GrantAlterAnySchema()
         {
@@ -1137,6 +1202,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants alter any schema and; read and write source.
+        /// </summary>
         [TestMethod]
         public void GrantAlterAnySchemaAndReadSource()
         {
@@ -1194,6 +1262,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants alter any schema.
+        /// </summary>
         [TestMethod]
         public void GrantAlterAnySchema2()
         {
@@ -1218,7 +1289,7 @@ namespace Integra.Space.UnitTests
                     smodBuilder1.CreateModuleBuilder();
                     kernel.Bind<AssemblyBuilder>().ToConstant(asmBuilder1);
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
-                    
+
                     this.loginName = DatabaseConstants.NORMAL_LOGIN_1_NAME;
                     SpaceAssemblyBuilder sasmBuilder2 = new SpaceAssemblyBuilder("Test");
                     AssemblyBuilder asmBuilder2 = sasmBuilder2.CreateAssemblyBuilder();
@@ -1247,6 +1318,9 @@ namespace Integra.Space.UnitTests
 
         #region grant control
 
+        /// <summary>
+        /// Grant control on database.
+        /// </summary>
         [TestMethod]
         public void GrantControlOnDatabase()
         {
@@ -1269,7 +1343,7 @@ namespace Integra.Space.UnitTests
                     this.loginName = otherLogin;
                     FirstLevelPipelineContext result2 = this.ProcessCommand(command2, kernel);
 
-                    Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseNewName);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseNewName);
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == databaseNewName && x.DbUsrName == userName);
 
                     bool exists = dbContext.DatabaseAssignedPermissionsToUsers.Any(x => x.DatabaseServerId == database.ServerId && x.DatabaseId == database.DatabaseId
@@ -1282,6 +1356,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grant control on database role.
+        /// </summary>
         [TestMethod]
         public void GrantControlOnDatabaseRole()
         {
@@ -1319,6 +1396,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grant control on user.
+        /// </summary>
         [TestMethod]
         public void GrantControlOnDatabaseUser()
         {
@@ -1361,6 +1441,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grant control on login.
+        /// </summary>
         [TestMethod]
         public void GrantControlOnLogin()
         {
@@ -1412,6 +1495,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grant control on schema.
+        /// </summary>
         [TestMethod]
         public void GrantControlOnSchema()
         {
@@ -1451,6 +1537,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grant control on stream and; read and write source.
+        /// </summary>
         [TestMethod]
         public void GrantControlOnStreamAndReadSource()
         {
@@ -1512,6 +1601,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grant control on source.
+        /// </summary>
         [TestMethod]
         public void GrantControlOnSource()
         {
@@ -1565,6 +1657,9 @@ namespace Integra.Space.UnitTests
 
         #region grant take ownership
 
+        /// <summary>
+        /// Grants take ownership permission on database role.
+        /// </summary>
         [TestMethod]
         public void GrantTakeOwnershipOnDbRole()
         {
@@ -1589,8 +1684,8 @@ namespace Integra.Space.UnitTests
                     this.loginName = otherLogin;
                     FirstLevelPipelineContext result2 = this.ProcessCommand(command2, kernel);
 
-                    Login login = dbContext.Logins.Single(x => x.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.LoginName == loginName);
-                    Database.Database database = dbContext.Databases.Single(x => x.ServerId == login.ServerId && x.DatabaseName == databaseName);
+                    Login login = dbContext.Logins.Single(x => x.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.LoginName == this.loginName);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.ServerId == login.ServerId && x.DatabaseName == databaseName);
                     DatabaseRole role = dbContext.DatabaseRoles.Single(x => x.ServerId == login.ServerId && x.DatabaseId == database.DatabaseId && x.DbRoleName == roleName);
                     Assert.AreEqual<string>(userName, role.DatabaseUser.DbUsrName);
 
@@ -1600,6 +1695,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants take ownership permission on database.
+        /// </summary>
         [TestMethod]
         public void GrantTakeOwnershipOnDatabase()
         {
@@ -1623,8 +1721,8 @@ namespace Integra.Space.UnitTests
                     this.loginName = otherLogin;
                     FirstLevelPipelineContext result2 = this.ProcessCommand(command2, kernel);
 
-                    Login login = dbContext.Logins.Single(x => x.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.LoginName == loginName);
-                    Database.Database database = dbContext.Databases.Single(x => x.ServerId == login.ServerId && x.DatabaseName == databaseName);
+                    Login login = dbContext.Logins.Single(x => x.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.LoginName == this.loginName);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.ServerId == login.ServerId && x.DatabaseName == databaseName);
                     Assert.AreEqual<string>(otherLogin, database.Login.LoginName);
 
                     Console.WriteLine();
@@ -1633,6 +1731,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants take ownership permission on schema.
+        /// </summary>
         [TestMethod]
         public void GrantTakeOwnershipOnSchema()
         {
@@ -1656,9 +1757,9 @@ namespace Integra.Space.UnitTests
                     this.loginName = otherLogin;
                     FirstLevelPipelineContext result2 = this.ProcessCommand(command2, kernel);
 
-                    Login login = dbContext.Logins.Single(x => x.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.LoginName == loginName);
-                    Database.Database database = dbContext.Databases.Single(x => x.ServerId == login.ServerId && x.DatabaseName == databaseName);
-                    Database.Schema schema = dbContext.Schemas.Single(x => x.ServerId == login.ServerId && x.DatabaseId == database.DatabaseId && x.SchemaName == schemaName);
+                    Login login = dbContext.Logins.Single(x => x.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.LoginName == this.loginName);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.ServerId == login.ServerId && x.DatabaseName == databaseName);
+                    Schema schema = dbContext.Schemas.Single(x => x.ServerId == login.ServerId && x.DatabaseId == database.DatabaseId && x.SchemaName == schemaName);
                     Assert.AreEqual<string>(existingUserName, schema.DatabaseUser.DbUsrName);
 
                     Console.WriteLine();
@@ -1667,6 +1768,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants take ownership permission on source.
+        /// </summary>
         [TestMethod]
         public void GrantTakeOwnershipOnSource()
         {
@@ -1696,10 +1800,10 @@ namespace Integra.Space.UnitTests
                     this.loginName = DatabaseConstants.NORMAL_LOGIN_1_NAME;
                     FirstLevelPipelineContext result2 = this.ProcessCommand(command2, kernel);
 
-                    Login login = dbContext.Logins.Single(x => x.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.LoginName == loginName);
-                    Database.Database database = dbContext.Databases.Single(x => x.ServerId == login.ServerId && x.DatabaseName == databaseName);
-                    Database.Schema schema = dbContext.Schemas.Single(x => x.ServerId == database.ServerId && x.DatabaseId == database.DatabaseId && x.SchemaName == schemaName);
-                    Database.Source source = dbContext.Sources.Single(x => x.ServerId == login.ServerId && x.DatabaseId == database.DatabaseId && x.SchemaId == schema.SchemaId && x.SourceName == oldSourceName);
+                    Login login = dbContext.Logins.Single(x => x.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.LoginName == this.loginName);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.ServerId == login.ServerId && x.DatabaseName == databaseName);
+                    Schema schema = dbContext.Schemas.Single(x => x.ServerId == database.ServerId && x.DatabaseId == database.DatabaseId && x.SchemaName == schemaName);
+                    Source source = dbContext.Sources.Single(x => x.ServerId == login.ServerId && x.DatabaseId == database.DatabaseId && x.SchemaId == schema.SchemaId && x.SourceName == oldSourceName);
                     Assert.AreEqual<string>(userName, source.DatabaseUser.DbUsrName);
 
                     Console.WriteLine();
@@ -1708,6 +1812,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants take ownership permission on stream.
+        /// </summary>
         [TestMethod]
         public void GrantTakeOwnershipOnStream()
         {
@@ -1746,10 +1853,10 @@ namespace Integra.Space.UnitTests
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
                     FirstLevelPipelineContext result2 = this.ProcessCommand(command2, kernel);
 
-                    Login login = dbContext.Logins.Single(x => x.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.LoginName == loginName);
-                    Database.Database database = dbContext.Databases.Single(x => x.ServerId == login.ServerId && x.DatabaseName == databaseName);
-                    Database.Schema schema = dbContext.Schemas.Single(x => x.ServerId == database.ServerId && x.DatabaseId == database.DatabaseId && x.SchemaName == DatabaseConstants.DBO_SCHEMA_NAME);
-                    Database.Stream stream = dbContext.Streams.Single(x => x.ServerId == login.ServerId && x.DatabaseId == database.DatabaseId && x.SchemaId == schema.SchemaId && x.StreamName == oldStreamName);
+                    Login login = dbContext.Logins.Single(x => x.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.LoginName == this.loginName);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.ServerId == login.ServerId && x.DatabaseName == databaseName);
+                    Schema schema = dbContext.Schemas.Single(x => x.ServerId == database.ServerId && x.DatabaseId == database.DatabaseId && x.SchemaName == DatabaseConstants.DBO_SCHEMA_NAME);
+                    Stream stream = dbContext.Streams.Single(x => x.ServerId == login.ServerId && x.DatabaseId == database.DatabaseId && x.SchemaId == schema.SchemaId && x.StreamName == oldStreamName);
                     Assert.AreEqual<string>(userName, stream.DatabaseUser.DbUsrName);
 
                     Assert.IsTrue(stream.ProjectionColumns.Any(x => x.ColumnName == "c1" && x.ColumnType == typeof(string).AssemblyQualifiedName));
@@ -1764,6 +1871,9 @@ namespace Integra.Space.UnitTests
 
         #region grant view any definition
 
+        /// <summary>
+        /// Grants view any definition permission.
+        /// </summary>
         [TestMethod]
         public void GrantViewAnyDefinitionAndFromServerRoles()
         {
@@ -1790,6 +1900,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants view any definition permission.
+        /// </summary>
         [TestMethod]
         public void GrantViewAnyDefinitionAndFromEndpoints()
         {
@@ -1816,6 +1929,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants view any definition permission.
+        /// </summary>
         [TestMethod]
         public void GrantViewAnyDefinitionAndFromLogins()
         {
@@ -1842,6 +1958,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants view any definition permission.
+        /// </summary>
         [TestMethod]
         public void GrantViewAnyDefinitionAndFromDatabases()
         {
@@ -1868,6 +1987,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants view any definition permission.
+        /// </summary>
         [TestMethod]
         public void GrantViewAnyDefinitionAndFromUsers()
         {
@@ -1894,6 +2016,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants view any definition permission.
+        /// </summary>
         [TestMethod]
         public void GrantViewAnyDefinitionAndFromDatabaseRoles()
         {
@@ -1920,6 +2045,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants view any definition permission.
+        /// </summary>
         [TestMethod]
         public void GrantViewAnyDefinitionAndFromSchemas()
         {
@@ -1946,6 +2074,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants view any definition permission.
+        /// </summary>
         [TestMethod]
         public void GrantViewAnyDefinitionAndFromSources()
         {
@@ -1972,6 +2103,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants view any definition permission.
+        /// </summary>
         [TestMethod]
         public void GrantViewAnyDefinitionAndFromStreams()
         {
@@ -2002,6 +2136,9 @@ namespace Integra.Space.UnitTests
 
         #region grant view any database
 
+        /// <summary>
+        /// Grants view any database permission.
+        /// </summary>
         [TestMethod]
         public void GrantViewAnyDatabaseAndFromUsers()
         {
@@ -2028,6 +2165,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants view any database permission.
+        /// </summary>
         [TestMethod]
         public void GrantViewAnyDatabaseAndFromDatabaseRoles()
         {
@@ -2054,6 +2194,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants view any database permission.
+        /// </summary>
         [TestMethod]
         public void GrantViewAnyDatabaseAndFromSchemas()
         {
@@ -2080,6 +2223,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants view any database permission.
+        /// </summary>
         [TestMethod]
         public void GrantViewAnyDatabaseAndFromSources()
         {
@@ -2106,6 +2252,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants view any database permission.
+        /// </summary>
         [TestMethod]
         public void GrantViewAnyDatabaseAndFromStreams()
         {
@@ -2136,6 +2285,9 @@ namespace Integra.Space.UnitTests
 
         #region grant view definition on
 
+        /// <summary>
+        /// Grant view definition on endpoint permission.
+        /// </summary>
         [TestMethod]
         public void GrantViewOnDefinitionAndFromEndpoints()
         {
@@ -2162,6 +2314,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grant view definition on login permission.
+        /// </summary>
         [TestMethod]
         public void GrantViewOnDefinitionAndFromLogins()
         {
@@ -2188,6 +2343,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grant view definition on database permission.
+        /// </summary>
         [TestMethod]
         public void GrantViewOnDefinitionAndFromDatabases()
         {
@@ -2214,6 +2372,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grant view definition on user permission.
+        /// </summary>
         [TestMethod]
         public void GrantViewOnDefinitionAndFromUsers()
         {
@@ -2240,6 +2401,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grant view definition on database role permission.
+        /// </summary>
         [TestMethod]
         public void GrantViewOnDefinitionAndFromDatabaseRoles()
         {
@@ -2266,6 +2430,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grant view definition on schema permission.
+        /// </summary>
         [TestMethod]
         public void GrantViewOnDefinitionAndFromSchemas()
         {
@@ -2292,6 +2459,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grant view definition on source permission.
+        /// </summary>
         [TestMethod]
         public void GrantViewOnDefinitionAndFromSources()
         {
@@ -2318,6 +2488,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grant view definition on stream permission.
+        /// </summary>
         [TestMethod]
         public void GrantViewOnDefinitionAndFromStreams()
         {
@@ -2350,6 +2523,9 @@ namespace Integra.Space.UnitTests
 
         #region grant create any database
 
+        /// <summary>
+        /// Grants create any database.
+        /// </summary>
         [TestMethod]
         public void GrantCreateAnyDatabase()
         {
@@ -2372,7 +2548,7 @@ namespace Integra.Space.UnitTests
 
                     try
                     {
-                        Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseName);
+                        Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseName);
                         Assert.AreEqual(databaseName, database.DatabaseName);
                         tran.Rollback();
                     }
@@ -2385,6 +2561,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants create any database.
+        /// </summary>
         [TestMethod]
         public void GrantCreateAnyDatabaseWithStatusOn()
         {
@@ -2407,7 +2586,7 @@ namespace Integra.Space.UnitTests
 
                     try
                     {
-                        Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseName);
+                        Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseName);
                         Assert.AreEqual(databaseName, database.DatabaseName);
                         Assert.IsTrue(database.IsActive);
                         tran.Rollback();
@@ -2421,6 +2600,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants create any database.
+        /// </summary>
         [TestMethod]
         public void GrantCreateAnyDatabaseWithStatusOff()
         {
@@ -2444,7 +2626,7 @@ namespace Integra.Space.UnitTests
 
                     try
                     {
-                        Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseName);
+                        Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseName);
                         Assert.AreEqual(databaseName, database.DatabaseName);
                         Assert.IsFalse(database.IsActive);
                         tran.Rollback();
@@ -2462,6 +2644,9 @@ namespace Integra.Space.UnitTests
 
         #region grant create database
 
+        /// <summary>
+        /// Grants create database permission.
+        /// </summary>
         [TestMethod]
         public void GrantCreateDatabase()
         {
@@ -2484,7 +2669,7 @@ namespace Integra.Space.UnitTests
 
                     try
                     {
-                        Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseName);
+                        Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseName);
                         Assert.AreEqual(databaseName, database.DatabaseName);
                         tran.Rollback();
                     }
@@ -2497,6 +2682,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants create database permission.
+        /// </summary>
         [TestMethod]
         public void GrantCreateDatabaseWithStatusOn()
         {
@@ -2519,7 +2707,7 @@ namespace Integra.Space.UnitTests
 
                     try
                     {
-                        Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseName);
+                        Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseName);
                         Assert.AreEqual(databaseName, database.DatabaseName);
                         Assert.IsTrue(database.IsActive);
                         tran.Rollback();
@@ -2533,6 +2721,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants create database permission.
+        /// </summary>
         [TestMethod]
         public void GrantCreateDatabaseWithStatusOff()
         {
@@ -2556,7 +2747,7 @@ namespace Integra.Space.UnitTests
 
                     try
                     {
-                        Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseName);
+                        Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseName);
                         Assert.AreEqual(databaseName, database.DatabaseName);
                         Assert.IsFalse(database.IsActive);
                         tran.Rollback();
@@ -2574,6 +2765,9 @@ namespace Integra.Space.UnitTests
 
         #region grant create role
 
+        /// <summary>
+        /// Grants create role permission.
+        /// </summary>
         [TestMethod]
         public void GrantCreateRole()
         {
@@ -2611,6 +2805,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants create role permission.
+        /// </summary>
         [TestMethod]
         public void GrantCreateRoleWithStatusOn()
         {
@@ -2648,6 +2845,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants create role permission.
+        /// </summary>
         [TestMethod]
         public void GrantCreateRoleWithStatusOff()
         {
@@ -2685,6 +2885,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants create role permission.
+        /// </summary>
         [TestMethod]
         public void GrantCreateRoleAddUser()
         {
@@ -2726,6 +2929,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants create role permission.
+        /// </summary>
         [TestMethod]
         public void GrantCreateRoleAddUsers()
         {
@@ -2777,6 +2983,9 @@ namespace Integra.Space.UnitTests
 
         #region grant create schema
 
+        /// <summary>
+        /// Grants create schema permission.
+        /// </summary>
         [TestMethod]
         public void GrantCreateSchema()
         {
@@ -2817,6 +3026,9 @@ namespace Integra.Space.UnitTests
 
         #region grant create source
 
+        /// <summary>
+        /// Grants create source permission.
+        /// </summary>
         [TestMethod]
         public void GrantCreateSource()
         {
@@ -2859,6 +3071,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants create source permission.
+        /// </summary>
         [TestMethod]
         public void GrantCreateSourceWithStatusOn()
         {
@@ -2901,6 +3116,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants create source permission.
+        /// </summary>
         [TestMethod]
         public void GrantCreateSourceWithStatusOff()
         {
@@ -2947,6 +3165,9 @@ namespace Integra.Space.UnitTests
 
         #region grant create stream
 
+        /// <summary>
+        /// Grant create stream permission.
+        /// </summary>
         [TestMethod]
         public void GrantCreateStream()
         {
@@ -2959,7 +3180,6 @@ namespace Integra.Space.UnitTests
                                    $"WITH {DatabaseConstants.INPUT_SOURCE_NAME} as t2 WHERE t2.PrimaryAccountNumber == \"9999941616073663_2\" " +
                                    "ON t1.AcquiringInstitutionIdentificationCode == t2.AcquiringInstitutionIdentificationCode " +
                                    "TIMEOUT '00:00:02' " +
-                                   //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
                                    $"SELECT (string)t1.PrimaryAccountNumber as c1, t2.PrimaryAccountNumber as c2, 1 as numeroXXX into {sourceForInto} ";
 
             string command2 = $"use {DatabaseConstants.MASTER_DATABASE_NAME}; create stream {streamName} {{ {eql} }}";
@@ -3002,6 +3222,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grant create stream permission.
+        /// </summary>
         [TestMethod]
         public void GrantCreateStreamWithStatusOn()
         {
@@ -3014,7 +3237,6 @@ namespace Integra.Space.UnitTests
                                    $"WITH {DatabaseConstants.INPUT_SOURCE_NAME} as t2 WHERE t2.PrimaryAccountNumber == \"9999941616073663_2\" " +
                                    "ON t1.AcquiringInstitutionIdentificationCode == t2.AcquiringInstitutionIdentificationCode " +
                                    "TIMEOUT '00:00:02' " +
-                                   //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
                                    $"SELECT (string)t1.PrimaryAccountNumber as c1, t2.PrimaryAccountNumber as c2, 1 as numeroXXX into {sourceForInto} ";
 
             string command2 = $"use {DatabaseConstants.MASTER_DATABASE_NAME}; create stream {streamName} {{ {eql} }} with status = on";
@@ -3057,6 +3279,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grant create stream permission.
+        /// </summary>
         [TestMethod]
         public void GrantCreateStreamWithStatusOff()
         {
@@ -3069,7 +3294,6 @@ namespace Integra.Space.UnitTests
                                    $"WITH {DatabaseConstants.INPUT_SOURCE_NAME} as t2 WHERE t2.PrimaryAccountNumber == \"9999941616073663_2\" " +
                                    "ON t1.AcquiringInstitutionIdentificationCode == t2.AcquiringInstitutionIdentificationCode " +
                                    "TIMEOUT '00:00:02' " +
-                                   //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
                                    $"SELECT (string)t1.PrimaryAccountNumber as c1, t2.PrimaryAccountNumber as c2, 1 as numeroXXX into {sourceForInto} ";
 
             string command2 = $"use {DatabaseConstants.MASTER_DATABASE_NAME}; create stream {streamName} {{ {eql} }} with status = off";
@@ -3117,5 +3341,29 @@ namespace Integra.Space.UnitTests
         #endregion grant create
 
         #endregion grant
+
+        /// <summary>
+        /// This method create a pipeline context and execute the specified command.
+        /// </summary>
+        /// <param name="command">Command to execute.</param>
+        /// <param name="kernel">DI kernel.</param>
+        /// <returns>Pipeline context.</returns>
+        private FirstLevelPipelineContext ProcessCommand(string command, IKernel kernel)
+        {
+            IBinding binding = kernel.GetBindings(typeof(Language.IGrammarRuleValidator)).FirstOrDefault();
+            if (binding != null)
+            {
+                kernel.RemoveBinding(binding);
+            }
+
+            kernel.Bind<Language.IGrammarRuleValidator>().ToConstant(new TestRuleValidator());
+            CommandPipelineBuilder cpb = new CommandPipelineBuilder();
+            Filter<FirstLevelPipelineContext, FirstLevelPipelineContext> pipeline = cpb.Build();
+
+            FirstLevelPipelineExecutor cpe = new FirstLevelPipelineExecutor(pipeline);
+            FirstLevelPipelineContext context = new FirstLevelPipelineContext(command, this.loginName, kernel);
+            FirstLevelPipelineContext result = cpe.Execute(context);
+            return result;
+        }
     }
 }

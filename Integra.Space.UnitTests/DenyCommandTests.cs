@@ -1,45 +1,39 @@
-﻿using System;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Integra.Space.Pipeline;
-using Ninject;
-using Integra.Space.Database;
-using System.Data.Entity;
-using System.Linq;
-using System.Reflection.Emit;
-using Integra.Space.Compiler;
-using Ninject.Planning.Bindings;
-using System.Diagnostics.CodeAnalysis;
+﻿// <copyright file="DenyCommandTests.cs" company="ARITEC">
+// Copyright (c) ARITEC. All rights reserved.
+// </copyright>
 
 namespace Integra.Space.UnitTests
 {
+    using System;
+    using System.Data.Entity;
+    using System.Linq;
+    using System.Reflection.Emit;
+    using Compiler;
+    using Database;
+    using Microsoft.VisualStudio.TestTools.UnitTesting;
+    using Ninject;
+    using Ninject.Planning.Bindings;
+    using Pipeline;
+
+    /// <summary>
+    /// A class containing the tests for denying permissions.
+    /// </summary>
     [TestClass]
     public class DenyCommandTests
     {
+        /// <summary>
+        /// Login to use in the tests.
+        /// </summary>
         private string loginName = DatabaseConstants.NORMAL_LOGIN_1_NAME;
-
-        private FirstLevelPipelineContext ProcessCommand(string command, IKernel kernel)
-        {
-            IBinding binding = kernel.GetBindings(typeof(Language.IGrammarRuleValidator)).FirstOrDefault();
-            if (binding != null)
-            {
-                kernel.RemoveBinding(binding);
-            }
-            kernel.Bind<Language.IGrammarRuleValidator>().ToConstant(new TestRuleValidator());
-            CommandPipelineBuilder cpb = new CommandPipelineBuilder();
-            Filter<FirstLevelPipelineContext, FirstLevelPipelineContext> pipeline = cpb.Build();
-
-            FirstLevelPipelineExecutor cpe = new FirstLevelPipelineExecutor(pipeline);
-            FirstLevelPipelineContext context = new FirstLevelPipelineContext(command, loginName, kernel);
-            FirstLevelPipelineContext result = cpe.Execute(context);
-            return result;
-        }
 
         #region deny
 
         #region deny alter
 
+        /// <summary>
+        /// Deny editing a specific database.
+        /// </summary>
         [TestMethod]
-        [SuppressMessage("StyleCop.CSharp.CsParser", "SA0102:CSharp.CsParser", Justification = "Reviewed.")]
         public void DenyAlterOnDatabase()
         {
             string databaseName = "Database123456789";
@@ -59,7 +53,7 @@ namespace Integra.Space.UnitTests
                     this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseName);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseName);
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == databaseName && x.DbUsrName == userName);
 
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("alter", StringComparison.InvariantCultureIgnoreCase));
@@ -78,11 +72,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -93,6 +87,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny editing a specific database role.
+        /// </summary>
         [TestMethod]
         public void DenyAlterOnDatabaseRole()
         {
@@ -128,11 +125,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -143,6 +140,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny editing a specific database role.
+        /// </summary>
         [TestMethod]
         public void DenyAlterOnDatabaseRoleAddUserToRole()
         {
@@ -176,11 +176,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -191,6 +191,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny editing a specific database role.
+        /// </summary>
         [TestMethod]
         public void DenyAlterOnDatabaseRoleAddUserToRoles()
         {
@@ -234,11 +237,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -249,6 +252,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny editing a specific database role.
+        /// </summary>
         [TestMethod]
         public void DenyAlterOnDatabaseRoleAddUserListToRole1()
         {
@@ -293,11 +299,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -308,6 +314,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny editing a specific databse role.
+        /// </summary>
         [TestMethod]
         public void DenyAlterOnDatabaseRoleAddUserListToRole2()
         {
@@ -352,11 +361,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -367,6 +376,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny editing a specific databse role.
+        /// </summary>
         [TestMethod]
         public void DenyAlterOnDatabaseRoleAddUserListToRoles1()
         {
@@ -392,7 +404,7 @@ namespace Integra.Space.UnitTests
 
                     DatabaseRole role1 = dbContext.DatabaseRoles.Single(x => x.Database.DatabaseName == databaseName && x.DbRoleName == roleName1);
                     DatabaseRole role2 = dbContext.DatabaseRoles.Single(x => x.Database.DatabaseName == databaseName && x.DbRoleName == roleName2);
-                    Database.DatabaseUser dbUser1 = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == databaseName && x.DbUsrName == userName1);
+                    DatabaseUser dbUser1 = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == databaseName && x.DbUsrName == userName1);
                     bool exists = dbContext.DBRolesAssignedPermissionsToUsers.Any(x => x.DbRoleServerId == role1.ServerId && x.DbRoleDatabaseId == role1.DatabaseId && x.DbRoleId == role1.DbRoleId
                                                                         && x.DbUsrServerId == dbUser1.ServerId && x.DbUsrDatabaseId == dbUser1.DatabaseId && x.DbUsrId == dbUser1.DbUsrId
                                                                         && x.Granted && x.Denied);
@@ -405,7 +417,7 @@ namespace Integra.Space.UnitTests
 
                     Assert.IsTrue(exists);
 
-                    Database.DatabaseUser dbUser2 = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == databaseName && x.DbUsrName == userName2);
+                    DatabaseUser dbUser2 = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == databaseName && x.DbUsrName == userName2);
 
                     exists = dbContext.DBRolesAssignedPermissionsToUsers.Any(x => x.DbRoleServerId == role1.ServerId && x.DbRoleDatabaseId == role1.DatabaseId && x.DbRoleId == role1.DbRoleId
                                                                         && x.DbUsrServerId == dbUser2.ServerId && x.DbUsrDatabaseId == dbUser2.DatabaseId && x.DbUsrId == dbUser2.DbUsrId
@@ -425,11 +437,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -440,6 +452,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny editing a specific databse role.
+        /// </summary>
         [TestMethod]
         public void DenyAlterOnDatabaseRoleAddUserListToRoles2()
         {
@@ -465,7 +480,7 @@ namespace Integra.Space.UnitTests
 
                     DatabaseRole role1 = dbContext.DatabaseRoles.Single(x => x.Database.DatabaseName == databaseName && x.DbRoleName == roleName1);
                     DatabaseRole role2 = dbContext.DatabaseRoles.Single(x => x.Database.DatabaseName == databaseName && x.DbRoleName == roleName2);
-                    Database.DatabaseUser dbUser1 = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == databaseName && x.DbUsrName == userName1);
+                    DatabaseUser dbUser1 = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == databaseName && x.DbUsrName == userName1);
                     bool exists = dbContext.DBRolesAssignedPermissionsToUsers.Any(x => x.DbRoleServerId == role1.ServerId && x.DbRoleDatabaseId == role1.DatabaseId && x.DbRoleId == role1.DbRoleId
                                                                         && x.DbUsrServerId == dbUser1.ServerId && x.DbUsrDatabaseId == dbUser1.DatabaseId && x.DbUsrId == dbUser1.DbUsrId
                                                                         && x.Granted && x.Denied);
@@ -478,7 +493,7 @@ namespace Integra.Space.UnitTests
 
                     Assert.IsTrue(exists);
 
-                    Database.DatabaseUser dbUser2 = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == databaseName && x.DbUsrName == userName2);
+                    DatabaseUser dbUser2 = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == databaseName && x.DbUsrName == userName2);
 
                     exists = dbContext.DBRolesAssignedPermissionsToUsers.Any(x => x.DbRoleServerId == role1.ServerId && x.DbRoleDatabaseId == role1.DatabaseId && x.DbRoleId == role1.DbRoleId
                                                                         && x.DbUsrServerId == dbUser2.ServerId && x.DbUsrDatabaseId == dbUser2.DatabaseId && x.DbUsrId == dbUser2.DbUsrId
@@ -498,11 +513,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -513,6 +528,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny editing a specific databse role.
+        /// </summary>
         [TestMethod]
         public void DenyAlterOnDatabaseRoleRemoveUserToRole()
         {
@@ -543,11 +561,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -558,6 +576,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny editing a specific databse role.
+        /// </summary>
         [TestMethod]
         public void DenyAlterOnDatabaseRoleRemoveUserToRoles()
         {
@@ -590,11 +611,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -605,6 +626,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny editing a specific databse role.
+        /// </summary>
         [TestMethod]
         public void DenyAlterOnDatabaseRoleRemoveUserListToRole1()
         {
@@ -638,11 +662,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -653,6 +677,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny editing a specific databse role.
+        /// </summary>
         [TestMethod]
         public void DenyAlterOnDatabaseRoleRemoveUserListToRole2()
         {
@@ -686,11 +713,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -701,6 +728,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny editing a specific databse role.
+        /// </summary>
         [TestMethod]
         public void DenyAlterOnDatabaseRoleRemoveUserListToRoles1()
         {
@@ -737,11 +767,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -752,6 +782,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny editing a specific databse role.
+        /// </summary>
         [TestMethod]
         public void DenyAlterOnDatabaseRoleRemoveUserListToRoles2()
         {
@@ -788,11 +821,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -803,6 +836,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny editing a specific database user.
+        /// </summary>
         [TestMethod]
         public void DenyAlterOnDatabaseUser()
         {
@@ -836,11 +872,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -851,6 +887,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny editing a login.
+        /// </summary>
         [TestMethod]
         public void DenyAlterOnLogin1()
         {
@@ -890,11 +929,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -905,6 +944,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny editing a specific schema.
+        /// </summary>
         [TestMethod]
         public void DenyAlterOnSchema()
         {
@@ -943,11 +985,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -958,6 +1000,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny editing a specific stream.
+        /// </summary>
         [TestMethod]
         public void DenyAlterOnStream()
         {
@@ -1022,11 +1067,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -1037,11 +1082,13 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny write on a specific source.
+        /// </summary>
         [TestMethod]
         public void DenyReadOnSource()
         {
             string oldStreamName = "oldStream";
-            string newStreamName = "newStream";
             string userName = DatabaseConstants.NORMAL_USER_1_NAME;
             string databaseName = DatabaseConstants.MASTER_DATABASE_NAME;
             string sourceNameTest = "source1234";
@@ -1121,11 +1168,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -1136,6 +1183,110 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny write on a specific source.
+        /// </summary>
+        [TestMethod]
+        public void DenyWriteOnSource()
+        {
+            string oldStreamName = "oldStream";
+            string userName = DatabaseConstants.NORMAL_USER_1_NAME;
+            string databaseName = DatabaseConstants.MASTER_DATABASE_NAME;
+            string sourceNameTest = "source1234";
+            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
+            string sourceForInto = "sourceForInto";
+            string eql = "cross " +
+                                  $@"JOIN {sourceNameTest} as t1 WHERE t1.MessageType == ""0100""" +
+                                  $@"WITH {sourceNameTest} as t2 WHERE t2.MessageType == ""0110""" +
+                                  $@"ON (string)t1.PrimaryAccountNumber == (string)t2.PrimaryAccountNumber and (string)t1.RetrievalReferenceNumber == (string)t2.RetrievalReferenceNumber " +
+                                  $@"TIMEOUT '00:00:01.5' " +
+                                  $@"WHERE isnull(t2.SourceTimestamp, '01/01/2017') - isnull(t1.SourceTimestamp, '01/01/2016') <= '00:00:01' " +
+                                  $@"SELECT " +
+                                          $@"t1.PrimaryAccountNumber as c1, " +
+                                          $@"t2.PrimaryAccountNumber as c3 into {sourceForInto} ";
+
+            string command = $"use {databaseName}; create source {sourceForInto} (c1 string(4000), c3 string(4000)); create source {sourceNameTest} (MessageType string(4000), PrimaryAccountNumber string(4000), RetrievalReferenceNumber string(4000), SourceTimestamp datetime); create stream {oldStreamName} {{ {eql} }}; grant connect on database {databaseName} to user {userName}; grant alter on stream {oldStreamName}, read on source {sourceNameTest}, write on source {sourceForInto} to user {userName}; deny write on source {sourceForInto} to user {userName}";
+
+            string newEql = "inner " +
+                                  $@"JOIN {sourceNameTest} as t1 WHERE t1.MessageType == ""0100""" +
+                                  $@"WITH {sourceNameTest} as t2 WHERE t2.MessageType == ""0110""" +
+                                  $@"ON (string)t1.PrimaryAccountNumber == (string)t2.PrimaryAccountNumber and (string)t1.RetrievalReferenceNumber == (string)t2.RetrievalReferenceNumber " +
+                                  $@"TIMEOUT '00:00:03.5' " +
+                                  $@"WHERE isnull(t2.SourceTimestamp, '01/01/2017') - isnull(t1.SourceTimestamp, '01/01/2016') <= '00:00:01' " +
+                                  $@"SELECT " +
+                                          $@"t2.PrimaryAccountNumber as c1, " +
+                                          $@"t1.PrimaryAccountNumber as c3 into {sourceForInto}";
+
+            string command2 = $"use {databaseName}; alter stream {oldStreamName} with query = {newEql}";
+
+            IKernel kernel = new StandardKernel();
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            {
+                using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
+                {
+                    kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
+                    SpaceAssemblyBuilder sasmBuilder = new SpaceAssemblyBuilder("Test");
+                    AssemblyBuilder asmBuilder = sasmBuilder.CreateAssemblyBuilder();
+                    SpaceModuleBuilder smodBuilder = new SpaceModuleBuilder(asmBuilder);
+                    smodBuilder.CreateModuleBuilder();
+                    kernel.Bind<AssemblyBuilder>().ToConstant(asmBuilder);
+                    kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
+                    kernel.Bind<ISource>().ToConstructor(x => new ConcreteSource());
+
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
+                    FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
+
+                    Stream stream = dbContext.Streams.Single(x => x.StreamName == oldStreamName);
+                    Assert.AreEqual(oldStreamName, stream.StreamName);
+                    Assert.IsTrue(stream.IsActive);
+                    Assert.AreEqual(eql.Replace('\n', '\0').Trim(), stream.Query);
+
+                    Source source = dbContext.Sources.Single(x => x.SourceName == sourceForInto);
+                    DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == databaseName && x.DbUsrName == userName);
+                    GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("write", StringComparison.InvariantCultureIgnoreCase));
+                    SecurableClass sc = dbContext.SecurableClasses.Single(x => x.SecurableName.Equals("source", StringComparison.InvariantCultureIgnoreCase));
+                    bool exists = dbContext.SourceAssignedPermissionsToUsers.Any(x => x.SourceServerId == source.ServerId && x.SourceDatabaseId == source.DatabaseId && x.SourceSchemaId == source.SchemaId && x.SourceId == source.SourceId
+                                                                            && x.DbUsrServerId == user.ServerId && x.DbUserDatabaseId == user.DatabaseId && x.DbUserId == user.DbUsrId
+                                                                            && x.GranularPermissionId == gp.GranularPermissionId
+                                                                            && x.SecurableClassId == sc.SecurableClassId
+                                                                            && x.Granted && x.Denied);
+
+                    Assert.IsTrue(exists);
+
+                    Assert.IsTrue(stream.ProjectionColumns.Any(x => x.ColumnName == "c1" && x.ColumnType == typeof(string).AssemblyQualifiedName));
+                    Assert.IsTrue(stream.ProjectionColumns.Any(x => x.ColumnName == "c3" && x.ColumnType == typeof(string).AssemblyQualifiedName));
+
+                    try
+                    {
+                        SpaceAssemblyBuilder sasmBuilder2 = new SpaceAssemblyBuilder("Test");
+                        AssemblyBuilder asmBuilder2 = sasmBuilder2.CreateAssemblyBuilder();
+                        SpaceModuleBuilder smodBuilder2 = new SpaceModuleBuilder(asmBuilder2);
+                        smodBuilder2.CreateModuleBuilder();
+                        kernel.Bind<AssemblyBuilder>().ToConstant(asmBuilder2);
+                        kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
+                        kernel.Bind<ISource>().ToConstructor(x => new ConcreteSource());
+                        this.loginName = otherLogin;
+                        this.ProcessCommand(command2, kernel);
+                        Assert.Fail();
+                    }
+                    catch (AssertFailedException)
+                    {
+                        Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
+                    }
+                    catch (Exception)
+                    {
+                    }
+                    finally
+                    {
+                        tran.Rollback();
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Deny editing a specific source.
+        /// </summary>
         [TestMethod]
         public void DenyAlterOnSource()
         {
@@ -1182,11 +1333,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -1201,6 +1352,9 @@ namespace Integra.Space.UnitTests
 
         #region deny alter any
 
+        /// <summary>
+        /// Deny editing any database.
+        /// </summary>
         [TestMethod]
         public void DenyAlterAnyDatabase()
         {
@@ -1235,11 +1389,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -1250,6 +1404,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny editing any database role.
+        /// </summary>
         [TestMethod]
         public void DenyAlterAnyDatabaseRole()
         {
@@ -1271,7 +1428,7 @@ namespace Integra.Space.UnitTests
                     this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseName);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseName);
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == databaseName && x.DbUsrName == userName);
 
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("alter any role", StringComparison.InvariantCultureIgnoreCase));
@@ -1289,11 +1446,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -1304,6 +1461,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny editing any database user.
+        /// </summary>
         [TestMethod]
         public void DenyAlterAnyDatabaseUser()
         {
@@ -1325,7 +1485,7 @@ namespace Integra.Space.UnitTests
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == databaseName && x.DbUsrName == userName);
-                    Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseName);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseName);
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("alter any user", StringComparison.InvariantCultureIgnoreCase));
                     SecurableClass sc = dbContext.SecurableClasses.Single(x => x.SecurableName.Equals("database", StringComparison.InvariantCultureIgnoreCase));
                     bool exists = dbContext.DatabaseAssignedPermissionsToUsers.Any(x => x.DbUsrServerId == user.ServerId && x.DbUsrDatabaseId == user.DatabaseId && x.DbUsrId == user.DbUsrId
@@ -1342,11 +1502,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -1357,6 +1517,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny editing any login.
+        /// </summary>
         [TestMethod]
         public void DenyAlterAnyLogin()
         {
@@ -1397,11 +1560,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -1412,6 +1575,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny editing any login.
+        /// </summary>
         [TestMethod]
         public void DenyAlterAnyLogin2()
         {
@@ -1451,11 +1617,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -1466,6 +1632,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny editing any schema.
+        /// </summary>
         [TestMethod]
         public void DenyAlterAnySchema()
         {
@@ -1495,11 +1664,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -1510,6 +1679,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny editing any schema and; read and write an specific source.
+        /// </summary>
         [TestMethod]
         public void DenyAlterAnySchemaAndReadSource()
         {
@@ -1554,11 +1726,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -1569,6 +1741,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny editing any schema.
+        /// </summary>
         [TestMethod]
         public void DenyAlterAnySchema2()
         {
@@ -1606,11 +1781,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -1625,6 +1800,9 @@ namespace Integra.Space.UnitTests
 
         #region deny control
 
+        /// <summary>
+        /// Deny control on a specific database.
+        /// </summary>
         [TestMethod]
         public void DenyControlOnDatabase()
         {
@@ -1645,7 +1823,7 @@ namespace Integra.Space.UnitTests
                     this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseName);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseName);
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == databaseName && x.DbUsrName == userName);
 
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("control", StringComparison.InvariantCultureIgnoreCase));
@@ -1663,11 +1841,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -1678,6 +1856,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny control on a specific database role.
+        /// </summary>
         [TestMethod]
         public void DenyControlOnDatabaseRole()
         {
@@ -1717,11 +1898,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -1732,6 +1913,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny control on a specific database user.
+        /// </summary>
         [TestMethod]
         public void DenyControlOnDatabaseUser()
         {
@@ -1768,11 +1952,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -1783,6 +1967,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny control on a specific login.
+        /// </summary>
         [TestMethod]
         public void DenyControlOnLogin()
         {
@@ -1826,11 +2013,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -1841,6 +2028,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny control on a specific schema.
+        /// </summary>
         [TestMethod]
         public void DenyControlOnSchema()
         {
@@ -1881,11 +2071,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -1896,6 +2086,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny control on a specific stream and; read and write a specific source.
+        /// </summary>
         [TestMethod]
         public void DenyControlOnStreamAndReadSource()
         {
@@ -1954,11 +2147,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -1969,6 +2162,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny control on a specific source.
+        /// </summary>
         [TestMethod]
         public void DenyControlOnSource()
         {
@@ -2015,11 +2211,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -2034,6 +2230,9 @@ namespace Integra.Space.UnitTests
 
         #region deny take ownership
 
+        /// <summary>
+        /// Deny take ownership on a specific datbase role.
+        /// </summary>
         [TestMethod]
         public void DenyTakeOwnershipOnDbRole()
         {
@@ -2055,7 +2254,7 @@ namespace Integra.Space.UnitTests
                     this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    Database.Database database = dbContext.Databases.Single(x => x.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.DatabaseName == databaseName);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.DatabaseName == databaseName);
                     DatabaseRole role = dbContext.DatabaseRoles.Single(x => x.ServerId == database.ServerId && x.DatabaseId == database.DatabaseId && x.DbRoleName == roleName);
                     Assert.AreEqual<string>(DatabaseConstants.DBO_USER_NAME, role.DatabaseUser.DbUsrName);
 
@@ -2075,11 +2274,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -2090,6 +2289,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny take ownership on a specific database.
+        /// </summary>
         [TestMethod]
         public void DenyTakeOwnershipOnDatabase()
         {
@@ -2110,8 +2312,8 @@ namespace Integra.Space.UnitTests
                     this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    Login login = dbContext.Logins.Single(x => x.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.LoginName == loginName);
-                    Database.Database database = dbContext.Databases.Single(x => x.ServerId == login.ServerId && x.DatabaseName == databaseName);
+                    Login login = dbContext.Logins.Single(x => x.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.LoginName == this.loginName);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.ServerId == login.ServerId && x.DatabaseName == databaseName);
                     Assert.AreEqual<string>(DatabaseConstants.SA_LOGIN_NAME, database.Login.LoginName);
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == databaseName && x.DbUsrName == userName);
 
@@ -2130,11 +2332,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -2145,6 +2347,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny take ownership on a specific schema.
+        /// </summary>
         [TestMethod]
         public void DenyTakeOwnershipOnSchema()
         {
@@ -2165,9 +2370,9 @@ namespace Integra.Space.UnitTests
                     this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    Login login = dbContext.Logins.Single(x => x.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.LoginName == loginName);
-                    Database.Database database = dbContext.Databases.Single(x => x.ServerId == login.ServerId && x.DatabaseName == databaseName);
-                    Database.Schema schema = dbContext.Schemas.Single(x => x.ServerId == login.ServerId && x.DatabaseId == database.DatabaseId && x.SchemaName == schemaName);
+                    Login login = dbContext.Logins.Single(x => x.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.LoginName == this.loginName);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.ServerId == login.ServerId && x.DatabaseName == databaseName);
+                    Schema schema = dbContext.Schemas.Single(x => x.ServerId == login.ServerId && x.DatabaseId == database.DatabaseId && x.SchemaName == schemaName);
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.DatabaseId == database.DatabaseId && x.DbUsrName == existingUserName);
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("take ownership", StringComparison.InvariantCultureIgnoreCase));
                     SecurableClass sc = dbContext.SecurableClasses.Single(x => x.SecurableName.Equals("schema", StringComparison.InvariantCultureIgnoreCase));
@@ -2185,11 +2390,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -2200,6 +2405,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny take ownership on a specific source.
+        /// </summary>
         [TestMethod]
         public void DenyTakeOwnershipOnSource()
         {
@@ -2226,10 +2434,10 @@ namespace Integra.Space.UnitTests
                     this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    Login login = dbContext.Logins.Single(x => x.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.LoginName == loginName);
-                    Database.Database database = dbContext.Databases.Single(x => x.ServerId == login.ServerId && x.DatabaseName == databaseName);
-                    Database.Schema schema = dbContext.Schemas.Single(x => x.ServerId == database.ServerId && x.DatabaseId == database.DatabaseId && x.SchemaName == schemaName);
-                    Database.Source source = dbContext.Sources.Single(x => x.ServerId == login.ServerId && x.DatabaseId == database.DatabaseId && x.SchemaId == schema.SchemaId && x.SourceName == oldSourceName);
+                    Login login = dbContext.Logins.Single(x => x.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.LoginName == this.loginName);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.ServerId == login.ServerId && x.DatabaseName == databaseName);
+                    Schema schema = dbContext.Schemas.Single(x => x.ServerId == database.ServerId && x.DatabaseId == database.DatabaseId && x.SchemaName == schemaName);
+                    Source source = dbContext.Sources.Single(x => x.ServerId == login.ServerId && x.DatabaseId == database.DatabaseId && x.SchemaId == schema.SchemaId && x.SourceName == oldSourceName);
                     Assert.AreEqual<string>(DatabaseConstants.DBO_USER_NAME, source.DatabaseUser.DbUsrName);
 
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.DatabaseId == database.DatabaseId && x.DbUsrName == userName);
@@ -2249,11 +2457,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -2264,6 +2472,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny take ownership on a specific stream.
+        /// </summary>
         [TestMethod]
         public void DenyTakeOwnershipOnStream()
         {
@@ -2303,10 +2514,10 @@ namespace Integra.Space.UnitTests
                     kernel.Bind<ISource>().ToConstructor(x => new ConcreteSource());
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    Login login = dbContext.Logins.Single(x => x.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.LoginName == loginName);
-                    Database.Database database = dbContext.Databases.Single(x => x.ServerId == login.ServerId && x.DatabaseName == databaseName);
-                    Database.Schema schema = dbContext.Schemas.Single(x => x.ServerId == database.ServerId && x.DatabaseId == database.DatabaseId && x.SchemaName == DatabaseConstants.DBO_SCHEMA_NAME);
-                    Database.Stream stream = dbContext.Streams.Single(x => x.ServerId == login.ServerId && x.DatabaseId == database.DatabaseId && x.SchemaId == schema.SchemaId && x.StreamName == oldStreamName);
+                    Login login = dbContext.Logins.Single(x => x.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.LoginName == this.loginName);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.ServerId == login.ServerId && x.DatabaseName == databaseName);
+                    Schema schema = dbContext.Schemas.Single(x => x.ServerId == database.ServerId && x.DatabaseId == database.DatabaseId && x.SchemaName == DatabaseConstants.DBO_SCHEMA_NAME);
+                    Stream stream = dbContext.Streams.Single(x => x.ServerId == login.ServerId && x.DatabaseId == database.DatabaseId && x.SchemaId == schema.SchemaId && x.StreamName == oldStreamName);
                     Assert.AreEqual<string>(DatabaseConstants.DBO_USER_NAME, stream.DatabaseUser.DbUsrName);
 
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.DatabaseId == database.DatabaseId && x.DbUsrName == userName);
@@ -2328,11 +2539,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -2347,12 +2558,14 @@ namespace Integra.Space.UnitTests
 
         #region deny view any definition
 
+        /// <summary>
+        /// Deny view any definition.
+        /// </summary>
         [TestMethod]
         public void DenyViewAnyDefinitionAndFromServerRoles()
         {
             string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string command = $"grant view any definition to login {otherLogin}; deny view any definition to login {otherLogin}";
-            string command2 = "from sys.serverroles select ServerId as servId";
 
             IKernel kernel = new StandardKernel();
             using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
@@ -2377,11 +2590,11 @@ namespace Integra.Space.UnitTests
                     {
                         Assert.IsTrue(exists);
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         throw new Exception("Error");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -2392,12 +2605,14 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny view any definition.
+        /// </summary>
         [TestMethod]
         public void DenyViewAnyDefinitionAndFromEndpoints()
         {
             string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string command = $"grant view any definition to login {otherLogin}; deny view any definition to login {otherLogin}";
-            string command2 = "from sys.endpoints select ServerId as servId";
 
             IKernel kernel = new StandardKernel();
             using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
@@ -2422,11 +2637,11 @@ namespace Integra.Space.UnitTests
                     {
                         Assert.IsTrue(exists);
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         throw new Exception("Error");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -2437,12 +2652,14 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny view any definition.
+        /// </summary>
         [TestMethod]
         public void DenyViewAnyDefinitionAndFromLogins()
         {
             string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string command = $"grant view any definition to login {otherLogin}; deny view any definition to login {otherLogin}";
-            string command2 = "from sys.logins select ServerId as servId";
 
             IKernel kernel = new StandardKernel();
             using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
@@ -2467,11 +2684,11 @@ namespace Integra.Space.UnitTests
                     {
                         Assert.IsTrue(exists);
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         throw new Exception("Error");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -2482,12 +2699,14 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny view any definition.
+        /// </summary>
         [TestMethod]
         public void DenyViewAnyDefinitionAndFromDatabases()
         {
             string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string command = $"grant view any definition to login {otherLogin}; deny view any definition to login {otherLogin}";
-            string command2 = "from sys.databases select ServerId as servId";
 
             IKernel kernel = new StandardKernel();
             using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
@@ -2513,11 +2732,11 @@ namespace Integra.Space.UnitTests
                     {
                         Assert.IsTrue(exists);
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         throw new Exception("Error");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -2528,12 +2747,14 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny view any definition.
+        /// </summary>
         [TestMethod]
         public void DenyViewAnyDefinitionAndFromUsers()
         {
             string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string command = $"grant view any definition to login {otherLogin}; deny view any definition to login {otherLogin}";
-            string command2 = "from sys.users select ServerId as servId";
 
             IKernel kernel = new StandardKernel();
             using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
@@ -2559,11 +2780,11 @@ namespace Integra.Space.UnitTests
                     {
                         Assert.IsTrue(exists);
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         throw new Exception("Error");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -2574,12 +2795,14 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny view any definition.
+        /// </summary>
         [TestMethod]
         public void DenyViewAnyDefinitionAndFromDatabaseRoles()
         {
             string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string command = $"grant view any definition to login {otherLogin}; deny view any definition to login {otherLogin}";
-            string command2 = "from sys.databaseroles select ServerId as servId";
 
             IKernel kernel = new StandardKernel();
             using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
@@ -2605,11 +2828,11 @@ namespace Integra.Space.UnitTests
                     {
                         Assert.IsTrue(exists);
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         throw new Exception("Error");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -2620,12 +2843,14 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny view any definition.
+        /// </summary>
         [TestMethod]
         public void DenyViewAnyDefinitionAndFromSchemas()
         {
             string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string command = $"grant view any definition to login {otherLogin}; deny view any definition to login {otherLogin}";
-            string command2 = "from sys.schemas select ServerId as servId";
 
             IKernel kernel = new StandardKernel();
             using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
@@ -2651,11 +2876,11 @@ namespace Integra.Space.UnitTests
                     {
                         Assert.IsTrue(exists);
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         throw new Exception("Error");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -2666,12 +2891,14 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny view any definition.
+        /// </summary>
         [TestMethod]
         public void DenyViewAnyDefinitionAndFromSources()
         {
             string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string command = $"grant view any definition to login {otherLogin}; deny view any definition to login {otherLogin}";
-            string command2 = "from sys.sources select ServerId as servId";
 
             IKernel kernel = new StandardKernel();
             using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
@@ -2697,11 +2924,11 @@ namespace Integra.Space.UnitTests
                     {
                         Assert.IsTrue(exists);
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         throw new Exception("Error");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -2712,12 +2939,14 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny view any definition.
+        /// </summary>
         [TestMethod]
         public void DenyViewAnyDefinitionAndFromStreams()
         {
             string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string command = $"grant view any definition to login {otherLogin}; deny view any definition to login {otherLogin}";
-            string command2 = "from sys.streams select ServerId as servId";
 
             IKernel kernel = new StandardKernel();
             using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
@@ -2743,11 +2972,11 @@ namespace Integra.Space.UnitTests
                     {
                         Assert.IsTrue(exists);
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         throw new Exception("Error");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -2758,12 +2987,14 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny view any definition.
+        /// </summary>
         [TestMethod]
         public void DenyViewAnyDefinitionAndFromViews()
         {
             string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string command = $"grant view any definition to login {otherLogin}; deny view any definition to login {otherLogin}";
-            string command2 = "from sys.views select ServerId as servId";
 
             IKernel kernel = new StandardKernel();
             using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
@@ -2789,11 +3020,11 @@ namespace Integra.Space.UnitTests
                     {
                         Assert.IsTrue(exists);
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         throw new Exception("Error");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -2808,12 +3039,14 @@ namespace Integra.Space.UnitTests
 
         #region deny view any database
 
+        /// <summary>
+        /// Deny view any database.
+        /// </summary>
         [TestMethod]
         public void DenyViewAnyDatabaseAndFromUsers()
         {
             string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string command = $"grant view any database to login {otherLogin}; deny view any database to login {otherLogin}";
-            string command2 = "from sys.users select ServerId as servId";
 
             IKernel kernel = new StandardKernel();
             using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
@@ -2839,11 +3072,11 @@ namespace Integra.Space.UnitTests
                     {
                         Assert.IsTrue(exists);
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         throw new Exception("Error");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -2854,12 +3087,14 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny view any database.
+        /// </summary>
         [TestMethod]
         public void DenyViewAnyDatabaseAndFromDatabaseRoles()
         {
             string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string command = $"grant view any database to login {otherLogin}; deny view any database to login {otherLogin}";
-            string command2 = "from sys.databaseroles select ServerId as servId";
 
             IKernel kernel = new StandardKernel();
             using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
@@ -2885,11 +3120,11 @@ namespace Integra.Space.UnitTests
                     {
                         Assert.IsTrue(exists);
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         throw new Exception("Error");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -2900,12 +3135,14 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny view any database.
+        /// </summary>
         [TestMethod]
         public void DenyViewAnyDatabaseAndFromSchemas()
         {
             string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string command = $"grant view any database to login {otherLogin}; deny view any database to login {otherLogin}";
-            string command2 = "from sys.schemas select ServerId as servId";
 
             IKernel kernel = new StandardKernel();
             using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
@@ -2931,11 +3168,11 @@ namespace Integra.Space.UnitTests
                     {
                         Assert.IsTrue(exists);
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         throw new Exception("Error");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -2946,12 +3183,14 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny view any database.
+        /// </summary>
         [TestMethod]
         public void DenyViewAnyDatabaseAndFromSources()
         {
             string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string command = $"grant view any database to login {otherLogin}; deny view any database to login {otherLogin}";
-            string command2 = "from sys.sources select ServerId as servId";
 
             IKernel kernel = new StandardKernel();
             using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
@@ -2977,11 +3216,11 @@ namespace Integra.Space.UnitTests
                     {
                         Assert.IsTrue(exists);
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         throw new Exception("Error");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -2992,12 +3231,14 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny view any database.
+        /// </summary>
         [TestMethod]
         public void DenyViewAnyDatabaseAndFromStreams()
         {
             string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string command = $"grant view any database to login {otherLogin}; deny view any database to login {otherLogin}";
-            string command2 = "from sys.streams select ServerId as servId";
 
             IKernel kernel = new StandardKernel();
             using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
@@ -3023,11 +3264,11 @@ namespace Integra.Space.UnitTests
                     {
                         Assert.IsTrue(exists);
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         throw new Exception("Error");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -3038,12 +3279,14 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny view any database.
+        /// </summary>
         [TestMethod]
         public void DenyViewAnyDatabaseAndFromViews()
         {
             string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string command = $"grant view any database to login {otherLogin}; deny view any database to login {otherLogin}";
-            string command2 = "from sys.views select ServerId as servId";
 
             IKernel kernel = new StandardKernel();
             using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
@@ -3069,11 +3312,11 @@ namespace Integra.Space.UnitTests
                     {
                         Assert.IsTrue(exists);
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         throw new Exception("Error");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -3088,13 +3331,15 @@ namespace Integra.Space.UnitTests
 
         #region deny view definition on
 
+        /// <summary>
+        /// Deny view definition on a specific endpoint.
+        /// </summary>
         [TestMethod]
         public void DenyViewOnDefinitionAndFromEndpoints()
         {
             string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string endpointName = DatabaseConstants.TCP_ENDPOINT_NAME;
             string command = $"grant view definition on endpoint {endpointName} to login {otherLogin}; deny view definition on endpoint {endpointName} to login {otherLogin}";
-            string command2 = "from sys.endpoints select ServerId as servId";
 
             IKernel kernel = new StandardKernel();
             using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
@@ -3120,11 +3365,11 @@ namespace Integra.Space.UnitTests
                     {
                         Assert.IsTrue(exists);
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         throw new Exception("Error");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -3135,13 +3380,15 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny view definition on a specific login.
+        /// </summary>
         [TestMethod]
         public void DenyViewOnDefinitionAndFromLogins()
         {
             string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string loginNameOn = DatabaseConstants.NORMAL_LOGIN_2_NAME;
             string command = $"grant view definition on login {loginNameOn} to login {otherLogin}; deny view definition on login {loginNameOn} to login {otherLogin}";
-            string command2 = "from sys.logins select ServerId as servId";
 
             IKernel kernel = new StandardKernel();
             using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
@@ -3167,11 +3414,11 @@ namespace Integra.Space.UnitTests
                     {
                         Assert.IsTrue(exists);
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         throw new Exception("Error");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -3182,14 +3429,15 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny view definition on a specific database.
+        /// </summary>
         [TestMethod]
         public void DenyViewOnDefinitionAndFromDatabases()
         {
-            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string databaseName = DatabaseConstants.TEST_DATABASE_NAME;
             string userName = DatabaseConstants.NORMAL_USER_1_NAME;
             string command = $"grant view definition on database {databaseName} to user {userName}; deny view definition on database {databaseName} to user {userName}";
-            string command2 = "from sys.databases select ServerId as servId";
 
             IKernel kernel = new StandardKernel();
             using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
@@ -3201,7 +3449,7 @@ namespace Integra.Space.UnitTests
                     this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseName);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseName);
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME && x.DbUsrName == userName);
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("view definition", StringComparison.InvariantCultureIgnoreCase));
                     SecurableClass sc = dbContext.SecurableClasses.Single(x => x.SecurableName.Equals("database", StringComparison.InvariantCultureIgnoreCase));
@@ -3215,11 +3463,11 @@ namespace Integra.Space.UnitTests
                     {
                         Assert.IsTrue(exists);
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         throw new Exception("Error");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -3230,14 +3478,15 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny view definition on a specific users.
+        /// </summary>
         [TestMethod]
         public void DenyViewOnDefinitionAndFromUsers()
         {
-            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string userNameTo = DatabaseConstants.NORMAL_USER_1_NAME;
             string userNameOn = DatabaseConstants.NORMAL_USER_2_NAME;
             string command = $"grant view definition on user {userNameOn} to user {userNameTo}; deny view definition on user {userNameOn} to user {userNameTo}";
-            string command2 = "from sys.users select ServerId as servId";
 
             IKernel kernel = new StandardKernel();
             using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
@@ -3249,7 +3498,7 @@ namespace Integra.Space.UnitTests
                     this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
                     DatabaseUser userTo = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME && x.DbUsrName == userNameTo);
                     DatabaseUser userOn = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME && x.DbUsrName == userNameOn);
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("view definition", StringComparison.InvariantCultureIgnoreCase));
@@ -3263,11 +3512,11 @@ namespace Integra.Space.UnitTests
                     {
                         Assert.IsTrue(exists);
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         throw new Exception("Error");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -3278,14 +3527,15 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny view definition on a specific database roles.
+        /// </summary>
         [TestMethod]
         public void DenyViewOnDefinitionAndFromDatabaseRoles()
         {
-            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string roleName = DatabaseConstants.ROLE_1_NAME;
             string userName = DatabaseConstants.NORMAL_USER_1_NAME;
             string command = $"grant view definition on role {roleName} to user {userName}; deny view definition on role {roleName} to user {userName}";
-            string command2 = "from sys.databaseroles select ServerId as servId";
 
             IKernel kernel = new StandardKernel();
             using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
@@ -3311,11 +3561,11 @@ namespace Integra.Space.UnitTests
                     {
                         Assert.IsTrue(exists);
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         throw new Exception("Error");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -3326,10 +3576,12 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny view definition on a specific schema.
+        /// </summary>
         [TestMethod]
         public void DenyViewOnDefinitionAndFromSchemas()
         {
-            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string schemaName = DatabaseConstants.DBO_SCHEMA_NAME;
             string userName = DatabaseConstants.NORMAL_USER_1_NAME;
             string databaseName = DatabaseConstants.MASTER_DATABASE_NAME;
@@ -3363,11 +3615,11 @@ namespace Integra.Space.UnitTests
                     {
                         Assert.IsTrue(exists);
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         throw new Exception("Error");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -3378,10 +3630,12 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny view definition on a specific source.
+        /// </summary>
         [TestMethod]
         public void DenyViewOnDefinitionAndFromSources()
         {
-            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string sourceName = DatabaseConstants.INPUT_SOURCE_NAME;
             string userName = DatabaseConstants.NORMAL_USER_1_NAME;
             string databaseName = DatabaseConstants.MASTER_DATABASE_NAME;
@@ -3416,11 +3670,11 @@ namespace Integra.Space.UnitTests
                     {
                         Assert.IsTrue(exists);
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         throw new Exception("Error");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -3431,10 +3685,12 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny view definition on a specific stream.
+        /// </summary>
         [TestMethod]
         public void DenyViewOnDefinitionAndFromStreams()
         {
-            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string userName = DatabaseConstants.NORMAL_USER_1_NAME;
             string streamName = DatabaseConstants.TEST_STREAM_NAME;
             string command = $"use {DatabaseConstants.MASTER_DATABASE_NAME}; grant view definition on stream {DatabaseConstants.DBO_SCHEMA_NAME}.{streamName} to user {DatabaseConstants.TEST_DATABASE_NAME}.{userName}; deny view definition on stream {DatabaseConstants.DBO_SCHEMA_NAME}.{streamName} to user {DatabaseConstants.TEST_DATABASE_NAME}.{userName}";
@@ -3468,11 +3724,11 @@ namespace Integra.Space.UnitTests
                     {
                         Assert.IsTrue(exists);
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         throw new Exception("Error");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -3489,6 +3745,9 @@ namespace Integra.Space.UnitTests
 
         #region deny create any database
 
+        /// <summary>
+        /// Deny create any database.
+        /// </summary>
         [TestMethod]
         public void DenyCreateAnyDatabase()
         {
@@ -3521,11 +3780,11 @@ namespace Integra.Space.UnitTests
                     {
                         Assert.IsTrue(exists);
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         throw new Exception("Error");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -3536,6 +3795,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny create any database.
+        /// </summary>
         [TestMethod]
         public void DenyCreateAnyDatabaseWithStatusOn()
         {
@@ -3568,11 +3830,11 @@ namespace Integra.Space.UnitTests
                     {
                         Assert.IsTrue(exists);
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         throw new Exception("Error");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -3583,6 +3845,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny create any database.
+        /// </summary>
         [TestMethod]
         public void DenyCreateAnyDatabaseWithStatusOff()
         {
@@ -3616,11 +3881,11 @@ namespace Integra.Space.UnitTests
                     {
                         Assert.IsTrue(exists);
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         throw new Exception("Error");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -3635,6 +3900,9 @@ namespace Integra.Space.UnitTests
 
         #region deny create database
 
+        /// <summary>
+        /// Deny create database.
+        /// </summary>
         [TestMethod]
         public void DenyCreateDatabase()
         {
@@ -3654,7 +3922,7 @@ namespace Integra.Space.UnitTests
                     this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == database.DatabaseName && x.DbUsrName == userName);
 
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("create database", StringComparison.InvariantCultureIgnoreCase));
@@ -3672,11 +3940,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -3687,6 +3955,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny create database.
+        /// </summary>
         [TestMethod]
         public void DenyCreateDatabaseWithStatusOn()
         {
@@ -3706,7 +3977,7 @@ namespace Integra.Space.UnitTests
                     this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == database.DatabaseName && x.DbUsrName == userName);
 
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("create database", StringComparison.InvariantCultureIgnoreCase));
@@ -3724,11 +3995,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -3739,6 +4010,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny create database.
+        /// </summary>
         [TestMethod]
         public void DenyCreateDatabaseWithStatusOff()
         {
@@ -3759,7 +4033,7 @@ namespace Integra.Space.UnitTests
                     this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == database.DatabaseName && x.DbUsrName == userName);
 
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("create database", StringComparison.InvariantCultureIgnoreCase));
@@ -3777,11 +4051,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -3796,6 +4070,9 @@ namespace Integra.Space.UnitTests
 
         #region deny create role
 
+        /// <summary>
+        /// Deny create database role.
+        /// </summary>
         [TestMethod]
         public void DenyCreateRole()
         {
@@ -3815,7 +4092,7 @@ namespace Integra.Space.UnitTests
                     this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == database.DatabaseName && x.DbUsrName == userName);
 
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("create role", StringComparison.InvariantCultureIgnoreCase));
@@ -3833,11 +4110,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -3848,6 +4125,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny create database role.
+        /// </summary>
         [TestMethod]
         public void DenyCreateRoleWithStatusOn()
         {
@@ -3867,7 +4147,7 @@ namespace Integra.Space.UnitTests
                     this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == database.DatabaseName && x.DbUsrName == userName);
 
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("create role", StringComparison.InvariantCultureIgnoreCase));
@@ -3885,11 +4165,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -3900,6 +4180,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny create database role.
+        /// </summary>
         [TestMethod]
         public void DenyCreateRoleWithStatusOff()
         {
@@ -3919,7 +4202,7 @@ namespace Integra.Space.UnitTests
                     this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == database.DatabaseName && x.DbUsrName == userName);
 
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("create role", StringComparison.InvariantCultureIgnoreCase));
@@ -3937,11 +4220,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -3952,6 +4235,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny create database role.
+        /// </summary>
         [TestMethod]
         public void DenyCreateRoleAddUser()
         {
@@ -3971,7 +4257,7 @@ namespace Integra.Space.UnitTests
                     this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == database.DatabaseName && x.DbUsrName == userName);
 
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("create role", StringComparison.InvariantCultureIgnoreCase));
@@ -3989,11 +4275,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -4004,6 +4290,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny create database role.
+        /// </summary>
         [TestMethod]
         public void DenyCreateRoleAddUsers()
         {
@@ -4026,7 +4315,7 @@ namespace Integra.Space.UnitTests
                     this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == database.DatabaseName && x.DbUsrName == userName);
 
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("create role", StringComparison.InvariantCultureIgnoreCase));
@@ -4044,11 +4333,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -4063,6 +4352,9 @@ namespace Integra.Space.UnitTests
 
         #region deny create schema
 
+        /// <summary>
+        /// Deny create schema.
+        /// </summary>
         [TestMethod]
         public void DenyCreateSchema()
         {
@@ -4082,7 +4374,7 @@ namespace Integra.Space.UnitTests
                     this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == database.DatabaseName && x.DbUsrName == userName);
 
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("create schema", StringComparison.InvariantCultureIgnoreCase));
@@ -4100,11 +4392,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -4119,6 +4411,9 @@ namespace Integra.Space.UnitTests
 
         #region deny create source
 
+        /// <summary>
+        /// Deny create source.
+        /// </summary>
         [TestMethod]
         public void DenyCreateSource()
         {
@@ -4138,7 +4433,7 @@ namespace Integra.Space.UnitTests
                     this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == database.DatabaseName && x.DbUsrName == userName);
 
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("create source", StringComparison.InvariantCultureIgnoreCase));
@@ -4156,11 +4451,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -4171,6 +4466,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny create source.
+        /// </summary>
         [TestMethod]
         public void DenyCreateSourceWithStatusOn()
         {
@@ -4190,7 +4488,7 @@ namespace Integra.Space.UnitTests
                     this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == database.DatabaseName && x.DbUsrName == userName);
 
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("create source", StringComparison.InvariantCultureIgnoreCase));
@@ -4208,11 +4506,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -4223,6 +4521,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny create source.
+        /// </summary>
         [TestMethod]
         public void DenyCreateSourceWithStatusOff()
         {
@@ -4242,7 +4543,7 @@ namespace Integra.Space.UnitTests
                     this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == database.DatabaseName && x.DbUsrName == userName);
 
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("create source", StringComparison.InvariantCultureIgnoreCase));
@@ -4260,11 +4561,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -4279,6 +4580,9 @@ namespace Integra.Space.UnitTests
 
         #region deny create stream
 
+        /// <summary>
+        /// Deny create stream.
+        /// </summary>
         [TestMethod]
         public void DenyCreateStream()
         {
@@ -4291,7 +4595,6 @@ namespace Integra.Space.UnitTests
                                    $"WITH {DatabaseConstants.INPUT_SOURCE_NAME} as t2 WHERE t2.@event.Message.#1.#2 == \"9999941616073663_2\" " +
                                    "ON t1.@event.Message.#1.#32 == t2.@event.Message.#1.#32 " +
                                    "TIMEOUT '00:00:02' " +
-                                   //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
                                    "SELECT (string)t1.@event.Message.#1.#2 as c1, t2.@event.Message.#1.#2 as c2, 1 as numeroXXX ";
 
             string command2 = $"create stream {streamName} {{ {eql} }}";
@@ -4306,7 +4609,7 @@ namespace Integra.Space.UnitTests
                     this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == database.DatabaseName && x.DbUsrName == userName);
 
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("create stream", StringComparison.InvariantCultureIgnoreCase));
@@ -4324,11 +4627,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -4339,6 +4642,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny create stream.
+        /// </summary>
         [TestMethod]
         public void DenyReadSource()
         {
@@ -4352,7 +4658,6 @@ namespace Integra.Space.UnitTests
                                    $"WITH {sourceName} as t2 WHERE t2.@event.Message.#1.#2 == \"9999941616073663_2\" " +
                                    "ON t1.@event.Message.#1.#32 == t2.@event.Message.#1.#32 " +
                                    "TIMEOUT '00:00:02' " +
-                                   //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
                                    "SELECT (string)t1.@event.Message.#1.#2 as c1, t2.@event.Message.#1.#2 as c2, 1 as numeroXXX ";
 
             string command2 = $"create stream {streamName} {{ {eql} }}";
@@ -4367,7 +4672,7 @@ namespace Integra.Space.UnitTests
                     this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == database.DatabaseName && x.DbUsrName == userName);
                     Source source = dbContext.Sources.Single(x => x.ServerId == database.ServerId && x.DatabaseId == database.DatabaseId && x.Schema.SchemaName == DatabaseConstants.DBO_SCHEMA_NAME && x.SourceName == sourceName);
 
@@ -4386,11 +4691,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -4401,6 +4706,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny create stream.
+        /// </summary>
         [TestMethod]
         public void DenyCreateStreamWithStatusOn()
         {
@@ -4413,7 +4721,6 @@ namespace Integra.Space.UnitTests
                                    $"WITH {DatabaseConstants.INPUT_SOURCE_NAME} as t2 WHERE t2.@event.Message.#1.#2 == \"9999941616073663_2\" " +
                                    "ON t1.@event.Message.#1.#32 == t2.@event.Message.#1.#32 " +
                                    "TIMEOUT '00:00:02' " +
-                                   //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
                                    "SELECT (string)t1.@event.Message.#1.#2 as c1, t2.@event.Message.#1.#2 as c2, 1 as numeroXXX ";
 
             string command2 = $"create stream {streamName} {{ {eql} }} with status = on";
@@ -4428,7 +4735,7 @@ namespace Integra.Space.UnitTests
                     this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == database.DatabaseName && x.DbUsrName == userName);
 
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("create stream", StringComparison.InvariantCultureIgnoreCase));
@@ -4446,11 +4753,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -4461,6 +4768,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Deny create stream.
+        /// </summary>
         [TestMethod]
         public void DenyCreateStreamWithStatusOff()
         {
@@ -4473,7 +4783,6 @@ namespace Integra.Space.UnitTests
                                    $"WITH {DatabaseConstants.INPUT_SOURCE_NAME} as t2 WHERE t2.@event.Message.#1.#2 == \"9999941616073663_2\" " +
                                    "ON t1.@event.Message.#1.#32 == t2.@event.Message.#1.#32 " +
                                    "TIMEOUT '00:00:02' " +
-                                   //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
                                    "SELECT (string)t1.@event.Message.#1.#2 as c1, t2.@event.Message.#1.#2 as c2, 1 as numeroXXX ";
 
             string command2 = $"create stream {streamName} {{ {eql} }} with status = off";
@@ -4489,7 +4798,7 @@ namespace Integra.Space.UnitTests
                     this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == database.DatabaseName && x.DbUsrName == userName);
 
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("create stream", StringComparison.InvariantCultureIgnoreCase));
@@ -4507,11 +4816,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -4527,5 +4836,29 @@ namespace Integra.Space.UnitTests
         #endregion deny create
 
         #endregion deny
+
+        /// <summary>
+        /// This method create a pipeline context and execute the specified command.
+        /// </summary>
+        /// <param name="command">Command to execute.</param>
+        /// <param name="kernel">DI kernel.</param>
+        /// <returns>Pipeline context.</returns>
+        private FirstLevelPipelineContext ProcessCommand(string command, IKernel kernel)
+        {
+            IBinding binding = kernel.GetBindings(typeof(Language.IGrammarRuleValidator)).FirstOrDefault();
+            if (binding != null)
+            {
+                kernel.RemoveBinding(binding);
+            }
+
+            kernel.Bind<Language.IGrammarRuleValidator>().ToConstant(new TestRuleValidator());
+            CommandPipelineBuilder cpb = new CommandPipelineBuilder();
+            Filter<FirstLevelPipelineContext, FirstLevelPipelineContext> pipeline = cpb.Build();
+
+            FirstLevelPipelineExecutor cpe = new FirstLevelPipelineExecutor(pipeline);
+            FirstLevelPipelineContext context = new FirstLevelPipelineContext(command, this.loginName, kernel);
+            FirstLevelPipelineContext result = cpe.Execute(context);
+            return result;
+        }
     }
 }

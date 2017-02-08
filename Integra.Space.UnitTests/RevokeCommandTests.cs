@@ -1,42 +1,35 @@
-﻿using System;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Integra.Space.Pipeline;
-using Ninject;
-using Integra.Space.Database;
-using System.Data.Entity;
-using System.Linq;
-using System.Reflection.Emit;
-using Integra.Space.Compiler;
-using Ninject.Planning.Bindings;
+﻿// <copyright file="RevokeCommandTests.cs" company="ARITEC">
+// Copyright (c) ARITEC. All rights reserved.
+// </copyright>
 
 namespace Integra.Space.UnitTests
 {
+    using System;
+    using System.Data.Entity;
+    using System.Linq;
+    using System.Reflection.Emit;
+    using Compiler;
+    using Database;
+    using Microsoft.VisualStudio.TestTools.UnitTesting;
+    using Ninject;
+    using Ninject.Planning.Bindings;
+    using Pipeline;
+
+    /// <summary>
+    /// A class containing the tests for revoke permissions.
+    /// </summary>
     [TestClass]
     public class RevokeCommandTests
     {
         private string loginName = DatabaseConstants.NORMAL_LOGIN_1_NAME;
 
-        private FirstLevelPipelineContext ProcessCommand(string command, IKernel kernel)
-        {
-            IBinding binding = kernel.GetBindings(typeof(Language.IGrammarRuleValidator)).FirstOrDefault();
-            if (binding != null)
-            {
-                kernel.RemoveBinding(binding);
-            }
-            kernel.Bind<Language.IGrammarRuleValidator>().ToConstant(new TestRuleValidator());
-            CommandPipelineBuilder cpb = new CommandPipelineBuilder();
-            Filter<FirstLevelPipelineContext, FirstLevelPipelineContext> pipeline = cpb.Build();
-
-            FirstLevelPipelineExecutor cpe = new FirstLevelPipelineExecutor(pipeline);
-            FirstLevelPipelineContext context = new FirstLevelPipelineContext(command, loginName, kernel);
-            FirstLevelPipelineContext result = cpe.Execute(context);
-            return result;
-        }
-
         #region Revoke
 
         #region Revoke alter
 
+        /// <summary>
+        /// Revoke alter on datatabase permission.
+        /// </summary>
         [TestMethod]
         public void RevokeAlterOnDatabase()
         {
@@ -57,7 +50,7 @@ namespace Integra.Space.UnitTests
                     this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseName);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseName);
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == databaseName && x.DbUsrName == userName);
 
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("alter", StringComparison.InvariantCultureIgnoreCase));
@@ -65,8 +58,7 @@ namespace Integra.Space.UnitTests
                     bool exists = dbContext.DatabaseAssignedPermissionsToUsers.Any(x => x.DatabaseServerId == database.ServerId && x.DatabaseId == database.DatabaseId
                                                                         && x.DbUsrServerId == user.ServerId && x.DbUsrDatabaseId == user.DatabaseId && x.DbUsrId == user.DbUsrId
                                                                         && x.GranularPermissionId == gp.GranularPermissionId
-                                                                        && x.SecurableClassId == sc.SecurableClassId
-                                                                        );
+                                                                        && x.SecurableClassId == sc.SecurableClassId);
 
                     Assert.IsFalse(exists);
 
@@ -76,11 +68,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch(AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch(Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -91,6 +83,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke alter on database role permission.
+        /// </summary>
         [TestMethod]
         public void RevokeAlterOnDatabaseRole()
         {
@@ -111,13 +106,12 @@ namespace Integra.Space.UnitTests
 
                     this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
-                    
+
                     DatabaseRole role = dbContext.DatabaseRoles.Single(x => x.Database.DatabaseName == databaseName && x.DbRoleName == roleName);
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == databaseName && x.DbUsrName == userName);
 
                     bool exists = dbContext.DBRolesAssignedPermissionsToUsers.Any(x => x.DbRoleServerId == role.ServerId && x.DbRoleDatabaseId == role.DatabaseId && x.DbRoleId == role.DbRoleId
-                                                                        && x.DbUsrServerId == user.ServerId && x.DbUsrDatabaseId == user.DatabaseId && x.DbUsrId == user.DbUsrId
-                                                                        );
+                                                                        && x.DbUsrServerId == user.ServerId && x.DbUsrDatabaseId == user.DatabaseId && x.DbUsrId == user.DbUsrId);
                     Assert.IsFalse(exists);
 
                     this.loginName = otherLogin;
@@ -126,11 +120,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -141,6 +135,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke alter on database permission.
+        /// </summary>
         [TestMethod]
         public void RevokeAlterOnDatabaseRoleAddUserToRole()
         {
@@ -164,8 +161,7 @@ namespace Integra.Space.UnitTests
                     DatabaseRole role = dbContext.DatabaseRoles.Single(x => x.Database.DatabaseName == databaseName && x.DbRoleName == roleName);
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == databaseName && x.DbUsrName == userName);
                     bool exists = dbContext.DBRolesAssignedPermissionsToUsers.Any(x => x.DbRoleServerId == role.ServerId && x.DbRoleDatabaseId == role.DatabaseId && x.DbRoleId == role.DbRoleId
-                                                                        && x.DbUsrServerId == user.ServerId && x.DbUsrDatabaseId == user.DatabaseId && x.DbUsrId == user.DbUsrId
-                                                                        );
+                                                                        && x.DbUsrServerId == user.ServerId && x.DbUsrDatabaseId == user.DatabaseId && x.DbUsrId == user.DbUsrId);
                     Assert.IsFalse(exists);
 
                     this.loginName = otherLogin;
@@ -174,11 +170,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -189,6 +185,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke alter on database role permission.
+        /// </summary>
         [TestMethod]
         public void RevokeAlterOnDatabaseRoleAddUserToRoles()
         {
@@ -213,16 +212,14 @@ namespace Integra.Space.UnitTests
                     DatabaseRole role = dbContext.DatabaseRoles.Single(x => x.Database.DatabaseName == databaseName && x.DbRoleName == roleName1);
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == databaseName && x.DbUsrName == userName);
                     bool exists = dbContext.DBRolesAssignedPermissionsToUsers.Any(x => x.DbRoleServerId == role.ServerId && x.DbRoleDatabaseId == role.DatabaseId && x.DbRoleId == role.DbRoleId
-                                                                        && x.DbUsrServerId == user.ServerId && x.DbUsrDatabaseId == user.DatabaseId && x.DbUsrId == user.DbUsrId
-                                                                        );
+                                                                        && x.DbUsrServerId == user.ServerId && x.DbUsrDatabaseId == user.DatabaseId && x.DbUsrId == user.DbUsrId);
 
                     Assert.IsFalse(exists);
 
                     role = dbContext.DatabaseRoles.Single(x => x.Database.DatabaseName == databaseName && x.DbRoleName == roleName2);
                     user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == databaseName && x.DbUsrName == userName);
                     exists = dbContext.DBRolesAssignedPermissionsToUsers.Any(x => x.DbRoleServerId == role.ServerId && x.DbRoleDatabaseId == role.DatabaseId && x.DbRoleId == role.DbRoleId
-                                                                        && x.DbUsrServerId == user.ServerId && x.DbUsrDatabaseId == user.DatabaseId && x.DbUsrId == user.DbUsrId
-                                                                        );
+                                                                        && x.DbUsrServerId == user.ServerId && x.DbUsrDatabaseId == user.DatabaseId && x.DbUsrId == user.DbUsrId);
 
                     Assert.IsFalse(exists);
 
@@ -232,11 +229,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -247,6 +244,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke alter on database role permission.
+        /// </summary>
         [TestMethod]
         public void RevokeAlterOnDatabaseRoleAddUserListToRole1()
         {
@@ -272,16 +272,14 @@ namespace Integra.Space.UnitTests
                     DatabaseRole role = dbContext.DatabaseRoles.Single(x => x.Database.DatabaseName == databaseName && x.DbRoleName == roleName);
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == databaseName && x.DbUsrName == userName1);
                     bool exists = dbContext.DBRolesAssignedPermissionsToUsers.Any(x => x.DbRoleServerId == role.ServerId && x.DbRoleDatabaseId == role.DatabaseId && x.DbRoleId == role.DbRoleId
-                                                                        && x.DbUsrServerId == user.ServerId && x.DbUsrDatabaseId == user.DatabaseId && x.DbUsrId == user.DbUsrId
-                                                                        );
+                                                                        && x.DbUsrServerId == user.ServerId && x.DbUsrDatabaseId == user.DatabaseId && x.DbUsrId == user.DbUsrId);
 
                     Assert.IsFalse(exists);
 
                     role = dbContext.DatabaseRoles.Single(x => x.Database.DatabaseName == databaseName && x.DbRoleName == roleName);
                     user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == databaseName && x.DbUsrName == userName2);
                     exists = dbContext.DBRolesAssignedPermissionsToUsers.Any(x => x.DbRoleServerId == role.ServerId && x.DbRoleDatabaseId == role.DatabaseId && x.DbRoleId == role.DbRoleId
-                                                                        && x.DbUsrServerId == user.ServerId && x.DbUsrDatabaseId == user.DatabaseId && x.DbUsrId == user.DbUsrId
-                                                                        );
+                                                                        && x.DbUsrServerId == user.ServerId && x.DbUsrDatabaseId == user.DatabaseId && x.DbUsrId == user.DbUsrId);
 
                     Assert.IsFalse(exists);
 
@@ -291,11 +289,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -306,6 +304,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke alter on database role permission.
+        /// </summary>
         [TestMethod]
         public void RevokeAlterOnDatabaseRoleAddUserListToRole2()
         {
@@ -331,16 +332,14 @@ namespace Integra.Space.UnitTests
                     DatabaseRole role = dbContext.DatabaseRoles.Single(x => x.Database.DatabaseName == databaseName && x.DbRoleName == roleName);
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == databaseName && x.DbUsrName == userName1);
                     bool exists = dbContext.DBRolesAssignedPermissionsToUsers.Any(x => x.DbRoleServerId == role.ServerId && x.DbRoleDatabaseId == role.DatabaseId && x.DbRoleId == role.DbRoleId
-                                                                        && x.DbUsrServerId == user.ServerId && x.DbUsrDatabaseId == user.DatabaseId && x.DbUsrId == user.DbUsrId
-                                                                        );
+                                                                        && x.DbUsrServerId == user.ServerId && x.DbUsrDatabaseId == user.DatabaseId && x.DbUsrId == user.DbUsrId);
 
                     Assert.IsFalse(exists);
 
                     role = dbContext.DatabaseRoles.Single(x => x.Database.DatabaseName == databaseName && x.DbRoleName == roleName);
                     user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == databaseName && x.DbUsrName == userName2);
                     exists = dbContext.DBRolesAssignedPermissionsToUsers.Any(x => x.DbRoleServerId == role.ServerId && x.DbRoleDatabaseId == role.DatabaseId && x.DbRoleId == role.DbRoleId
-                                                                        && x.DbUsrServerId == user.ServerId && x.DbUsrDatabaseId == user.DatabaseId && x.DbUsrId == user.DbUsrId
-                                                                        );
+                                                                        && x.DbUsrServerId == user.ServerId && x.DbUsrDatabaseId == user.DatabaseId && x.DbUsrId == user.DbUsrId);
 
                     Assert.IsFalse(exists);
 
@@ -350,11 +349,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -365,6 +364,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke alter on database role permission.
+        /// </summary>
         [TestMethod]
         public void RevokeAlterOnDatabaseRoleAddUserListToRoles1()
         {
@@ -390,30 +392,26 @@ namespace Integra.Space.UnitTests
 
                     DatabaseRole role1 = dbContext.DatabaseRoles.Single(x => x.Database.DatabaseName == databaseName && x.DbRoleName == roleName1);
                     DatabaseRole role2 = dbContext.DatabaseRoles.Single(x => x.Database.DatabaseName == databaseName && x.DbRoleName == roleName2);
-                    Database.DatabaseUser dbUser1 = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == databaseName && x.DbUsrName == userName1);
+                    DatabaseUser dbUser1 = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == databaseName && x.DbUsrName == userName1);
                     bool exists = dbContext.DBRolesAssignedPermissionsToUsers.Any(x => x.DbRoleServerId == role1.ServerId && x.DbRoleDatabaseId == role1.DatabaseId && x.DbRoleId == role1.DbRoleId
-                                                                        && x.DbUsrServerId == dbUser1.ServerId && x.DbUsrDatabaseId == dbUser1.DatabaseId && x.DbUsrId == dbUser1.DbUsrId
-                                                                        );
+                                                                        && x.DbUsrServerId == dbUser1.ServerId && x.DbUsrDatabaseId == dbUser1.DatabaseId && x.DbUsrId == dbUser1.DbUsrId);
 
                     Assert.IsFalse(exists);
 
                     exists = dbContext.DBRolesAssignedPermissionsToUsers.Any(x => x.DbRoleServerId == role2.ServerId && x.DbRoleDatabaseId == role2.DatabaseId && x.DbRoleId == role2.DbRoleId
-                                                                        && x.DbUsrServerId == dbUser1.ServerId && x.DbUsrDatabaseId == dbUser1.DatabaseId && x.DbUsrId == dbUser1.DbUsrId
-                                                                        );
+                                                                        && x.DbUsrServerId == dbUser1.ServerId && x.DbUsrDatabaseId == dbUser1.DatabaseId && x.DbUsrId == dbUser1.DbUsrId);
 
                     Assert.IsFalse(exists);
 
-                    Database.DatabaseUser dbUser2 = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == databaseName && x.DbUsrName == userName2);
+                    DatabaseUser dbUser2 = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == databaseName && x.DbUsrName == userName2);
 
                     exists = dbContext.DBRolesAssignedPermissionsToUsers.Any(x => x.DbRoleServerId == role1.ServerId && x.DbRoleDatabaseId == role1.DatabaseId && x.DbRoleId == role1.DbRoleId
-                                                                        && x.DbUsrServerId == dbUser2.ServerId && x.DbUsrDatabaseId == dbUser2.DatabaseId && x.DbUsrId == dbUser2.DbUsrId
-                                                                        );
+                                                                        && x.DbUsrServerId == dbUser2.ServerId && x.DbUsrDatabaseId == dbUser2.DatabaseId && x.DbUsrId == dbUser2.DbUsrId);
 
                     Assert.IsFalse(exists);
 
                     exists = dbContext.DBRolesAssignedPermissionsToUsers.Any(x => x.DbRoleServerId == role2.ServerId && x.DbRoleDatabaseId == role2.DatabaseId && x.DbRoleId == role2.DbRoleId
-                                                                        && x.DbUsrServerId == dbUser2.ServerId && x.DbUsrDatabaseId == dbUser2.DatabaseId && x.DbUsrId == dbUser2.DbUsrId
-                                                                        );
+                                                                        && x.DbUsrServerId == dbUser2.ServerId && x.DbUsrDatabaseId == dbUser2.DatabaseId && x.DbUsrId == dbUser2.DbUsrId);
 
                     Assert.IsFalse(exists);
 
@@ -423,11 +421,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -438,6 +436,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke alter on database role permission.
+        /// </summary>
         [TestMethod]
         public void RevokeAlterOnDatabaseRoleAddUserListToRoles2()
         {
@@ -463,30 +464,26 @@ namespace Integra.Space.UnitTests
 
                     DatabaseRole role1 = dbContext.DatabaseRoles.Single(x => x.Database.DatabaseName == databaseName && x.DbRoleName == roleName1);
                     DatabaseRole role2 = dbContext.DatabaseRoles.Single(x => x.Database.DatabaseName == databaseName && x.DbRoleName == roleName2);
-                    Database.DatabaseUser dbUser1 = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == databaseName && x.DbUsrName == userName1);
+                    DatabaseUser dbUser1 = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == databaseName && x.DbUsrName == userName1);
                     bool exists = dbContext.DBRolesAssignedPermissionsToUsers.Any(x => x.DbRoleServerId == role1.ServerId && x.DbRoleDatabaseId == role1.DatabaseId && x.DbRoleId == role1.DbRoleId
-                                                                        && x.DbUsrServerId == dbUser1.ServerId && x.DbUsrDatabaseId == dbUser1.DatabaseId && x.DbUsrId == dbUser1.DbUsrId
-                                                                        );
+                                                                        && x.DbUsrServerId == dbUser1.ServerId && x.DbUsrDatabaseId == dbUser1.DatabaseId && x.DbUsrId == dbUser1.DbUsrId);
 
                     Assert.IsFalse(exists);
 
                     exists = dbContext.DBRolesAssignedPermissionsToUsers.Any(x => x.DbRoleServerId == role2.ServerId && x.DbRoleDatabaseId == role2.DatabaseId && x.DbRoleId == role2.DbRoleId
-                                                                        && x.DbUsrServerId == dbUser1.ServerId && x.DbUsrDatabaseId == dbUser1.DatabaseId && x.DbUsrId == dbUser1.DbUsrId
-                                                                        );
+                                                                        && x.DbUsrServerId == dbUser1.ServerId && x.DbUsrDatabaseId == dbUser1.DatabaseId && x.DbUsrId == dbUser1.DbUsrId);
 
                     Assert.IsFalse(exists);
 
-                    Database.DatabaseUser dbUser2 = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == databaseName && x.DbUsrName == userName2);
+                    DatabaseUser dbUser2 = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == databaseName && x.DbUsrName == userName2);
 
                     exists = dbContext.DBRolesAssignedPermissionsToUsers.Any(x => x.DbRoleServerId == role1.ServerId && x.DbRoleDatabaseId == role1.DatabaseId && x.DbRoleId == role1.DbRoleId
-                                                                        && x.DbUsrServerId == dbUser2.ServerId && x.DbUsrDatabaseId == dbUser2.DatabaseId && x.DbUsrId == dbUser2.DbUsrId
-                                                                        );
+                                                                        && x.DbUsrServerId == dbUser2.ServerId && x.DbUsrDatabaseId == dbUser2.DatabaseId && x.DbUsrId == dbUser2.DbUsrId);
 
                     Assert.IsFalse(exists);
 
                     exists = dbContext.DBRolesAssignedPermissionsToUsers.Any(x => x.DbRoleServerId == role2.ServerId && x.DbRoleDatabaseId == role2.DatabaseId && x.DbRoleId == role2.DbRoleId
-                                                                        && x.DbUsrServerId == dbUser2.ServerId && x.DbUsrDatabaseId == dbUser2.DatabaseId && x.DbUsrId == dbUser2.DbUsrId
-                                                                        );
+                                                                        && x.DbUsrServerId == dbUser2.ServerId && x.DbUsrDatabaseId == dbUser2.DatabaseId && x.DbUsrId == dbUser2.DbUsrId);
 
                     Assert.IsFalse(exists);
 
@@ -496,11 +493,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -511,6 +508,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke alter on database role permission.
+        /// </summary>
         [TestMethod]
         public void RevokeAlterOnDatabaseRoleRemoveUserToRole()
         {
@@ -541,11 +541,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -556,6 +556,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke alter on database role permission.
+        /// </summary>
         [TestMethod]
         public void RevokeAlterOnDatabaseRoleRemoveUserToRoles()
         {
@@ -588,11 +591,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -603,6 +606,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke alter on database role permission.
+        /// </summary>
         [TestMethod]
         public void RevokeAlterOnDatabaseRoleRemoveUserListToRole1()
         {
@@ -625,22 +631,22 @@ namespace Integra.Space.UnitTests
 
                     this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
-                    
+
                     bool exists = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName).DatabaseUsers.Any(x => x.DbUsrName == userName1);
                     exists = exists || dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName).DatabaseUsers.Any(x => x.DbUsrName == userName2);
                     Assert.IsTrue(exists);
-                    
+
                     try
                     {
                         this.loginName = otherLogin1;
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -651,6 +657,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke alter on database role permission.
+        /// </summary>
         [TestMethod]
         public void RevokeAlterOnDatabaseRoleRemoveUserListToRole2()
         {
@@ -684,11 +693,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -699,6 +708,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke alter on database role permission.
+        /// </summary>
         [TestMethod]
         public void RevokeAlterOnDatabaseRoleRemoveUserListToRoles1()
         {
@@ -735,11 +747,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -750,6 +762,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke alter on database role permission.
+        /// </summary>
         [TestMethod]
         public void RevokeAlterOnDatabaseRoleRemoveUserListToRoles2()
         {
@@ -786,11 +801,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -801,6 +816,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke alter on user permission.
+        /// </summary>
         [TestMethod]
         public void RevokeAlterOnDatabaseUser()
         {
@@ -824,8 +842,7 @@ namespace Integra.Space.UnitTests
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == databaseName && x.DbUsrName == userName);
 
                     bool exists = dbContext.UserAssignedPermissionsToUsers.Any(x => x.DbUsrServerId == user.ServerId && x.DbUsrDatabaseId == user.DatabaseId && x.DbUsrId == user.DbUsrId
-                                                                        && x.OnDbUsrServerId == user.ServerId && x.OnDbUsrDatabaseId == user.DatabaseId && x.OnDbUsrId == user.DbUsrId
-                                                                        );
+                                                                        && x.OnDbUsrServerId == user.ServerId && x.OnDbUsrDatabaseId == user.DatabaseId && x.OnDbUsrId == user.DbUsrId);
                     Assert.IsFalse(exists);
 
                     try
@@ -834,11 +851,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -849,6 +866,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke alter on login permission.
+        /// </summary>
         [TestMethod]
         public void RevokeAlterOnLogin1()
         {
@@ -878,8 +898,7 @@ namespace Integra.Space.UnitTests
                     bool exists = dbContext.LoginsAssignedPermissionsToLogins.Any(x => x.LoginServerId == toLogin.ServerId && x.LoginId == toLogin.LoginId
                                                                             && x.OnLoginServerId == onLogin.ServerId && x.OnLoginId == onLogin.LoginId
                                                                             && x.GranularPermissionId == gp.GranularPermissionId
-                                                                            && x.SecurableClassId == sc.SecurableClassId
-                                                                            );
+                                                                            && x.SecurableClassId == sc.SecurableClassId);
                     Assert.IsFalse(exists);
 
                     try
@@ -888,11 +907,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -903,6 +922,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke alter on schema permission.
+        /// </summary>
         [TestMethod]
         public void RevokeAlterOnSchema()
         {
@@ -931,8 +953,7 @@ namespace Integra.Space.UnitTests
                     bool exists = dbContext.SchemaAssignedPermissionsToUsers.Any(x => x.SchemaServerId == schema.ServerId && x.SchemaDatabaseId == schema.DatabaseId && x.SchemaId == schema.SchemaId
                                                                             && x.DbUsrServerId == user.ServerId && x.DbUsrDatabaseId == user.DatabaseId && x.DbUsrId == user.DbUsrId
                                                                             && x.GranularPermissionId == gp.GranularPermissionId
-                                                                            && x.SecurableClassId == sc.SecurableClassId
-                                                                            );
+                                                                            && x.SecurableClassId == sc.SecurableClassId);
 
                     Assert.IsFalse(exists);
                     try
@@ -941,11 +962,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -956,6 +977,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke alter on stream permission.
+        /// </summary>
         [TestMethod]
         public void RevokeAlterOnStream()
         {
@@ -1002,8 +1026,7 @@ namespace Integra.Space.UnitTests
                     bool exists = dbContext.StreamAssignedPermissionsToUsers.Any(x => x.StreamServerId == stream.ServerId && x.StreamDatabaseId == stream.DatabaseId && x.StreamSchemaId == stream.SchemaId && x.StreamId == stream.StreamId
                                                                             && x.DbUsrServerId == user.ServerId && x.DbUsrDatabaseId == user.DatabaseId && x.DbUsrId == user.DbUsrId
                                                                             && x.GranularPermissionId == gp.GranularPermissionId
-                                                                            && x.SecurableClassId == sc.SecurableClassId
-                                                                            );
+                                                                            && x.SecurableClassId == sc.SecurableClassId);
 
                     Assert.IsFalse(exists);
 
@@ -1016,11 +1039,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -1031,11 +1054,13 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke read on source permission.
+        /// </summary>
         [TestMethod]
         public void RevokeReadOnSource()
         {
             string oldStreamName = "oldStream";
-            string newStreamName = "newStream";
             string userName = DatabaseConstants.NORMAL_USER_1_NAME;
             string databaseName = DatabaseConstants.MASTER_DATABASE_NAME;
             string sourceNameTest = "source1234";
@@ -1061,7 +1086,7 @@ namespace Integra.Space.UnitTests
                                   $@"WHERE isnull(t2.SourceTimestamp, '01/01/2017') - isnull(t1.SourceTimestamp, '01/01/2016') <= '00:00:01' " +
                                   $@"SELECT " +
                                           $@"t2.PrimaryAccountNumber as c1, " +
-                                          $@"t1.PrimaryAccountNumber as c3 ";
+                                          $@"t1.PrimaryAccountNumber as c3  into {sourceForInto}";
 
             string command2 = $"use {databaseName}; alter stream {oldStreamName} with query = {newEql}";
 
@@ -1070,7 +1095,6 @@ namespace Integra.Space.UnitTests
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
-
                     this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
                     kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
@@ -1089,8 +1113,7 @@ namespace Integra.Space.UnitTests
                     bool exists = dbContext.SourceAssignedPermissionsToUsers.Any(x => x.SourceServerId == source.ServerId && x.SourceDatabaseId == source.DatabaseId && x.SourceSchemaId == source.SchemaId && x.SourceId == source.SourceId
                                                                             && x.DbUsrServerId == user.ServerId && x.DbUserDatabaseId == user.DatabaseId && x.DbUserId == user.DbUsrId
                                                                             && x.GranularPermissionId == gp.GranularPermissionId
-                                                                            && x.SecurableClassId == sc.SecurableClassId
-                                                                            );
+                                                                            && x.SecurableClassId == sc.SecurableClassId);
 
                     Assert.IsFalse(exists);
 
@@ -1104,11 +1127,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -1119,6 +1142,97 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke write on source permission.
+        /// </summary>
+        [TestMethod]
+        public void RevokeWriteOnSource()
+        {
+            string oldStreamName = "oldStream";
+            string userName = DatabaseConstants.NORMAL_USER_1_NAME;
+            string databaseName = DatabaseConstants.MASTER_DATABASE_NAME;
+            string sourceNameTest = "source1234";
+            string sourceForInto = "sourceForInto";
+            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
+            string eql = "cross " +
+                                  $@"JOIN {sourceNameTest} as t1 WHERE t1.MessageType == ""0100""" +
+                                  $@"WITH {sourceNameTest} as t2 WHERE t2.MessageType == ""0110""" +
+                                  $@"ON (string)t1.PrimaryAccountNumber == (string)t2.PrimaryAccountNumber and (string)t1.RetrievalReferenceNumber == (string)t2.RetrievalReferenceNumber " +
+                                  $@"TIMEOUT '00:00:01.5' " +
+                                  $@"WHERE isnull(t2.SourceTimestamp, '01/01/2017') - isnull(t1.SourceTimestamp, '01/01/2016') <= '00:00:01' " +
+                                  $@"SELECT " +
+                                          $@"t1.PrimaryAccountNumber as c1, " +
+                                          $@"t2.PrimaryAccountNumber as c3 into {sourceForInto} ";
+
+            string command = $"use {databaseName}; create source {sourceForInto} (c1 string(4000), c3 string(4000)); create source {sourceNameTest} (MessageType string(4000), PrimaryAccountNumber string(4000), RetrievalReferenceNumber string(4000), SourceTimestamp datetime); create stream {oldStreamName} {{ {eql} }}; grant connect on database {databaseName} to user {userName}; grant alter on stream {oldStreamName}, read on source {sourceNameTest}, write on source {sourceForInto} to user {userName}; Revoke write on source {sourceForInto} to user {userName}";
+
+            string newEql = "inner " +
+                                  $@"JOIN {sourceNameTest} as t1 WHERE t1.MessageType == ""0100""" +
+                                  $@"WITH {sourceNameTest} as t2 WHERE t2.MessageType == ""0110""" +
+                                  $@"ON (string)t1.PrimaryAccountNumber == (string)t2.PrimaryAccountNumber and (string)t1.RetrievalReferenceNumber == (string)t2.RetrievalReferenceNumber " +
+                                  $@"TIMEOUT '00:00:03.5' " +
+                                  $@"WHERE isnull(t2.SourceTimestamp, '01/01/2017') - isnull(t1.SourceTimestamp, '01/01/2016') <= '00:00:01' " +
+                                  $@"SELECT " +
+                                          $@"t2.PrimaryAccountNumber as c1, " +
+                                          $@"t1.PrimaryAccountNumber as c3  into {sourceForInto}";
+
+            string command2 = $"use {databaseName}; alter stream {oldStreamName} with query = {newEql}";
+
+            IKernel kernel = new StandardKernel();
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            {
+                using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
+                {
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
+                    kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
+                    kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
+                    kernel.Bind<ISource>().ToConstructor(x => new ConcreteSource());
+                    FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
+
+                    Stream stream = dbContext.Streams.Single(x => x.StreamName == oldStreamName);
+                    Assert.AreEqual(oldStreamName, stream.StreamName);
+                    Assert.IsTrue(stream.IsActive);
+                    Assert.AreEqual(eql.Replace('\n', '\0').Trim(), stream.Query);
+
+                    Source source = dbContext.Sources.Single(x => x.SourceName == sourceForInto);
+                    DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == databaseName && x.DbUsrName == userName);
+                    GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("write", StringComparison.InvariantCultureIgnoreCase));
+                    SecurableClass sc = dbContext.SecurableClasses.Single(x => x.SecurableName.Equals("source", StringComparison.InvariantCultureIgnoreCase));
+                    bool exists = dbContext.SourceAssignedPermissionsToUsers.Any(x => x.SourceServerId == source.ServerId && x.SourceDatabaseId == source.DatabaseId && x.SourceSchemaId == source.SchemaId && x.SourceId == source.SourceId
+                                                                            && x.DbUsrServerId == user.ServerId && x.DbUserDatabaseId == user.DatabaseId && x.DbUserId == user.DbUsrId
+                                                                            && x.GranularPermissionId == gp.GranularPermissionId
+                                                                            && x.SecurableClassId == sc.SecurableClassId);
+
+                    Assert.IsFalse(exists);
+
+                    try
+                    {
+                        this.loginName = otherLogin;
+                        kernel = new StandardKernel();
+                        kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
+                        kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
+                        kernel.Bind<ISource>().ToConstructor(x => new ConcreteSource());
+                        this.ProcessCommand(command2, kernel);
+                        Assert.Fail();
+                    }
+                    catch (AssertFailedException)
+                    {
+                        Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
+                    }
+                    catch (Exception)
+                    {
+                    }
+                    finally
+                    {
+                        tran.Rollback();
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Revoke alter on source permission.
+        /// </summary>
         [TestMethod]
         public void RevokeAlterOnSource()
         {
@@ -1143,15 +1257,14 @@ namespace Integra.Space.UnitTests
                     Source source = dbContext.Sources.Single(x => x.SourceName == oldSourceName);
                     Assert.AreEqual(oldSourceName, source.SourceName);
                     Assert.IsTrue(source.IsActive);
-                    
+
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == databaseName && x.DbUsrName == userName);
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("alter", StringComparison.InvariantCultureIgnoreCase));
                     SecurableClass sc = dbContext.SecurableClasses.Single(x => x.SecurableName.Equals("source", StringComparison.InvariantCultureIgnoreCase));
                     bool exists = dbContext.SourceAssignedPermissionsToUsers.Any(x => x.SourceServerId == source.ServerId && x.SourceDatabaseId == source.DatabaseId && x.SourceSchemaId == source.SchemaId && x.SourceId == source.SourceId
                                                                             && x.DbUsrServerId == user.ServerId && x.DbUserDatabaseId == user.DatabaseId && x.DbUserId == user.DbUsrId
                                                                             && x.GranularPermissionId == gp.GranularPermissionId
-                                                                            && x.SecurableClassId == sc.SecurableClassId
-                                                                            );
+                                                                            && x.SecurableClassId == sc.SecurableClassId);
                     Assert.IsFalse(exists);
                     try
                     {
@@ -1159,11 +1272,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -1178,6 +1291,9 @@ namespace Integra.Space.UnitTests
 
         #region Revoke alter any
 
+        /// <summary>
+        /// Revoke alter any database permission.
+        /// </summary>
         [TestMethod]
         public void RevokeAlterAnyDatabase()
         {
@@ -1196,14 +1312,13 @@ namespace Integra.Space.UnitTests
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
                     this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
-                    
+
                     Server server = dbContext.Servers.Single(x => x.ServerName == DatabaseConstants.TEST_SERVER_NAME);
                     Login onLogin = dbContext.Logins.Single(x => x.LoginName == otherLogin);
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == databaseName && x.DbUsrName == userName);
 
                     bool exists = dbContext.ServersAssignedPermissionsToLogins.Any(x => x.ServerId == server.ServerId
-                                                                        && x.LoginServerId == onLogin.ServerId && x.LoginId == onLogin.LoginId
-                                                                        );
+                                                                        && x.LoginServerId == onLogin.ServerId && x.LoginId == onLogin.LoginId);
                     Assert.IsFalse(exists);
 
                     try
@@ -1212,11 +1327,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -1227,6 +1342,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke alter any database role permission.
+        /// </summary>
         [TestMethod]
         public void RevokeAlterAnyDatabaseRole()
         {
@@ -1247,16 +1365,15 @@ namespace Integra.Space.UnitTests
 
                     this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
-                    
-                    Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseName);
+
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseName);
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == databaseName && x.DbUsrName == userName);
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("alter any role", StringComparison.InvariantCultureIgnoreCase));
                     SecurableClass sc = dbContext.SecurableClasses.Single(x => x.SecurableName.Equals("database", StringComparison.InvariantCultureIgnoreCase));
                     bool exists = dbContext.DatabaseAssignedPermissionsToUsers.Any(x => x.DatabaseServerId == database.ServerId && x.DatabaseId == database.DatabaseId
                                                                         && x.DbUsrServerId == user.ServerId && x.DbUsrDatabaseId == user.DatabaseId && x.DbUsrId == user.DbUsrId
                                                                         && x.GranularPermissionId == gp.GranularPermissionId
-                                                                        && x.SecurableClassId == sc.SecurableClassId
-                                                                        );
+                                                                        && x.SecurableClassId == sc.SecurableClassId);
                     Assert.IsFalse(exists);
 
                     try
@@ -1265,11 +1382,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -1280,6 +1397,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke alter any user permission.
+        /// </summary>
         [TestMethod]
         public void RevokeAlterAnyDatabaseUser()
         {
@@ -1301,15 +1421,14 @@ namespace Integra.Space.UnitTests
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == databaseName && x.DbUsrName == userName);
-                    Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseName);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseName);
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("alter any user", StringComparison.InvariantCultureIgnoreCase));
                     SecurableClass sc = dbContext.SecurableClasses.Single(x => x.SecurableName.Equals("database", StringComparison.InvariantCultureIgnoreCase));
 
                     bool exists = dbContext.DatabaseAssignedPermissionsToUsers.Any(x => x.DbUsrServerId == user.ServerId && x.DbUsrDatabaseId == user.DatabaseId && x.DbUsrId == user.DbUsrId
                                                                         && x.DatabaseServerId == database.ServerId && x.DatabaseId == database.DatabaseId
                                                                         && x.GranularPermissionId == gp.GranularPermissionId
-                                                                        && x.SecurableClassId == sc.SecurableClassId
-                                                                        );
+                                                                        && x.SecurableClassId == sc.SecurableClassId);
 
                     Assert.IsFalse(exists);
 
@@ -1319,11 +1438,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -1334,6 +1453,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke alter any login permission.
+        /// </summary>
         [TestMethod]
         public void RevokeAlterAnyLogin()
         {
@@ -1363,8 +1485,7 @@ namespace Integra.Space.UnitTests
                     bool exists = dbContext.ServersAssignedPermissionsToLogins.Any(x => x.ServerId == server.ServerId
                                                                             && x.LoginServerId == onLogin.ServerId && x.LoginId == onLogin.LoginId
                                                                             && x.GranularPermissionId == gp.GranularPermissionId
-                                                                            && x.SecurableClassId == sc.SecurableClassId
-                                                                            );
+                                                                            && x.SecurableClassId == sc.SecurableClassId);
 
                     Assert.IsFalse(exists);
 
@@ -1374,11 +1495,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -1389,6 +1510,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke alter any login permission.
+        /// </summary>
         [TestMethod]
         public void RevokeAlterAnyLogin2()
         {
@@ -1418,21 +1542,20 @@ namespace Integra.Space.UnitTests
                     bool exists = dbContext.ServersAssignedPermissionsToLogins.Any(x => x.ServerId == server.ServerId
                                                                             && x.LoginServerId == toLogin.ServerId && x.LoginId == toLogin.LoginId
                                                                             && x.GranularPermissionId == gp.GranularPermissionId
-                                                                            && x.SecurableClassId == sc.SecurableClassId
-                                                                            );
+                                                                            && x.SecurableClassId == sc.SecurableClassId);
                     Assert.IsFalse(exists);
-                    
+
                     try
                     {
                         this.loginName = newLogin;
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -1443,6 +1566,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke alter any schema permission.
+        /// </summary>
         [TestMethod]
         public void RevokeAlterAnySchema()
         {
@@ -1465,18 +1591,18 @@ namespace Integra.Space.UnitTests
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
                     Schema schema = dbContext.Schemas.Single(x => x.SchemaName == oldSchemaName);
                     Assert.AreEqual(oldSchemaName, schema.SchemaName);
-                    
+
                     try
                     {
                         this.loginName = loginNameAux;
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -1487,6 +1613,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke alter any schema and; read and write source permission.
+        /// </summary>
         [TestMethod]
         public void RevokeAlterAnySchemaAndReadSource()
         {
@@ -1515,7 +1644,7 @@ namespace Integra.Space.UnitTests
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     this.loginName = DatabaseConstants.SA_LOGIN_NAME;
-                    kernel.Bind<SpaceDbContext>().ToConstant(dbContext);                    
+                    kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
                     kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
                     kernel.Bind<ISource>().ToConstructor(x => new ConcreteSource());
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
@@ -1533,11 +1662,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -1548,6 +1677,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke alter any schema.
+        /// </summary>
         [TestMethod]
         public void RevokeAlterAnySchema2()
         {
@@ -1576,7 +1708,7 @@ namespace Integra.Space.UnitTests
                     Source source = dbContext.Sources.Single(x => x.SourceName == oldSourceName);
                     Assert.AreEqual(oldSourceName, source.SourceName);
                     Assert.IsTrue(source.IsActive);
-                    
+
                     try
                     {
                         this.loginName = DatabaseConstants.NORMAL_LOGIN_1_NAME;
@@ -1588,11 +1720,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -1607,6 +1739,9 @@ namespace Integra.Space.UnitTests
 
         #region Revoke control
 
+        /// <summary>
+        /// Revoke control on database permission.
+        /// </summary>
         [TestMethod]
         public void RevokeControlOnDatabase()
         {
@@ -1627,7 +1762,7 @@ namespace Integra.Space.UnitTests
                     this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseName);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseName);
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == databaseName && x.DbUsrName == userName);
 
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("control", StringComparison.InvariantCultureIgnoreCase));
@@ -1635,8 +1770,7 @@ namespace Integra.Space.UnitTests
                     bool exists = dbContext.DatabaseAssignedPermissionsToUsers.Any(x => x.DatabaseServerId == database.ServerId && x.DatabaseId == database.DatabaseId
                                                                         && x.DbUsrServerId == user.ServerId && x.DbUsrDatabaseId == user.DatabaseId && x.DbUsrId == user.DbUsrId
                                                                         && x.GranularPermissionId == gp.GranularPermissionId
-                                                                        && x.SecurableClassId == sc.SecurableClassId
-                                                                        );
+                                                                        && x.SecurableClassId == sc.SecurableClassId);
                     Assert.IsFalse(exists);
 
                     try
@@ -1645,11 +1779,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -1660,6 +1794,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke control on database role permission.
+        /// </summary>
         [TestMethod]
         public void RevokeControlOnDatabaseRole()
         {
@@ -1680,7 +1817,7 @@ namespace Integra.Space.UnitTests
 
                     this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
-                    
+
                     DatabaseRole role = dbContext.DatabaseRoles.Single(x => x.Database.DatabaseName == databaseName && x.DbRoleName == roleName);
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == databaseName && x.DbUsrName == userName);
 
@@ -1689,9 +1826,8 @@ namespace Integra.Space.UnitTests
                     bool exists = dbContext.DBRolesAssignedPermissionsToUsers.Any(x => x.DbRoleServerId == role.ServerId && x.DbRoleDatabaseId == role.DatabaseId && x.DbRoleId == role.DbRoleId
                                                                         && x.DbUsrServerId == user.ServerId && x.DbUsrDatabaseId == user.DatabaseId && x.DbUsrId == user.DbUsrId
                                                                             && x.GranularPermissionId == gp.GranularPermissionId
-                                                                            && x.SecurableClassId == sc.SecurableClassId
-                                                                        );
-                    
+                                                                            && x.SecurableClassId == sc.SecurableClassId);
+
                     try
                     {
                         Assert.IsFalse(exists);
@@ -1699,11 +1835,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -1714,6 +1850,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke control on user permission.
+        /// </summary>
         [TestMethod]
         public void RevokeControlOnDatabaseUser()
         {
@@ -1740,8 +1879,7 @@ namespace Integra.Space.UnitTests
                     bool exists = dbContext.UserAssignedPermissionsToUsers.Any(x => x.DbUsrServerId == user.ServerId && x.DbUsrDatabaseId == user.DatabaseId && x.DbUsrId == user.DbUsrId
                                                                         && x.OnDbUsrServerId == user.ServerId && x.OnDbUsrDatabaseId == user.DatabaseId && x.OnDbUsrId == user.DbUsrId
                                                                             && x.GranularPermissionId == gp.GranularPermissionId
-                                                                            && x.SecurableClassId == sc.SecurableClassId
-                                                                        );
+                                                                            && x.SecurableClassId == sc.SecurableClassId);
                     Assert.IsFalse(exists);
 
                     try
@@ -1750,11 +1888,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -1765,6 +1903,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke control on login permission.
+        /// </summary>
         [TestMethod]
         public void RevokeControlOnLogin()
         {
@@ -1794,25 +1935,24 @@ namespace Integra.Space.UnitTests
                     bool exists = dbContext.LoginsAssignedPermissionsToLogins.Any(x => x.LoginServerId == toLogin.ServerId && x.LoginId == toLogin.LoginId
                                                                             && x.OnLoginServerId == onLogin.ServerId && x.OnLoginId == onLogin.LoginId
                                                                             && x.GranularPermissionId == gp.GranularPermissionId
-                                                                            && x.SecurableClassId == sc.SecurableClassId
-                                                                            );
+                                                                            && x.SecurableClassId == sc.SecurableClassId);
 
                     Assert.IsFalse(exists);
-                    
+
                     Login login = dbContext.Logins.Single(x => x.LoginName == existingLogin);
                     Assert.AreEqual(existingLogin, login.LoginName);
-                    
+
                     try
                     {
                         this.loginName = newLogin;
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -1823,6 +1963,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke control on schema permission.
+        /// </summary>
         [TestMethod]
         public void RevokeControlOnSchema()
         {
@@ -1852,8 +1995,7 @@ namespace Integra.Space.UnitTests
                     bool exists = dbContext.SchemaAssignedPermissionsToUsers.Any(x => x.SchemaServerId == schema.ServerId && x.SchemaDatabaseId == schema.DatabaseId && x.SchemaId == schema.SchemaId
                                                                             && x.DbUsrServerId == user.ServerId && x.DbUsrDatabaseId == user.DatabaseId && x.DbUsrId == user.DbUsrId
                                                                             && x.GranularPermissionId == gp.GranularPermissionId
-                                                                            && x.SecurableClassId == sc.SecurableClassId
-                                                                            );
+                                                                            && x.SecurableClassId == sc.SecurableClassId);
 
                     Assert.IsFalse(exists);
 
@@ -1863,11 +2005,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -1878,6 +2020,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke control on stream and; read and write source permissions.
+        /// </summary>
         [TestMethod]
         public void RevokeControlOnStreamAndReadSource()
         {
@@ -1915,19 +2060,18 @@ namespace Integra.Space.UnitTests
                     Assert.AreEqual(oldStreamName, stream.StreamName);
                     Assert.IsTrue(stream.IsActive);
                     Assert.AreEqual(eql.Replace('\n', '\0').Trim(), stream.Query);
-                    
+
                     Assert.IsTrue(stream.ProjectionColumns.Any(x => x.ColumnName == "c1" && x.ColumnType == typeof(string).AssemblyQualifiedName));
                     Assert.IsTrue(stream.ProjectionColumns.Any(x => x.ColumnName == "c3" && x.ColumnType == typeof(string).AssemblyQualifiedName));
-                    
+
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == databaseName && x.DbUsrName == userName);
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("control", StringComparison.InvariantCultureIgnoreCase));
                     SecurableClass sc = dbContext.SecurableClasses.Single(x => x.SecurableName.Equals("stream", StringComparison.InvariantCultureIgnoreCase));
                     bool exists = dbContext.StreamAssignedPermissionsToUsers.Any(x => x.StreamServerId == stream.ServerId && x.StreamDatabaseId == stream.DatabaseId && x.StreamSchemaId == stream.SchemaId && x.StreamId == stream.StreamId
                                                                             && x.DbUsrServerId == user.ServerId && x.DbUsrDatabaseId == user.DatabaseId && x.DbUsrId == user.DbUsrId
                                                                             && x.GranularPermissionId == gp.GranularPermissionId
-                                                                            && x.SecurableClassId == sc.SecurableClassId
-                                                                            );
-                    
+                                                                            && x.SecurableClassId == sc.SecurableClassId);
+
                     try
                     {
                         Assert.IsFalse(exists);
@@ -1935,11 +2079,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -1950,6 +2094,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke control on source permission.
+        /// </summary>
         [TestMethod]
         public void RevokeControlOnSource()
         {
@@ -1980,8 +2127,7 @@ namespace Integra.Space.UnitTests
                     bool exists = dbContext.SourceAssignedPermissionsToUsers.Any(x => x.SourceServerId == source.ServerId && x.SourceDatabaseId == source.DatabaseId && x.SourceSchemaId == source.SchemaId && x.SourceId == source.SourceId
                                                                             && x.DbUsrServerId == user.ServerId && x.DbUserDatabaseId == user.DatabaseId && x.DbUserId == user.DbUsrId
                                                                             && x.GranularPermissionId == gp.GranularPermissionId
-                                                                            && x.SecurableClassId == sc.SecurableClassId
-                                                                            );
+                                                                            && x.SecurableClassId == sc.SecurableClassId);
 
                     Assert.IsFalse(exists);
 
@@ -1991,11 +2137,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -2010,6 +2156,9 @@ namespace Integra.Space.UnitTests
 
         #region Revoke take ownership
 
+        /// <summary>
+        /// Revoke take ownership on database role permission.
+        /// </summary>
         [TestMethod]
         public void RevokeTakeOwnershipOnDbRole()
         {
@@ -2030,8 +2179,8 @@ namespace Integra.Space.UnitTests
 
                     this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
-                    
-                    Database.Database database = dbContext.Databases.Single(x => x.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.DatabaseName == databaseName);
+
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.DatabaseName == databaseName);
                     DatabaseRole role = dbContext.DatabaseRoles.Single(x => x.ServerId == database.ServerId && x.DatabaseId == database.DatabaseId && x.DbRoleName == roleName);
                     Assert.AreEqual<string>(DatabaseConstants.DBO_USER_NAME, role.DatabaseUser.DbUsrName);
 
@@ -2040,8 +2189,7 @@ namespace Integra.Space.UnitTests
                     SecurableClass sc = dbContext.SecurableClasses.Single(x => x.SecurableName.Equals("source", StringComparison.InvariantCultureIgnoreCase));
 
                     bool exists = dbContext.DBRolesAssignedPermissionsToUsers.Any(x => x.DbRoleServerId == role.ServerId && x.DbRoleDatabaseId == role.DatabaseId && x.DbRoleId == role.DbRoleId
-                                                                        && x.DbUsrServerId == user.ServerId && x.DbUsrDatabaseId == user.DatabaseId && x.DbUsrId == user.DbUsrId
-                                                                        );
+                                                                        && x.DbUsrServerId == user.ServerId && x.DbUsrDatabaseId == user.DatabaseId && x.DbUsrId == user.DbUsrId);
 
                     Assert.IsFalse(exists);
 
@@ -2051,11 +2199,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -2066,6 +2214,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke take ownership on database permission.
+        /// </summary>
         [TestMethod]
         public void RevokeTakeOwnershipOnDatabase()
         {
@@ -2085,10 +2236,10 @@ namespace Integra.Space.UnitTests
 
                     this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
-                    
-                    Login login = dbContext.Logins.Single(x => x.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.LoginName == loginName);
-                    Database.Database database = dbContext.Databases.Single(x => x.ServerId == login.ServerId && x.DatabaseName == databaseName);
-                    Assert.AreEqual<string>(DatabaseConstants.SA_LOGIN_NAME, database.Login.LoginName);                    
+
+                    Login login = dbContext.Logins.Single(x => x.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.LoginName == this.loginName);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.ServerId == login.ServerId && x.DatabaseName == databaseName);
+                    Assert.AreEqual<string>(DatabaseConstants.SA_LOGIN_NAME, database.Login.LoginName);
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == databaseName && x.DbUsrName == userName);
 
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("take ownership", StringComparison.InvariantCultureIgnoreCase));
@@ -2096,8 +2247,7 @@ namespace Integra.Space.UnitTests
                     bool exists = dbContext.DatabaseAssignedPermissionsToUsers.Any(x => x.DatabaseServerId == database.ServerId && x.DatabaseId == database.DatabaseId
                                                                         && x.DbUsrServerId == user.ServerId && x.DbUsrDatabaseId == user.DatabaseId && x.DbUsrId == user.DbUsrId
                                                                         && x.GranularPermissionId == gp.GranularPermissionId
-                                                                        && x.SecurableClassId == sc.SecurableClassId
-                                                                        );
+                                                                        && x.SecurableClassId == sc.SecurableClassId);
                     Assert.IsFalse(exists);
 
                     try
@@ -2106,11 +2256,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -2121,6 +2271,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke take ownership on schema permission.
+        /// </summary>
         [TestMethod]
         public void RevokeTakeOwnershipOnSchema()
         {
@@ -2141,31 +2294,30 @@ namespace Integra.Space.UnitTests
                     this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    Login login = dbContext.Logins.Single(x => x.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.LoginName == loginName);
-                    Database.Database database = dbContext.Databases.Single(x => x.ServerId == login.ServerId && x.DatabaseName == databaseName);
-                    Database.Schema schema = dbContext.Schemas.Single(x => x.ServerId == login.ServerId && x.DatabaseId == database.DatabaseId && x.SchemaName == schemaName);
+                    Login login = dbContext.Logins.Single(x => x.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.LoginName == this.loginName);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.ServerId == login.ServerId && x.DatabaseName == databaseName);
+                    Schema schema = dbContext.Schemas.Single(x => x.ServerId == login.ServerId && x.DatabaseId == database.DatabaseId && x.SchemaName == schemaName);
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.DatabaseId == database.DatabaseId && x.DbUsrName == existingUserName);
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("take ownership", StringComparison.InvariantCultureIgnoreCase));
                     SecurableClass sc = dbContext.SecurableClasses.Single(x => x.SecurableName.Equals("schema", StringComparison.InvariantCultureIgnoreCase));
                     bool exists = dbContext.SchemaAssignedPermissionsToUsers.Any(x => x.SchemaServerId == schema.ServerId && x.SchemaDatabaseId == schema.DatabaseId && x.SchemaId == schema.SchemaId
                                                                             && x.DbUsrServerId == user.ServerId && x.DbUsrDatabaseId == user.DatabaseId && x.DbUsrId == user.DbUsrId
                                                                             && x.GranularPermissionId == gp.GranularPermissionId
-                                                                            && x.SecurableClassId == sc.SecurableClassId
-                                                                            );
+                                                                            && x.SecurableClassId == sc.SecurableClassId);
 
                     Assert.IsFalse(exists);
-                    
+
                     try
                     {
                         this.loginName = otherLogin;
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -2176,6 +2328,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke take ownership on source permission.
+        /// </summary>
         [TestMethod]
         public void RevokeTakeOwnershipOnSource()
         {
@@ -2196,21 +2351,20 @@ namespace Integra.Space.UnitTests
 
                     this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
-                    
-                    Login login = dbContext.Logins.Single(x => x.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.LoginName == loginName);
-                    Database.Database database = dbContext.Databases.Single(x => x.ServerId == login.ServerId && x.DatabaseName == databaseName);
-                    Database.Schema schema = dbContext.Schemas.Single(x => x.ServerId == database.ServerId && x.DatabaseId == database.DatabaseId && x.SchemaName == schemaName);
-                    Database.Source source = dbContext.Sources.Single(x => x.ServerId == login.ServerId && x.DatabaseId == database.DatabaseId && x.SchemaId == schema.SchemaId && x.SourceName == oldSourceName);
+
+                    Login login = dbContext.Logins.Single(x => x.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.LoginName == this.loginName);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.ServerId == login.ServerId && x.DatabaseName == databaseName);
+                    Schema schema = dbContext.Schemas.Single(x => x.ServerId == database.ServerId && x.DatabaseId == database.DatabaseId && x.SchemaName == schemaName);
+                    Source source = dbContext.Sources.Single(x => x.ServerId == login.ServerId && x.DatabaseId == database.DatabaseId && x.SchemaId == schema.SchemaId && x.SourceName == oldSourceName);
                     Assert.AreEqual<string>(DatabaseConstants.DBO_USER_NAME, source.DatabaseUser.DbUsrName);
-                    
+
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == databaseName && x.DbUsrName == userName);
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("take ownership", StringComparison.InvariantCultureIgnoreCase));
                     SecurableClass sc = dbContext.SecurableClasses.Single(x => x.SecurableName.Equals("source", StringComparison.InvariantCultureIgnoreCase));
                     bool exists = dbContext.SourceAssignedPermissionsToUsers.Any(x => x.SourceServerId == source.ServerId && x.SourceDatabaseId == source.DatabaseId && x.SourceSchemaId == source.SchemaId && x.SourceId == source.SourceId
                                                                             && x.DbUsrServerId == user.ServerId && x.DbUserDatabaseId == user.DatabaseId && x.DbUserId == user.DbUsrId
                                                                             && x.GranularPermissionId == gp.GranularPermissionId
-                                                                            && x.SecurableClassId == sc.SecurableClassId
-                                                                            );
+                                                                            && x.SecurableClassId == sc.SecurableClassId);
 
                     Assert.IsFalse(exists);
 
@@ -2220,11 +2374,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -2235,6 +2389,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke take ownership on stream permission.
+        /// </summary>
         [TestMethod]
         public void RevokeTakeOwnershipOnStream()
         {
@@ -2268,11 +2425,11 @@ namespace Integra.Space.UnitTests
                     kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
                     kernel.Bind<ISource>().ToConstructor(x => new ConcreteSource());
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
-                    
-                    Login login = dbContext.Logins.Single(x => x.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.LoginName == loginName);
-                    Database.Database database = dbContext.Databases.Single(x => x.ServerId == login.ServerId && x.DatabaseName == databaseName);
-                    Database.Schema schema = dbContext.Schemas.Single(x => x.ServerId == database.ServerId && x.DatabaseId == database.DatabaseId && x.SchemaName == DatabaseConstants.DBO_SCHEMA_NAME);
-                    Database.Stream stream = dbContext.Streams.Single(x => x.ServerId == login.ServerId && x.DatabaseId == database.DatabaseId && x.SchemaId == schema.SchemaId && x.StreamName == oldStreamName);
+
+                    Login login = dbContext.Logins.Single(x => x.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.LoginName == this.loginName);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.ServerId == login.ServerId && x.DatabaseName == databaseName);
+                    Schema schema = dbContext.Schemas.Single(x => x.ServerId == database.ServerId && x.DatabaseId == database.DatabaseId && x.SchemaName == DatabaseConstants.DBO_SCHEMA_NAME);
+                    Stream stream = dbContext.Streams.Single(x => x.ServerId == login.ServerId && x.DatabaseId == database.DatabaseId && x.SchemaId == schema.SchemaId && x.StreamName == oldStreamName);
                     Assert.AreEqual<string>(DatabaseConstants.DBO_USER_NAME, stream.DatabaseUser.DbUsrName);
 
                     Assert.IsTrue(stream.ProjectionColumns.Any(x => x.ColumnName == "c1" && x.ColumnType == typeof(string).AssemblyQualifiedName));
@@ -2284,8 +2441,7 @@ namespace Integra.Space.UnitTests
                     bool exists = dbContext.StreamAssignedPermissionsToUsers.Any(x => x.StreamServerId == stream.ServerId && x.StreamDatabaseId == stream.DatabaseId && x.StreamSchemaId == stream.SchemaId && x.StreamId == stream.StreamId
                                                                             && x.DbUsrServerId == user.ServerId && x.DbUsrDatabaseId == user.DatabaseId && x.DbUsrId == user.DbUsrId
                                                                             && x.GranularPermissionId == gp.GranularPermissionId
-                                                                            && x.SecurableClassId == sc.SecurableClassId
-                                                                            );
+                                                                            && x.SecurableClassId == sc.SecurableClassId);
                     Assert.IsFalse(exists);
 
                     try
@@ -2294,11 +2450,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -2313,6 +2469,9 @@ namespace Integra.Space.UnitTests
 
         #region Revoke view any definition
 
+        /// <summary>
+        /// Revoke view any definition permission.
+        /// </summary>
         [TestMethod]
         public void RevokeViewAnyDefinitionAndFromServerRoles()
         {
@@ -2337,17 +2496,16 @@ namespace Integra.Space.UnitTests
                     bool exists = dbContext.ServersAssignedPermissionsToLogins.Any(x => x.LoginServerId == toLogin.ServerId && x.LoginId == toLogin.LoginId
                                                                             && x.ServerId == server.ServerId
                                                                             && x.GranularPermissionId == gp.GranularPermissionId
-                                                                            && x.SecurableClassId == sc.SecurableClassId
-                                                                            );
+                                                                            && x.SecurableClassId == sc.SecurableClassId);
                     try
                     {
                         Assert.IsFalse(exists);
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         throw new Exception("Error");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -2358,6 +2516,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke view any definition permission.
+        /// </summary>
         [TestMethod]
         public void RevokeViewAnyDefinitionAndFromEndpoints()
         {
@@ -2382,17 +2543,16 @@ namespace Integra.Space.UnitTests
                     bool exists = dbContext.ServersAssignedPermissionsToLogins.Any(x => x.LoginServerId == toLogin.ServerId && x.LoginId == toLogin.LoginId
                                                                             && x.ServerId == server.ServerId
                                                                             && x.GranularPermissionId == gp.GranularPermissionId
-                                                                            && x.SecurableClassId == sc.SecurableClassId
-                                                                            );
+                                                                            && x.SecurableClassId == sc.SecurableClassId);
                     try
                     {
                         Assert.IsFalse(exists);
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         throw new Exception("Error");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -2403,6 +2563,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke view any definition permission.
+        /// </summary>
         [TestMethod]
         public void RevokeViewAnyDefinitionAndFromLogins()
         {
@@ -2427,17 +2590,16 @@ namespace Integra.Space.UnitTests
                     bool exists = dbContext.ServersAssignedPermissionsToLogins.Any(x => x.LoginServerId == toLogin.ServerId && x.LoginId == toLogin.LoginId
                                                                             && x.ServerId == server.ServerId
                                                                             && x.GranularPermissionId == gp.GranularPermissionId
-                                                                            && x.SecurableClassId == sc.SecurableClassId
-                                                                            );
+                                                                            && x.SecurableClassId == sc.SecurableClassId);
                     try
                     {
                         Assert.IsFalse(exists);
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         throw new Exception("Error");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -2448,6 +2610,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke view any definition permission.
+        /// </summary>
         [TestMethod]
         public void RevokeViewAnyDefinitionAndFromDatabases()
         {
@@ -2472,18 +2637,17 @@ namespace Integra.Space.UnitTests
                     bool exists = dbContext.ServersAssignedPermissionsToLogins.Any(x => x.LoginServerId == toLogin.ServerId && x.LoginId == toLogin.LoginId
                                                                             && x.ServerId == server.ServerId
                                                                             && x.GranularPermissionId == gp.GranularPermissionId
-                                                                            && x.SecurableClassId == sc.SecurableClassId
-                                                                            );
+                                                                            && x.SecurableClassId == sc.SecurableClassId);
 
                     try
                     {
                         Assert.IsFalse(exists);
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         throw new Exception("Error");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -2494,6 +2658,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke view any definition permission.
+        /// </summary>
         [TestMethod]
         public void RevokeViewAnyDefinitionAndFromUsers()
         {
@@ -2518,18 +2685,17 @@ namespace Integra.Space.UnitTests
                     bool exists = dbContext.ServersAssignedPermissionsToLogins.Any(x => x.LoginServerId == toLogin.ServerId && x.LoginId == toLogin.LoginId
                                                                             && x.ServerId == server.ServerId
                                                                             && x.GranularPermissionId == gp.GranularPermissionId
-                                                                            && x.SecurableClassId == sc.SecurableClassId
-                                                                            );
+                                                                            && x.SecurableClassId == sc.SecurableClassId);
 
                     try
                     {
                         Assert.IsFalse(exists);
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         throw new Exception("Error");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -2540,6 +2706,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke view any definition permission.
+        /// </summary>
         [TestMethod]
         public void RevokeViewAnyDefinitionAndFromDatabaseRoles()
         {
@@ -2564,18 +2733,17 @@ namespace Integra.Space.UnitTests
                     bool exists = dbContext.ServersAssignedPermissionsToLogins.Any(x => x.LoginServerId == toLogin.ServerId && x.LoginId == toLogin.LoginId
                                                                             && x.ServerId == server.ServerId
                                                                             && x.GranularPermissionId == gp.GranularPermissionId
-                                                                            && x.SecurableClassId == sc.SecurableClassId
-                                                                            );
+                                                                            && x.SecurableClassId == sc.SecurableClassId);
 
                     try
                     {
                         Assert.IsFalse(exists);
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         throw new Exception("Error");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -2586,6 +2754,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke view any definition permission.
+        /// </summary>
         [TestMethod]
         public void RevokeViewAnyDefinitionAndFromSchemas()
         {
@@ -2610,18 +2781,17 @@ namespace Integra.Space.UnitTests
                     bool exists = dbContext.ServersAssignedPermissionsToLogins.Any(x => x.LoginServerId == toLogin.ServerId && x.LoginId == toLogin.LoginId
                                                                             && x.ServerId == server.ServerId
                                                                             && x.GranularPermissionId == gp.GranularPermissionId
-                                                                            && x.SecurableClassId == sc.SecurableClassId
-                                                                            );
+                                                                            && x.SecurableClassId == sc.SecurableClassId);
 
                     try
                     {
                         Assert.IsFalse(exists);
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         throw new Exception("Error");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -2632,6 +2802,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke view any definition permission.
+        /// </summary>
         [TestMethod]
         public void RevokeViewAnyDefinitionAndFromSources()
         {
@@ -2656,18 +2829,17 @@ namespace Integra.Space.UnitTests
                     bool exists = dbContext.ServersAssignedPermissionsToLogins.Any(x => x.LoginServerId == toLogin.ServerId && x.LoginId == toLogin.LoginId
                                                                             && x.ServerId == server.ServerId
                                                                             && x.GranularPermissionId == gp.GranularPermissionId
-                                                                            && x.SecurableClassId == sc.SecurableClassId
-                                                                            );
+                                                                            && x.SecurableClassId == sc.SecurableClassId);
 
                     try
                     {
                         Assert.IsFalse(exists);
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         throw new Exception("Error");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -2678,6 +2850,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke view any definition permission.
+        /// </summary>
         [TestMethod]
         public void RevokeViewAnyDefinitionAndFromStreams()
         {
@@ -2702,18 +2877,17 @@ namespace Integra.Space.UnitTests
                     bool exists = dbContext.ServersAssignedPermissionsToLogins.Any(x => x.LoginServerId == toLogin.ServerId && x.LoginId == toLogin.LoginId
                                                                             && x.ServerId == server.ServerId
                                                                             && x.GranularPermissionId == gp.GranularPermissionId
-                                                                            && x.SecurableClassId == sc.SecurableClassId
-                                                                            );
+                                                                            && x.SecurableClassId == sc.SecurableClassId);
 
                     try
                     {
                         Assert.IsFalse(exists);
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         throw new Exception("Error");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -2724,6 +2898,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke view any definition permission.
+        /// </summary>
         [TestMethod]
         public void RevokeViewAnyDefinitionAndFromViews()
         {
@@ -2748,18 +2925,17 @@ namespace Integra.Space.UnitTests
                     bool exists = dbContext.ServersAssignedPermissionsToLogins.Any(x => x.LoginServerId == toLogin.ServerId && x.LoginId == toLogin.LoginId
                                                                             && x.ServerId == server.ServerId
                                                                             && x.GranularPermissionId == gp.GranularPermissionId
-                                                                            && x.SecurableClassId == sc.SecurableClassId
-                                                                            );
+                                                                            && x.SecurableClassId == sc.SecurableClassId);
 
                     try
                     {
                         Assert.IsFalse(exists);
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         throw new Exception("Error");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -2774,6 +2950,9 @@ namespace Integra.Space.UnitTests
 
         #region Revoke view any database
 
+        /// <summary>
+        /// Revoke view any database definition permission.
+        /// </summary>
         [TestMethod]
         public void RevokeViewAnyDatabaseAndFromUsers()
         {
@@ -2798,18 +2977,17 @@ namespace Integra.Space.UnitTests
                     bool exists = dbContext.ServersAssignedPermissionsToLogins.Any(x => x.LoginServerId == toLogin.ServerId && x.LoginId == toLogin.LoginId
                                                                             && x.ServerId == server.ServerId
                                                                             && x.GranularPermissionId == gp.GranularPermissionId
-                                                                            && x.SecurableClassId == sc.SecurableClassId
-                                                                            );
+                                                                            && x.SecurableClassId == sc.SecurableClassId);
 
                     try
                     {
                         Assert.IsFalse(exists);
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         throw new Exception("Error");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -2820,6 +2998,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke view any database definition permission.
+        /// </summary>
         [TestMethod]
         public void RevokeViewAnyDatabaseAndFromDatabaseRoles()
         {
@@ -2844,18 +3025,17 @@ namespace Integra.Space.UnitTests
                     bool exists = dbContext.ServersAssignedPermissionsToLogins.Any(x => x.LoginServerId == toLogin.ServerId && x.LoginId == toLogin.LoginId
                                                                             && x.ServerId == server.ServerId
                                                                             && x.GranularPermissionId == gp.GranularPermissionId
-                                                                            && x.SecurableClassId == sc.SecurableClassId
-                                                                            );
+                                                                            && x.SecurableClassId == sc.SecurableClassId);
 
                     try
                     {
                         Assert.IsFalse(exists);
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         throw new Exception("Error");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -2866,6 +3046,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke view any database definition permission.
+        /// </summary>
         [TestMethod]
         public void RevokeViewAnyDatabaseAndFromSchemas()
         {
@@ -2890,18 +3073,17 @@ namespace Integra.Space.UnitTests
                     bool exists = dbContext.ServersAssignedPermissionsToLogins.Any(x => x.LoginServerId == toLogin.ServerId && x.LoginId == toLogin.LoginId
                                                                             && x.ServerId == server.ServerId
                                                                             && x.GranularPermissionId == gp.GranularPermissionId
-                                                                            && x.SecurableClassId == sc.SecurableClassId
-                                                                            );
+                                                                            && x.SecurableClassId == sc.SecurableClassId);
 
                     try
                     {
                         Assert.IsFalse(exists);
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         throw new Exception("Error");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -2912,6 +3094,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke view any database definition permission.
+        /// </summary>
         [TestMethod]
         public void RevokeViewAnyDatabaseAndFromSources()
         {
@@ -2936,18 +3121,17 @@ namespace Integra.Space.UnitTests
                     bool exists = dbContext.ServersAssignedPermissionsToLogins.Any(x => x.LoginServerId == toLogin.ServerId && x.LoginId == toLogin.LoginId
                                                                             && x.ServerId == server.ServerId
                                                                             && x.GranularPermissionId == gp.GranularPermissionId
-                                                                            && x.SecurableClassId == sc.SecurableClassId
-                                                                            );
+                                                                            && x.SecurableClassId == sc.SecurableClassId);
 
                     try
                     {
                         Assert.IsFalse(exists);
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         throw new Exception("Error");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -2958,6 +3142,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke view any database definition permission.
+        /// </summary>
         [TestMethod]
         public void RevokeViewAnyDatabaseAndFromStreams()
         {
@@ -2982,18 +3169,17 @@ namespace Integra.Space.UnitTests
                     bool exists = dbContext.ServersAssignedPermissionsToLogins.Any(x => x.LoginServerId == toLogin.ServerId && x.LoginId == toLogin.LoginId
                                                                             && x.ServerId == server.ServerId
                                                                             && x.GranularPermissionId == gp.GranularPermissionId
-                                                                            && x.SecurableClassId == sc.SecurableClassId
-                                                                            );
+                                                                            && x.SecurableClassId == sc.SecurableClassId);
 
                     try
                     {
                         Assert.IsFalse(exists);
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         throw new Exception("Error");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -3004,6 +3190,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke view any database definition permission.
+        /// </summary>
         [TestMethod]
         public void RevokeViewAnyDatabaseAndFromViews()
         {
@@ -3028,18 +3217,17 @@ namespace Integra.Space.UnitTests
                     bool exists = dbContext.ServersAssignedPermissionsToLogins.Any(x => x.LoginServerId == toLogin.ServerId && x.LoginId == toLogin.LoginId
                                                                             && x.ServerId == server.ServerId
                                                                             && x.GranularPermissionId == gp.GranularPermissionId
-                                                                            && x.SecurableClassId == sc.SecurableClassId
-                                                                            );
+                                                                            && x.SecurableClassId == sc.SecurableClassId);
 
                     try
                     {
                         Assert.IsFalse(exists);
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         throw new Exception("Error");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -3054,6 +3242,9 @@ namespace Integra.Space.UnitTests
 
         #region Revoke view definition on
 
+        /// <summary>
+        /// Revoke view definition on endpoints permission.
+        /// </summary>
         [TestMethod]
         public void RevokeViewOnDefinitionAndFromEndpoints()
         {
@@ -3079,18 +3270,17 @@ namespace Integra.Space.UnitTests
                     bool exists = dbContext.EndpointsAssignedPermissionsToLogins.Any(x => x.EndpointServerId == endpoint.ServerId && x.EndpointId == endpoint.EndpointId
                                                                             && x.LoginServerId == login.ServerId && x.LoginId == login.LoginId
                                                                             && x.GranularPermissionId == gp.GranularPermissionId
-                                                                            && x.SecurableClassId == sc.SecurableClassId
-                                                                            );
+                                                                            && x.SecurableClassId == sc.SecurableClassId);
 
                     try
                     {
                         Assert.IsFalse(exists);
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         throw new Exception("Error");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -3101,6 +3291,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke view definition on login permission.
+        /// </summary>
         [TestMethod]
         public void RevokeViewOnDefinitionAndFromLogins()
         {
@@ -3126,18 +3319,17 @@ namespace Integra.Space.UnitTests
                     bool exists = dbContext.LoginsAssignedPermissionsToLogins.Any(x => x.LoginServerId == loginTo.ServerId && x.LoginId == loginTo.LoginId
                                                                             && x.OnLoginServerId == loginOn.ServerId && x.OnLoginId == loginOn.LoginId
                                                                             && x.GranularPermissionId == gp.GranularPermissionId
-                                                                            && x.SecurableClassId == sc.SecurableClassId
-                                                                            );
+                                                                            && x.SecurableClassId == sc.SecurableClassId);
 
                     try
                     {
                         Assert.IsFalse(exists);
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         throw new Exception("Error");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -3148,10 +3340,12 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke view definition on database permission.
+        /// </summary>
         [TestMethod]
         public void RevokeViewOnDefinitionAndFromDatabases()
         {
-            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string databaseName = DatabaseConstants.TEST_DATABASE_NAME;
             string userName = DatabaseConstants.NORMAL_USER_1_NAME;
             string command = $"grant view definition on database {databaseName} to user {userName}; Revoke view definition on database {databaseName} to user {userName}";
@@ -3166,26 +3360,25 @@ namespace Integra.Space.UnitTests
 
                     this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
-                                        
-                    Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseName);
+
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseName);
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME && x.DbUsrName == userName);
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("view definition", StringComparison.InvariantCultureIgnoreCase));
                     SecurableClass sc = dbContext.SecurableClasses.Single(x => x.SecurableName.Equals("database", StringComparison.InvariantCultureIgnoreCase));
                     bool exists = dbContext.DatabaseAssignedPermissionsToUsers.Any(x => x.DbUsrServerId == user.ServerId && x.DbUsrDatabaseId == user.DatabaseId && x.DbUsrId == user.DbUsrId
                                                                             && x.DatabaseServerId == database.ServerId && x.DatabaseId == database.DatabaseId
                                                                             && x.GranularPermissionId == gp.GranularPermissionId
-                                                                            && x.SecurableClassId == sc.SecurableClassId
-                                                                            );
+                                                                            && x.SecurableClassId == sc.SecurableClassId);
 
                     try
                     {
                         Assert.IsFalse(exists);
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         throw new Exception("Error");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -3196,10 +3389,12 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke view definition on user permission.
+        /// </summary>
         [TestMethod]
         public void RevokeViewOnDefinitionAndFromUsers()
         {
-            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string userNameTo = DatabaseConstants.NORMAL_USER_1_NAME;
             string userNameOn = DatabaseConstants.NORMAL_USER_2_NAME;
             string command = $"grant view definition on user {userNameOn} to user {userNameTo}; Revoke view definition on user {userNameOn} to user {userNameTo}";
@@ -3215,7 +3410,7 @@ namespace Integra.Space.UnitTests
                     this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
                     DatabaseUser userTo = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME && x.DbUsrName == userNameTo);
                     DatabaseUser userOn = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME && x.DbUsrName == userNameOn);
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("view definition", StringComparison.InvariantCultureIgnoreCase));
@@ -3223,17 +3418,16 @@ namespace Integra.Space.UnitTests
                     bool exists = dbContext.UserAssignedPermissionsToUsers.Any(x => x.DbUsrServerId == userTo.ServerId && x.DbUsrDatabaseId == userTo.DatabaseId && x.DbUsrId == userTo.DbUsrId
                                                                             && x.OnDbUsrServerId == userOn.ServerId && x.OnDbUsrDatabaseId == userOn.DatabaseId && x.OnDbUsrId == userOn.DbUsrId
                                                                             && x.GranularPermissionId == gp.GranularPermissionId
-                                                                            && x.SecurableClassId == sc.SecurableClassId
-                                                                            );
+                                                                            && x.SecurableClassId == sc.SecurableClassId);
                     try
                     {
                         Assert.IsFalse(exists);
                     }
-                    catch(AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         throw new Exception("Error");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -3244,10 +3438,12 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke view definition on database role permission.
+        /// </summary>
         [TestMethod]
         public void RevokeViewOnDefinitionAndFromDatabaseRoles()
         {
-            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string roleName = DatabaseConstants.ROLE_1_NAME;
             string userName = DatabaseConstants.NORMAL_USER_1_NAME;
             string command = $"grant view definition on role {roleName} to user {userName}; Revoke view definition on role {roleName} to user {userName}";
@@ -3262,7 +3458,7 @@ namespace Integra.Space.UnitTests
 
                     this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
-                    
+
                     DatabaseRole role = dbContext.DatabaseRoles.Single(x => x.Database.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME && x.DbRoleName == roleName);
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME && x.DbUsrName == userName);
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("view definition", StringComparison.InvariantCultureIgnoreCase));
@@ -3271,17 +3467,16 @@ namespace Integra.Space.UnitTests
                     bool exists = dbContext.DBRolesAssignedPermissionsToUsers.Any(x => x.DbRoleServerId == role.ServerId && x.DbRoleDatabaseId == role.DatabaseId && x.DbRoleId == role.DbRoleId
                                                                             && x.DbUsrServerId == user.ServerId && x.DbUsrDatabaseId == user.DatabaseId && x.DbUsrId == user.DbUsrId
                                                                             && x.GranularPermissionId == gp.GranularPermissionId
-                                                                            && x.SecurableClassId == sc.SecurableClassId
-                                                                            );
+                                                                            && x.SecurableClassId == sc.SecurableClassId);
                     try
                     {
                         Assert.IsFalse(exists);
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         throw new Exception("Error");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -3292,10 +3487,12 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke view definition on schema permission.
+        /// </summary>
         [TestMethod]
         public void RevokeViewOnDefinitionAndFromSchemas()
         {
-            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string schemaName = DatabaseConstants.DBO_SCHEMA_NAME;
             string userName = DatabaseConstants.NORMAL_USER_1_NAME;
             string databaseName = DatabaseConstants.MASTER_DATABASE_NAME;
@@ -3320,8 +3517,7 @@ namespace Integra.Space.UnitTests
                     bool exists = dbContext.SchemaAssignedPermissionsToUsers.Any(x => x.SchemaServerId == schema.ServerId && x.SchemaDatabaseId == schema.DatabaseId && x.SchemaId == schema.SchemaId
                                                                             && x.DbUsrServerId == user.ServerId && x.DbUsrDatabaseId == user.DatabaseId && x.DbUsrId == user.DbUsrId
                                                                             && x.GranularPermissionId == gp.GranularPermissionId
-                                                                            && x.SecurableClassId == sc.SecurableClassId
-                                                                            );
+                                                                            && x.SecurableClassId == sc.SecurableClassId);
 
                     Assert.IsFalse(exists);
 
@@ -3329,11 +3525,11 @@ namespace Integra.Space.UnitTests
                     {
                         Assert.IsFalse(exists);
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         throw new Exception("Error");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -3344,10 +3540,12 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke view definition on source permission.
+        /// </summary>
         [TestMethod]
         public void RevokeViewOnDefinitionAndFromSources()
         {
-            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string sourceName = DatabaseConstants.INPUT_SOURCE_NAME;
             string userName = DatabaseConstants.NORMAL_USER_1_NAME;
             string databaseName = DatabaseConstants.MASTER_DATABASE_NAME;
@@ -3374,19 +3572,18 @@ namespace Integra.Space.UnitTests
                     bool exists = dbContext.SourceAssignedPermissionsToUsers.Any(x => x.SourceServerId == source.ServerId && x.SourceDatabaseId == source.DatabaseId && x.SourceSchemaId == source.SchemaId && x.SourceId == source.SourceId
                                                                             && x.DbUsrServerId == user.ServerId && x.DbUserDatabaseId == user.DatabaseId && x.DbUserId == user.DbUsrId
                                                                             && x.GranularPermissionId == gp.GranularPermissionId
-                                                                            && x.SecurableClassId == sc.SecurableClassId
-                                                                            );
+                                                                            && x.SecurableClassId == sc.SecurableClassId);
                     Assert.IsFalse(exists);
 
                     try
                     {
                         Assert.IsFalse(exists);
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         throw new Exception("Error");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -3397,10 +3594,12 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke view definition on stream permission.
+        /// </summary>
         [TestMethod]
         public void RevokeViewOnDefinitionAndFromStreams()
         {
-            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string userName = DatabaseConstants.NORMAL_USER_1_NAME;
             string streamName = DatabaseConstants.TEST_STREAM_NAME;
             string databaseName = DatabaseConstants.MASTER_DATABASE_NAME;
@@ -3427,19 +3626,18 @@ namespace Integra.Space.UnitTests
                     bool exists = dbContext.StreamAssignedPermissionsToUsers.Any(x => x.StreamServerId == stream.ServerId && x.StreamDatabaseId == stream.DatabaseId && x.StreamSchemaId == stream.SchemaId && x.StreamId == stream.StreamId
                                                                             && x.DbUsrServerId == user.ServerId && x.DbUsrDatabaseId == user.DatabaseId && x.DbUsrId == user.DbUsrId
                                                                             && x.GranularPermissionId == gp.GranularPermissionId
-                                                                            && x.SecurableClassId == sc.SecurableClassId
-                                                                            );
+                                                                            && x.SecurableClassId == sc.SecurableClassId);
                     Assert.IsFalse(exists);
 
                     try
                     {
                         Assert.IsFalse(exists);
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         throw new Exception("Error");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -3456,6 +3654,9 @@ namespace Integra.Space.UnitTests
 
         #region Revoke create any database
 
+        /// <summary>
+        /// Revoke create any database permission.
+        /// </summary>
         [TestMethod]
         public void RevokeCreateAnyDatabase()
         {
@@ -3481,18 +3682,17 @@ namespace Integra.Space.UnitTests
                     bool exists = dbContext.ServersAssignedPermissionsToLogins.Any(x => x.LoginServerId == toLogin.ServerId && x.LoginId == toLogin.LoginId
                                                                             && x.ServerId == server.ServerId
                                                                             && x.GranularPermissionId == gp.GranularPermissionId
-                                                                            && x.SecurableClassId == sc.SecurableClassId
-                                                                            );
-                    
+                                                                            && x.SecurableClassId == sc.SecurableClassId);
+
                     try
                     {
                         Assert.IsFalse(exists);
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         throw new Exception("Error");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -3503,6 +3703,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke create any database permission.
+        /// </summary>
         [TestMethod]
         public void RevokeCreateAnyDatabaseWithStatusOn()
         {
@@ -3520,7 +3723,7 @@ namespace Integra.Space.UnitTests
 
                     this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
-                    
+
                     Login toLogin = dbContext.Logins.Single(x => x.LoginName == otherLogin);
                     Server server = dbContext.Servers.Single(x => x.ServerName == DatabaseConstants.TEST_SERVER_NAME);
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("create any database", StringComparison.InvariantCultureIgnoreCase));
@@ -3528,18 +3731,17 @@ namespace Integra.Space.UnitTests
                     bool exists = dbContext.ServersAssignedPermissionsToLogins.Any(x => x.LoginServerId == toLogin.ServerId && x.LoginId == toLogin.LoginId
                                                                             && x.ServerId == server.ServerId
                                                                             && x.GranularPermissionId == gp.GranularPermissionId
-                                                                            && x.SecurableClassId == sc.SecurableClassId
-                                                                            );
+                                                                            && x.SecurableClassId == sc.SecurableClassId);
 
                     try
                     {
                         Assert.IsFalse(exists);
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         throw new Exception("Error");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -3550,6 +3752,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke create any database permission.
+        /// </summary>
         [TestMethod]
         public void RevokeCreateAnyDatabaseWithStatusOff()
         {
@@ -3568,7 +3773,7 @@ namespace Integra.Space.UnitTests
 
                     this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
-                    
+
                     Login toLogin = dbContext.Logins.Single(x => x.LoginName == otherLogin);
                     Server server = dbContext.Servers.Single(x => x.ServerName == DatabaseConstants.TEST_SERVER_NAME);
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("create any database", StringComparison.InvariantCultureIgnoreCase));
@@ -3576,18 +3781,17 @@ namespace Integra.Space.UnitTests
                     bool exists = dbContext.ServersAssignedPermissionsToLogins.Any(x => x.LoginServerId == toLogin.ServerId && x.LoginId == toLogin.LoginId
                                                                             && x.ServerId == server.ServerId
                                                                             && x.GranularPermissionId == gp.GranularPermissionId
-                                                                            && x.SecurableClassId == sc.SecurableClassId
-                                                                            );
+                                                                            && x.SecurableClassId == sc.SecurableClassId);
 
                     try
                     {
                         Assert.IsFalse(exists);
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         throw new Exception("Error");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -3602,6 +3806,9 @@ namespace Integra.Space.UnitTests
 
         #region Revoke create database
 
+        /// <summary>
+        /// Revoke create on database permission.
+        /// </summary>
         [TestMethod]
         public void RevokeCreateDatabase()
         {
@@ -3621,7 +3828,7 @@ namespace Integra.Space.UnitTests
                     this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == database.DatabaseName && x.DbUsrName == userName);
 
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("create database", StringComparison.InvariantCultureIgnoreCase));
@@ -3629,9 +3836,8 @@ namespace Integra.Space.UnitTests
                     bool exists = dbContext.DatabaseAssignedPermissionsToUsers.Any(x => x.DatabaseServerId == database.ServerId && x.DbUsrDatabaseId == database.DatabaseId
                                                                         && x.DbUsrServerId == user.ServerId && x.DbUsrDatabaseId == user.DatabaseId && x.DbUsrId == user.DbUsrId
                                                                         && x.GranularPermissionId == gp.GranularPermissionId
-                                                                        && x.SecurableClassId == sc.SecurableClassId
-                                                                        );
-                    
+                                                                        && x.SecurableClassId == sc.SecurableClassId);
+
                     try
                     {
                         Assert.IsFalse(exists);
@@ -3639,11 +3845,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -3654,6 +3860,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke create on database permission.
+        /// </summary>
         [TestMethod]
         public void RevokeCreateDatabaseWithStatusOn()
         {
@@ -3673,7 +3882,7 @@ namespace Integra.Space.UnitTests
                     this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == database.DatabaseName && x.DbUsrName == userName);
 
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("create database", StringComparison.InvariantCultureIgnoreCase));
@@ -3681,8 +3890,7 @@ namespace Integra.Space.UnitTests
                     bool exists = dbContext.DatabaseAssignedPermissionsToUsers.Any(x => x.DatabaseServerId == database.ServerId && x.DbUsrDatabaseId == database.DatabaseId
                                                                         && x.DbUsrServerId == user.ServerId && x.DbUsrDatabaseId == user.DatabaseId && x.DbUsrId == user.DbUsrId
                                                                         && x.GranularPermissionId == gp.GranularPermissionId
-                                                                        && x.SecurableClassId == sc.SecurableClassId
-                                                                        );
+                                                                        && x.SecurableClassId == sc.SecurableClassId);
 
                     try
                     {
@@ -3691,11 +3899,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -3706,6 +3914,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke create on database permission.
+        /// </summary>
         [TestMethod]
         public void RevokeCreateDatabaseWithStatusOff()
         {
@@ -3726,7 +3937,7 @@ namespace Integra.Space.UnitTests
                     this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == database.DatabaseName && x.DbUsrName == userName);
 
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("create database", StringComparison.InvariantCultureIgnoreCase));
@@ -3734,8 +3945,7 @@ namespace Integra.Space.UnitTests
                     bool exists = dbContext.DatabaseAssignedPermissionsToUsers.Any(x => x.DatabaseServerId == database.ServerId && x.DbUsrDatabaseId == database.DatabaseId
                                                                         && x.DbUsrServerId == user.ServerId && x.DbUsrDatabaseId == user.DatabaseId && x.DbUsrId == user.DbUsrId
                                                                         && x.GranularPermissionId == gp.GranularPermissionId
-                                                                        && x.SecurableClassId == sc.SecurableClassId
-                                                                        );
+                                                                        && x.SecurableClassId == sc.SecurableClassId);
 
                     try
                     {
@@ -3744,11 +3954,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -3763,6 +3973,9 @@ namespace Integra.Space.UnitTests
 
         #region Revoke create role
 
+        /// <summary>
+        /// Revoke create on database role permission.
+        /// </summary>
         [TestMethod]
         public void RevokeCreateRole()
         {
@@ -3782,7 +3995,7 @@ namespace Integra.Space.UnitTests
                     this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == database.DatabaseName && x.DbUsrName == userName);
 
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("create role", StringComparison.InvariantCultureIgnoreCase));
@@ -3790,8 +4003,7 @@ namespace Integra.Space.UnitTests
                     bool exists = dbContext.DatabaseAssignedPermissionsToUsers.Any(x => x.DatabaseServerId == database.ServerId && x.DbUsrDatabaseId == database.DatabaseId
                                                                         && x.DbUsrServerId == user.ServerId && x.DbUsrDatabaseId == user.DatabaseId && x.DbUsrId == user.DbUsrId
                                                                         && x.GranularPermissionId == gp.GranularPermissionId
-                                                                        && x.SecurableClassId == sc.SecurableClassId
-                                                                        );
+                                                                        && x.SecurableClassId == sc.SecurableClassId);
 
                     try
                     {
@@ -3800,11 +4012,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -3815,6 +4027,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke create on database role permission.
+        /// </summary>
         [TestMethod]
         public void RevokeCreateRoleWithStatusOn()
         {
@@ -3834,7 +4049,7 @@ namespace Integra.Space.UnitTests
                     this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == database.DatabaseName && x.DbUsrName == userName);
 
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("create role", StringComparison.InvariantCultureIgnoreCase));
@@ -3842,8 +4057,7 @@ namespace Integra.Space.UnitTests
                     bool exists = dbContext.DatabaseAssignedPermissionsToUsers.Any(x => x.DatabaseServerId == database.ServerId && x.DbUsrDatabaseId == database.DatabaseId
                                                                         && x.DbUsrServerId == user.ServerId && x.DbUsrDatabaseId == user.DatabaseId && x.DbUsrId == user.DbUsrId
                                                                         && x.GranularPermissionId == gp.GranularPermissionId
-                                                                        && x.SecurableClassId == sc.SecurableClassId
-                                                                        );
+                                                                        && x.SecurableClassId == sc.SecurableClassId);
 
                     try
                     {
@@ -3852,11 +4066,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -3867,6 +4081,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke create on database role permission.
+        /// </summary>
         [TestMethod]
         public void RevokeCreateRoleWithStatusOff()
         {
@@ -3886,7 +4103,7 @@ namespace Integra.Space.UnitTests
                     this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == database.DatabaseName && x.DbUsrName == userName);
 
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("create role", StringComparison.InvariantCultureIgnoreCase));
@@ -3894,8 +4111,7 @@ namespace Integra.Space.UnitTests
                     bool exists = dbContext.DatabaseAssignedPermissionsToUsers.Any(x => x.DatabaseServerId == database.ServerId && x.DbUsrDatabaseId == database.DatabaseId
                                                                         && x.DbUsrServerId == user.ServerId && x.DbUsrDatabaseId == user.DatabaseId && x.DbUsrId == user.DbUsrId
                                                                         && x.GranularPermissionId == gp.GranularPermissionId
-                                                                        && x.SecurableClassId == sc.SecurableClassId
-                                                                        );
+                                                                        && x.SecurableClassId == sc.SecurableClassId);
 
                     try
                     {
@@ -3904,11 +4120,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -3919,6 +4135,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke create on database role permission.
+        /// </summary>
         [TestMethod]
         public void RevokeCreateRoleAddUser()
         {
@@ -3938,7 +4157,7 @@ namespace Integra.Space.UnitTests
                     this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == database.DatabaseName && x.DbUsrName == userName);
 
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("create role", StringComparison.InvariantCultureIgnoreCase));
@@ -3946,8 +4165,7 @@ namespace Integra.Space.UnitTests
                     bool exists = dbContext.DatabaseAssignedPermissionsToUsers.Any(x => x.DatabaseServerId == database.ServerId && x.DbUsrDatabaseId == database.DatabaseId
                                                                         && x.DbUsrServerId == user.ServerId && x.DbUsrDatabaseId == user.DatabaseId && x.DbUsrId == user.DbUsrId
                                                                         && x.GranularPermissionId == gp.GranularPermissionId
-                                                                        && x.SecurableClassId == sc.SecurableClassId
-                                                                        );
+                                                                        && x.SecurableClassId == sc.SecurableClassId);
 
                     try
                     {
@@ -3956,11 +4174,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -3971,6 +4189,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke create on database role permission.
+        /// </summary>
         [TestMethod]
         public void RevokeCreateRoleAddUsers()
         {
@@ -3993,7 +4214,7 @@ namespace Integra.Space.UnitTests
                     this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == database.DatabaseName && x.DbUsrName == userName);
 
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("create role", StringComparison.InvariantCultureIgnoreCase));
@@ -4001,8 +4222,7 @@ namespace Integra.Space.UnitTests
                     bool exists = dbContext.DatabaseAssignedPermissionsToUsers.Any(x => x.DatabaseServerId == database.ServerId && x.DbUsrDatabaseId == database.DatabaseId
                                                                         && x.DbUsrServerId == user.ServerId && x.DbUsrDatabaseId == user.DatabaseId && x.DbUsrId == user.DbUsrId
                                                                         && x.GranularPermissionId == gp.GranularPermissionId
-                                                                        && x.SecurableClassId == sc.SecurableClassId
-                                                                        );
+                                                                        && x.SecurableClassId == sc.SecurableClassId);
 
                     try
                     {
@@ -4011,11 +4231,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -4030,6 +4250,9 @@ namespace Integra.Space.UnitTests
 
         #region Revoke create schema
 
+        /// <summary>
+        /// Revoke create on schema permission.
+        /// </summary>
         [TestMethod]
         public void RevokeCreateSchema()
         {
@@ -4049,7 +4272,7 @@ namespace Integra.Space.UnitTests
                     this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == database.DatabaseName && x.DbUsrName == userName);
 
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("create schema", StringComparison.InvariantCultureIgnoreCase));
@@ -4057,8 +4280,7 @@ namespace Integra.Space.UnitTests
                     bool exists = dbContext.DatabaseAssignedPermissionsToUsers.Any(x => x.DatabaseServerId == database.ServerId && x.DbUsrDatabaseId == database.DatabaseId
                                                                         && x.DbUsrServerId == user.ServerId && x.DbUsrDatabaseId == user.DatabaseId && x.DbUsrId == user.DbUsrId
                                                                         && x.GranularPermissionId == gp.GranularPermissionId
-                                                                        && x.SecurableClassId == sc.SecurableClassId
-                                                                        );
+                                                                        && x.SecurableClassId == sc.SecurableClassId);
 
                     try
                     {
@@ -4067,11 +4289,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -4086,6 +4308,9 @@ namespace Integra.Space.UnitTests
 
         #region Revoke create source
 
+        /// <summary>
+        /// Revoke create on source permission.
+        /// </summary>
         [TestMethod]
         public void RevokeCreateSource()
         {
@@ -4105,7 +4330,7 @@ namespace Integra.Space.UnitTests
                     this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == database.DatabaseName && x.DbUsrName == userName);
 
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("create source", StringComparison.InvariantCultureIgnoreCase));
@@ -4113,8 +4338,7 @@ namespace Integra.Space.UnitTests
                     bool exists = dbContext.DatabaseAssignedPermissionsToUsers.Any(x => x.DatabaseServerId == database.ServerId && x.DbUsrDatabaseId == database.DatabaseId
                                                                         && x.DbUsrServerId == user.ServerId && x.DbUsrDatabaseId == user.DatabaseId && x.DbUsrId == user.DbUsrId
                                                                         && x.GranularPermissionId == gp.GranularPermissionId
-                                                                        && x.SecurableClassId == sc.SecurableClassId
-                                                                        );
+                                                                        && x.SecurableClassId == sc.SecurableClassId);
 
                     try
                     {
@@ -4123,11 +4347,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -4138,6 +4362,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke create on source permission.
+        /// </summary>
         [TestMethod]
         public void RevokeCreateSourceWithStatusOn()
         {
@@ -4157,7 +4384,7 @@ namespace Integra.Space.UnitTests
                     this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == database.DatabaseName && x.DbUsrName == userName);
 
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("create source", StringComparison.InvariantCultureIgnoreCase));
@@ -4165,8 +4392,7 @@ namespace Integra.Space.UnitTests
                     bool exists = dbContext.DatabaseAssignedPermissionsToUsers.Any(x => x.DatabaseServerId == database.ServerId && x.DbUsrDatabaseId == database.DatabaseId
                                                                         && x.DbUsrServerId == user.ServerId && x.DbUsrDatabaseId == user.DatabaseId && x.DbUsrId == user.DbUsrId
                                                                         && x.GranularPermissionId == gp.GranularPermissionId
-                                                                        && x.SecurableClassId == sc.SecurableClassId
-                                                                        );
+                                                                        && x.SecurableClassId == sc.SecurableClassId);
 
                     try
                     {
@@ -4175,11 +4401,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -4190,6 +4416,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke create on source permission.
+        /// </summary>
         [TestMethod]
         public void RevokeCreateSourceWithStatusOff()
         {
@@ -4209,7 +4438,7 @@ namespace Integra.Space.UnitTests
                     this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == database.DatabaseName && x.DbUsrName == userName);
 
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("create source", StringComparison.InvariantCultureIgnoreCase));
@@ -4217,8 +4446,7 @@ namespace Integra.Space.UnitTests
                     bool exists = dbContext.DatabaseAssignedPermissionsToUsers.Any(x => x.DatabaseServerId == database.ServerId && x.DbUsrDatabaseId == database.DatabaseId
                                                                         && x.DbUsrServerId == user.ServerId && x.DbUsrDatabaseId == user.DatabaseId && x.DbUsrId == user.DbUsrId
                                                                         && x.GranularPermissionId == gp.GranularPermissionId
-                                                                        && x.SecurableClassId == sc.SecurableClassId
-                                                                        );
+                                                                        && x.SecurableClassId == sc.SecurableClassId);
 
                     try
                     {
@@ -4227,11 +4455,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -4246,6 +4474,9 @@ namespace Integra.Space.UnitTests
 
         #region Revoke create stream
 
+        /// <summary>
+        /// Revoke create on stream permission.
+        /// </summary>
         [TestMethod]
         public void RevokeCreateStream()
         {
@@ -4259,7 +4490,6 @@ namespace Integra.Space.UnitTests
                                    $"WITH {DatabaseConstants.INPUT_SOURCE_NAME} as t2 WHERE t2.PrimaryAccountNumber == \"9999941616073663_2\" " +
                                    "ON t1.AcquiringInstitutionIdentificationCode == t2.AcquiringInstitutionIdentificationCode " +
                                    "TIMEOUT '00:00:02' " +
-                                   //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
                                    $"SELECT (string)t1.PrimaryAccountNumber as c1, t2.PrimaryAccountNumber as c2, 1 as numeroXXX into {sourceForInto} ";
 
             string command2 = $"use {DatabaseConstants.MASTER_DATABASE_NAME}; create stream {streamName} {{ {eql} }}";
@@ -4273,8 +4503,8 @@ namespace Integra.Space.UnitTests
 
                     this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
-                    
-                    Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
+
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == database.DatabaseName && x.DbUsrName == userName);
 
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("create stream", StringComparison.InvariantCultureIgnoreCase));
@@ -4282,8 +4512,7 @@ namespace Integra.Space.UnitTests
                     bool exists = dbContext.DatabaseAssignedPermissionsToUsers.Any(x => x.DatabaseServerId == database.ServerId && x.DbUsrDatabaseId == database.DatabaseId
                                                                         && x.DbUsrServerId == user.ServerId && x.DbUsrDatabaseId == user.DatabaseId && x.DbUsrId == user.DbUsrId
                                                                         && x.GranularPermissionId == gp.GranularPermissionId
-                                                                        && x.SecurableClassId == sc.SecurableClassId
-                                                                        );
+                                                                        && x.SecurableClassId == sc.SecurableClassId);
 
                     try
                     {
@@ -4292,11 +4521,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -4307,6 +4536,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke read on source permission.
+        /// </summary>
         [TestMethod]
         public void RevokeReadSource()
         {
@@ -4321,7 +4553,6 @@ namespace Integra.Space.UnitTests
                                    $"WITH {DatabaseConstants.INPUT_SOURCE_NAME} as t2 WHERE t2.PrimaryAccountNumber == \"9999941616073663_2\" " +
                                    "ON t1.AcquiringInstitutionIdentificationCode == t2.AcquiringInstitutionIdentificationCode " +
                                    "TIMEOUT '00:00:02' " +
-                                   //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
                                    $"SELECT (string)t1.PrimaryAccountNumber as c1, t2.PrimaryAccountNumber as c2, 1 as numeroXXX into {sourceForInto} ";
 
             string command2 = $"use {DatabaseConstants.MASTER_DATABASE_NAME}; create stream {streamName} {{ {eql} }}";
@@ -4336,7 +4567,7 @@ namespace Integra.Space.UnitTests
                     this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == database.DatabaseName && x.DbUsrName == userName);
                     Source source = dbContext.Sources.Single(x => x.ServerId == database.ServerId && x.DatabaseId == database.DatabaseId && x.Schema.SchemaName == DatabaseConstants.DBO_SCHEMA_NAME && x.SourceName == sourceName);
 
@@ -4345,8 +4576,7 @@ namespace Integra.Space.UnitTests
                     bool exists = dbContext.SourceAssignedPermissionsToUsers.Any(x => x.SourceServerId == source.ServerId && x.SourceDatabaseId == source.DatabaseId && x.SourceSchemaId == source.SchemaId && x.SourceId == source.SourceId
                                                                         && x.DbUsrServerId == user.ServerId && x.DbUserDatabaseId == user.DatabaseId && x.DbUserId == user.DbUsrId
                                                                         && x.GranularPermissionId == gp.GranularPermissionId
-                                                                        && x.SecurableClassId == sc.SecurableClassId
-                                                                        );
+                                                                        && x.SecurableClassId == sc.SecurableClassId);
 
                     try
                     {
@@ -4355,11 +4585,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -4370,6 +4600,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke read on source permission.
+        /// </summary>
         [TestMethod]
         public void RevokeCreateStreamWithStatusOn()
         {
@@ -4383,7 +4616,6 @@ namespace Integra.Space.UnitTests
                                    $"WITH {DatabaseConstants.INPUT_SOURCE_NAME} as t2 WHERE t2.PrimaryAccountNumber == \"9999941616073663_2\" " +
                                    "ON t1.AcquiringInstitutionIdentificationCode == t2.AcquiringInstitutionIdentificationCode " +
                                    "TIMEOUT '00:00:02' " +
-                                   //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
                                    $"SELECT (string)t1.PrimaryAccountNumber as c1, t2.PrimaryAccountNumber as c2, 1 as numeroXXX into {sourceForInto} ";
 
             string command2 = $"use {DatabaseConstants.MASTER_DATABASE_NAME}; create stream {streamName} {{ {eql} }} with status = on";
@@ -4398,7 +4630,7 @@ namespace Integra.Space.UnitTests
                     this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == database.DatabaseName && x.DbUsrName == userName);
 
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("create stream", StringComparison.InvariantCultureIgnoreCase));
@@ -4406,8 +4638,7 @@ namespace Integra.Space.UnitTests
                     bool exists = dbContext.DatabaseAssignedPermissionsToUsers.Any(x => x.DatabaseServerId == database.ServerId && x.DbUsrDatabaseId == database.DatabaseId
                                                                         && x.DbUsrServerId == user.ServerId && x.DbUsrDatabaseId == user.DatabaseId && x.DbUsrId == user.DbUsrId
                                                                         && x.GranularPermissionId == gp.GranularPermissionId
-                                                                        && x.SecurableClassId == sc.SecurableClassId
-                                                                        );
+                                                                        && x.SecurableClassId == sc.SecurableClassId);
 
                     try
                     {
@@ -4416,11 +4647,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -4431,6 +4662,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Revoke read on source permission.
+        /// </summary>
         [TestMethod]
         public void RevokeCreateStreamWithStatusOff()
         {
@@ -4444,7 +4678,6 @@ namespace Integra.Space.UnitTests
                                    $"WITH {DatabaseConstants.INPUT_SOURCE_NAME} as t2 WHERE t2.PrimaryAccountNumber == \"9999941616073663_2\" " +
                                    "ON t1.AcquiringInstitutionIdentificationCode == t2.AcquiringInstitutionIdentificationCode " +
                                    "TIMEOUT '00:00:02' " +
-                                   //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
                                    $"SELECT (string)t1.PrimaryAccountNumber as c1, t2.PrimaryAccountNumber as c2, 1 as numeroXXX into {sourceForInto} ";
 
             string command2 = $"use {DatabaseConstants.MASTER_DATABASE_NAME}; create stream {streamName} {{ {eql} }} with status = off";
@@ -4460,7 +4693,7 @@ namespace Integra.Space.UnitTests
                     this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == database.DatabaseName && x.DbUsrName == userName);
 
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("create stream", StringComparison.InvariantCultureIgnoreCase));
@@ -4468,8 +4701,7 @@ namespace Integra.Space.UnitTests
                     bool exists = dbContext.DatabaseAssignedPermissionsToUsers.Any(x => x.DatabaseServerId == database.ServerId && x.DbUsrDatabaseId == database.DatabaseId
                                                                         && x.DbUsrServerId == user.ServerId && x.DbUsrDatabaseId == user.DatabaseId && x.DbUsrId == user.DbUsrId
                                                                         && x.GranularPermissionId == gp.GranularPermissionId
-                                                                        && x.SecurableClassId == sc.SecurableClassId
-                                                                        );
+                                                                        && x.SecurableClassId == sc.SecurableClassId);
 
                     try
                     {
@@ -4478,11 +4710,11 @@ namespace Integra.Space.UnitTests
                         this.ProcessCommand(command2, kernel);
                         Assert.Fail();
                     }
-                    catch (AssertFailedException e)
+                    catch (AssertFailedException)
                     {
                         Assert.Fail("Ejecutó un comando para el cual no tenía permisos.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                     }
                     finally
@@ -4498,5 +4730,29 @@ namespace Integra.Space.UnitTests
         #endregion Revoke create
 
         #endregion Revoke
+
+        /// <summary>
+        /// This method create a pipeline context and execute the specified command.
+        /// </summary>
+        /// <param name="command">Command to execute.</param>
+        /// <param name="kernel">DI kernel.</param>
+        /// <returns>Pipeline context.</returns>
+        private FirstLevelPipelineContext ProcessCommand(string command, IKernel kernel)
+        {
+            IBinding binding = kernel.GetBindings(typeof(Language.IGrammarRuleValidator)).FirstOrDefault();
+            if (binding != null)
+            {
+                kernel.RemoveBinding(binding);
+            }
+
+            kernel.Bind<Language.IGrammarRuleValidator>().ToConstant(new TestRuleValidator());
+            CommandPipelineBuilder cpb = new CommandPipelineBuilder();
+            Filter<FirstLevelPipelineContext, FirstLevelPipelineContext> pipeline = cpb.Build();
+
+            FirstLevelPipelineExecutor cpe = new FirstLevelPipelineExecutor(pipeline);
+            FirstLevelPipelineContext context = new FirstLevelPipelineContext(command, this.loginName, kernel);
+            FirstLevelPipelineContext result = cpe.Execute(context);
+            return result;
+        }
     }
 }

@@ -1,6 +1,6 @@
 ﻿//-----------------------------------------------------------------------
-// <copyright file="TestObject1.cs" company="Integra.Space.UnitTests">
-//     Copyright (c) Integra.Space. All rights reserved.
+// <copyright file="TestObject1.cs" company="ARITEC">
+// Copyright (c) ARITEC. All rights reserved.
 // </copyright>
 //-----------------------------------------------------------------------
 namespace Integra.Space.UnitTests

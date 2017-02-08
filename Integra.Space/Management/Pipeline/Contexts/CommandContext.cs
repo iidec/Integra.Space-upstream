@@ -20,12 +20,7 @@ namespace Integra.Space.Pipeline
         /// Space command.
         /// </summary>
         private SystemCommand command;
-
-        /// <summary>
-        /// The schema where the command will be executed.
-        /// </summary>
-        private Schema schema;
-
+                
         /// <summary>
         /// Login of the client.
         /// </summary>
