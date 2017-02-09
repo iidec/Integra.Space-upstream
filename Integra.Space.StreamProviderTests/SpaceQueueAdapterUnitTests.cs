@@ -13,20 +13,36 @@ namespace Integra.Space.StreamProviderTests
 	[TestClass]
 	public class SpaceQueueAdapterUnitTests
 	{
+		private TestContext testContext;
 		private string providerName = "Test";
-		private readonly HashRingBasedStreamQueueMapper streamQueueMapper;
-		private readonly Logger logger;
-		private readonly RedisConnectionString connectionString;
+		private HashRingBasedStreamQueueMapper streamQueueMapper;
+		private Logger logger;
+		private RedisConnectionString connectionString;
+		private RedisConnectionString invalidConnectionString;
 		Mock<IRedisBatchContainerFactory> batchContainerFactoryMock;
 
-		public SpaceQueueAdapterUnitTests()
+		[TestInitialize]
+		public void Initialize()
 		{
 			Mock<Logger> loggerMock = new Mock<Logger>();
 			batchContainerFactoryMock = new Mock<IRedisBatchContainerFactory>();
 
 			logger = loggerMock.Object;
 			streamQueueMapper = new HashRingBasedStreamQueueMapper(1, "NN");
-			connectionString = new RedisConnectionString("HostAddress=54.172.20.246;HostPort=12574;Password=redizz;DatabaseId=0");
+			connectionString = new RedisConnectionString(TestContext.Properties["redisconnectionstring"].ToString());
+			invalidConnectionString = new RedisConnectionString(TestContext.Properties["invalidredisconnectionstring"].ToString());
+		}
+
+		public TestContext TestContext
+		{
+			get
+			{
+				return this.testContext;
+			}
+			set
+			{
+				this.testContext = value;
+			}
 		}
 
 		[TestMethod, TestCategory("UnitTest")]
@@ -72,13 +88,12 @@ namespace Integra.Space.StreamProviderTests
 		}
 
 		[TestMethod, TestCategory("UnitTest")]
-		[ExpectedException(typeof(Exception), "Invalid Redis Authentication")]
-		public async Task RedisConnectionTest()
+		[ExpectedException(typeof(Exception), "Invalid Redis Authentication", AllowDerivedTypes = true)]
+		public async Task InvalidAuthenticationRedisConnectionTest()
 		{
-			RedisConnectionString connectionString = new RedisConnectionString("HostAddress=54.172.20.246;HostPort=12574;Password=masterzz;DatabaseId=0");
 			Dictionary<string, object> requestContext = new Dictionary<string, object>();
 			batchContainerFactoryMock.Setup(x => x.ToRedisMessage<int>(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<IEnumerable<int>>(), new RedisEventSequenceToken(0), requestContext)).Returns(new RedisMessage(new byte[] { 0, 1, 2, 3 }));
-			SpaceQueueAdapter adapter = new SpaceQueueAdapter(streamQueueMapper, providerName, connectionString, logger, batchContainerFactoryMock.Object);
+			SpaceQueueAdapter adapter = new SpaceQueueAdapter(streamQueueMapper, providerName, invalidConnectionString, logger, batchContainerFactoryMock.Object);
 			await adapter.QueueMessageBatchAsync(Guid.NewGuid(), "Test", new List<int>() { 1, 2, 3, 4 }, null, requestContext);
 		}
 

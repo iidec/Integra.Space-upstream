@@ -113,6 +113,7 @@
   <ItemGroup>
     <None Include="app.config" />
     <None Include="packages.config" />
+    <None Include="runsettings.runsettings" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Integra.Space.StreamProvider.TestGrainInterfaces\Integra.Space.StreamProvider.TestGrainInterfaces.csproj">
