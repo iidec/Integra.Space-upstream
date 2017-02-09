@@ -19,7 +19,7 @@ namespace Integra.Space.UnitTests
     /// A class containing the tests for grant permissions.
     /// </summary>
     [TestClass]
-    public class GrantCommandTests
+    public class GrantCommandTests : BaseTest
     {
         private string loginName = DatabaseConstants.NORMAL_LOGIN_1_NAME;
 
@@ -42,7 +42,7 @@ namespace Integra.Space.UnitTests
 
             IKernel kernel = new StandardKernel();
 
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -84,7 +84,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"use {databaseName}; alter role {roleName} with name = {newRoleName}";
             IKernel kernel = new StandardKernel();
 
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -123,7 +123,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"use {databaseName}; add {userName} to {roleName}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -165,7 +165,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"use {databaseName}; add {userName} to {roleName1}, {roleName2}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -210,7 +210,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"use {databaseName}; add {userName1}, {userName2} to {roleName}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -255,7 +255,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"use {databaseName}; add {userName1}, {userName2} to {roleName}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -301,7 +301,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"use {databaseName}; add {userName1}, {userName2} to {roleName1}, {roleName2}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -353,7 +353,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"use {databaseName}; add {userName1}, {userName2} to {roleName1}, {roleName2}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -403,7 +403,7 @@ namespace Integra.Space.UnitTests
             command2 += $"; remove {userName} to {roleName}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -446,7 +446,7 @@ namespace Integra.Space.UnitTests
             command2 += $"; remove {userName} to {roleName1}, {roleName2}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -491,7 +491,7 @@ namespace Integra.Space.UnitTests
             command2 += $"; remove {userName1}, {userName2} to {roleName}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -536,7 +536,7 @@ namespace Integra.Space.UnitTests
             command2 += $"; remove {userName1}, {userName2} to {roleName}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -582,7 +582,7 @@ namespace Integra.Space.UnitTests
             command2 += $"; remove {userName1}, {userName2} to {roleName1}, {roleName2}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -631,7 +631,7 @@ namespace Integra.Space.UnitTests
             command2 += $"; remove {userName1}, {userName2} to {roleName1}, {roleName2}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -676,7 +676,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"use {databaseName}; alter user {userName} with name = {newUserName}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -723,7 +723,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"use {DatabaseConstants.MASTER_DATABASE_NAME}; alter login {existingLogin} with name = {newLoginName}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -776,7 +776,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"use {databaseName}; alter schema {oldSchemaName} with name = {newSchemaName}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -829,7 +829,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"use {DatabaseConstants.MASTER_DATABASE_NAME}; alter stream {oldStreamName} with name = {newStreamName}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -881,7 +881,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"use {DatabaseConstants.MASTER_DATABASE_NAME}; alter source {oldSourceName} with name = {newSourceName}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -937,7 +937,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"use {databaseName}; alter database {databaseName} with name = {databaseNewName}";
             IKernel kernel = new StandardKernel();
 
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -977,7 +977,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"use {databaseName}; alter role {roleName} with name = {newRoleName}";
             IKernel kernel = new StandardKernel();
 
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -1016,7 +1016,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"use {databaseName}; alter user {userName} with name = {newUserName}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -1068,7 +1068,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"use {DatabaseConstants.MASTER_DATABASE_NAME}; alter login {existingLogin} with name = {newLoginName}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -1122,7 +1122,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"use {DatabaseConstants.MASTER_DATABASE_NAME}; alter login {existingLogin} with name = {newLoginName}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -1175,7 +1175,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"use {databaseName}; alter schema {oldSchemaName} with name = {newSchemaName}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -1228,7 +1228,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"use {databaseName}; alter stream {oldStreamName} with name = {newStreamName}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -1276,7 +1276,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"use {DatabaseConstants.MASTER_DATABASE_NAME}; alter source {oldSourceName} with name = {newSourceName}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -1333,7 +1333,7 @@ namespace Integra.Space.UnitTests
 
             IKernel kernel = new StandardKernel();
 
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -1371,7 +1371,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"use {databaseName}; alter role {roleName} with name = {newRoleName}";
             IKernel kernel = new StandardKernel();
 
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -1410,7 +1410,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"use {databaseName}; alter user {userName} with name = {newUserName}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -1457,7 +1457,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"use {DatabaseConstants.MASTER_DATABASE_NAME}; alter login {existingLogin} with name = {newLoginName}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -1510,7 +1510,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"use {databaseName}; alter schema {oldSchemaName} with name = {newSchemaName}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -1563,7 +1563,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"use {databaseName}; alter stream {oldStreamName} with name = {newStreamName}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -1615,7 +1615,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"use {DatabaseConstants.MASTER_DATABASE_NAME}; alter source {oldSourceName} with name = {newSourceName}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -1672,7 +1672,7 @@ namespace Integra.Space.UnitTests
 
             IKernel kernel = new StandardKernel();
 
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -1709,7 +1709,7 @@ namespace Integra.Space.UnitTests
 
             IKernel kernel = new StandardKernel();
 
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -1745,7 +1745,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"use {databaseName}; take ownership on schema {schemaName}";
             IKernel kernel = new StandardKernel();
 
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -1783,7 +1783,7 @@ namespace Integra.Space.UnitTests
 
             IKernel kernel = new StandardKernel();
 
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -1838,7 +1838,7 @@ namespace Integra.Space.UnitTests
 
             IKernel kernel = new StandardKernel();
 
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -1882,7 +1882,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"use {DatabaseConstants.TEST_DATABASE_NAME}; from sys.serverroles select ServerId as serverId into {DatabaseConstants.METADATA_OUTPUT_SOURCE_NAME}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -1911,7 +1911,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"use {DatabaseConstants.TEST_DATABASE_NAME}; from sys.endpoints select ServerId as serverId into {DatabaseConstants.METADATA_OUTPUT_SOURCE_NAME}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -1940,7 +1940,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"use {DatabaseConstants.TEST_DATABASE_NAME}; from sys.logins select ServerId as serverId into {DatabaseConstants.METADATA_OUTPUT_SOURCE_NAME}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -1969,7 +1969,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"use {DatabaseConstants.TEST_DATABASE_NAME}; from sys.databases select ServerId as serverId into {DatabaseConstants.METADATA_OUTPUT_SOURCE_NAME}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -1998,7 +1998,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"use {DatabaseConstants.TEST_DATABASE_NAME}; from sys.users select ServerId as serverId into {DatabaseConstants.METADATA_OUTPUT_SOURCE_NAME}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -2027,7 +2027,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"use {DatabaseConstants.TEST_DATABASE_NAME}; from sys.databaseroles select ServerId as serverId into {DatabaseConstants.METADATA_OUTPUT_SOURCE_NAME}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -2056,7 +2056,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"use {DatabaseConstants.TEST_DATABASE_NAME}; from sys.schemas select ServerId as serverId into {DatabaseConstants.METADATA_OUTPUT_SOURCE_NAME}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -2085,7 +2085,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"use {DatabaseConstants.TEST_DATABASE_NAME}; from sys.sources select ServerId as serverId into {DatabaseConstants.METADATA_OUTPUT_SOURCE_NAME}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -2114,7 +2114,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"use {DatabaseConstants.TEST_DATABASE_NAME}; from sys.streams select ServerId as serverId into {DatabaseConstants.METADATA_OUTPUT_SOURCE_NAME}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -2147,7 +2147,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"use {DatabaseConstants.TEST_DATABASE_NAME}; from sys.users select ServerId as serverId into {DatabaseConstants.METADATA_OUTPUT_SOURCE_NAME}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -2176,7 +2176,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"use {DatabaseConstants.TEST_DATABASE_NAME}; from sys.databaseroles select ServerId as serverId into {DatabaseConstants.METADATA_OUTPUT_SOURCE_NAME}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -2205,7 +2205,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"use {DatabaseConstants.TEST_DATABASE_NAME}; from sys.schemas select ServerId as serverId into {DatabaseConstants.METADATA_OUTPUT_SOURCE_NAME}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -2234,7 +2234,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"use {DatabaseConstants.TEST_DATABASE_NAME}; from sys.sources select ServerId as serverId into {DatabaseConstants.METADATA_OUTPUT_SOURCE_NAME}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -2263,7 +2263,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"use {DatabaseConstants.TEST_DATABASE_NAME}; from sys.streams select ServerId as serverId into {DatabaseConstants.METADATA_OUTPUT_SOURCE_NAME}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -2296,7 +2296,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"use {DatabaseConstants.TEST_DATABASE_NAME}; from sys.endpoints select ServerId as serverId into {DatabaseConstants.METADATA_OUTPUT_SOURCE_NAME}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -2325,7 +2325,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"use {DatabaseConstants.TEST_DATABASE_NAME}; from sys.logins select ServerId as serverId into {DatabaseConstants.METADATA_OUTPUT_SOURCE_NAME}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -2354,7 +2354,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"use {DatabaseConstants.TEST_DATABASE_NAME}; from sys.databases select ServerId as serverId into {DatabaseConstants.METADATA_OUTPUT_SOURCE_NAME}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -2383,7 +2383,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"use {DatabaseConstants.TEST_DATABASE_NAME}; from sys.users select ServerId as serverId into {DatabaseConstants.METADATA_OUTPUT_SOURCE_NAME}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -2412,7 +2412,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"use {DatabaseConstants.TEST_DATABASE_NAME}; from sys.databaseroles select ServerId as serverId into {DatabaseConstants.METADATA_OUTPUT_SOURCE_NAME}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -2441,7 +2441,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"use {DatabaseConstants.TEST_DATABASE_NAME}; from sys.schemas select ServerId as serverId into {DatabaseConstants.METADATA_OUTPUT_SOURCE_NAME}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -2470,7 +2470,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"use {DatabaseConstants.TEST_DATABASE_NAME}; from sys.sources select ServerId as serverId into {DatabaseConstants.METADATA_OUTPUT_SOURCE_NAME}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -2499,7 +2499,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"use {DatabaseConstants.TEST_DATABASE_NAME}; from sys.streams select ServerId as serverId into {DatabaseConstants.METADATA_OUTPUT_SOURCE_NAME}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -2534,7 +2534,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"use {DatabaseConstants.MASTER_DATABASE_NAME}; create database {databaseName}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -2572,7 +2572,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"use {DatabaseConstants.MASTER_DATABASE_NAME}; create database {databaseName} with status = on";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -2612,7 +2612,7 @@ namespace Integra.Space.UnitTests
             this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -2655,7 +2655,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"use {DatabaseConstants.MASTER_DATABASE_NAME}; create database {databaseName}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -2693,7 +2693,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"use {DatabaseConstants.MASTER_DATABASE_NAME}; create database {databaseName} with status = on";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -2733,7 +2733,7 @@ namespace Integra.Space.UnitTests
             this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -2777,7 +2777,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"create role {roleName}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -2817,7 +2817,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"create role {roleName} with status = on";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -2857,7 +2857,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"create role {roleName} with status = off";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -2898,7 +2898,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"Create role {roleName} with add = {userName}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -2944,7 +2944,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"Create role {roleName} with add = {userName1} {userName2} {userName3}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -2995,7 +2995,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"create schema {schemaName}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -3038,7 +3038,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"create source {sourceName} (column1 int, column2 double, column3 string(4000))";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -3083,7 +3083,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"create source {sourceName} (column1 int, column2 double, column3 string(4000)) with status = on";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -3128,7 +3128,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"create source {sourceName} (column1 int, column2 double, column3 string(4000)) with status = off";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -3185,7 +3185,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"use {DatabaseConstants.MASTER_DATABASE_NAME}; create stream {streamName} {{ {eql} }}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -3242,7 +3242,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"use {DatabaseConstants.MASTER_DATABASE_NAME}; create stream {streamName} {{ {eql} }} with status = on";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -3299,7 +3299,7 @@ namespace Integra.Space.UnitTests
             string command2 = $"use {DatabaseConstants.MASTER_DATABASE_NAME}; create stream {streamName} {{ {eql} }} with status = off";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
