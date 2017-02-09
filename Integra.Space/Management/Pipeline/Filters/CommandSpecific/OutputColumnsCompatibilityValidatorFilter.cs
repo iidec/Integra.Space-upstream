@@ -110,7 +110,7 @@ namespace Integra.Space.Pipeline.Filters
                 {
                     if (projectionColumn.ColumnType == null || projectionColumn.ColumnType == typeof(object))
                     {
-                        Source inputSource = databaseInputSources.FirstOrDefault(x => x.SourceName.Equals(projectionColumn.SourceName, StringComparison.InvariantCultureIgnoreCase));
+                        Source inputSource = databaseInputSources.FirstOrDefault(x => x.SourceName.ToLower() == projectionColumn.SourceName.ToLower());
 
                         // si inputSource es null quiere decir que es una constante la que se esta proyectando.
                         if (inputSource == null)

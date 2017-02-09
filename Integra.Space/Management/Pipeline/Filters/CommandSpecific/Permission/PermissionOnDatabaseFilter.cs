@@ -20,8 +20,8 @@ namespace Integra.Space.Pipeline.Filters
         {
             DatabaseAssignedPermissionsToUser newPermission = new DatabaseAssignedPermissionsToUser();
             newPermission.DatabaseUser = user;
-            SecurableClass securableClass = databaseContext.SecurableClasses.Single(x => x.SecurableName.Equals(permission.CommandObject.SecurableClass.ToString(), StringComparison.InvariantCultureIgnoreCase));
-            GranularPermission granularPermission = databaseContext.GranularPermissions.Single(x => x.GranularPermissionName.Replace(" ", string.Empty).Equals(permission.Permission.ToString(), StringComparison.InvariantCultureIgnoreCase));
+            SecurableClass securableClass = databaseContext.SecurableClasses.Single(x => x.SecurableName.ToLower() == permission.CommandObject.SecurableClass.ToString().ToLower());
+            GranularPermission granularPermission = databaseContext.GranularPermissions.Single(x => x.GranularPermissionName.Replace(" ", string.Empty).ToLower() == permission.Permission.ToString().ToLower());
             newPermission.PermissionBySecurable = databaseContext.PermissionsBySecurables.Single(x => x.GranularPermissionId == granularPermission.GranularPermissionId && x.SecurableClassId == securableClass.SecurableClassId);
             newPermission.WithGrantOption = command.PermissionOption;
 
@@ -90,8 +90,8 @@ namespace Integra.Space.Pipeline.Filters
         {
             DatabaseAssignedPermissionsToDBRole newPermission = new DatabaseAssignedPermissionsToDBRole();
             newPermission.DatabaseRole = role;
-            newPermission.SecurableClassId = databaseContext.SecurableClasses.Single(x => x.SecurableName.Equals(permission.CommandObject.SecurableClass.ToString(), StringComparison.InvariantCultureIgnoreCase)).SecurableClassId;
-            newPermission.GranularPermissionId = databaseContext.GranularPermissions.Single(x => x.GranularPermissionName.Replace(" ", string.Empty).Equals(permission.Permission.ToString(), StringComparison.InvariantCultureIgnoreCase)).GranularPermissionId;
+            newPermission.SecurableClassId = databaseContext.SecurableClasses.Single(x => x.SecurableName.ToLower() == permission.CommandObject.SecurableClass.ToString().ToLower()).SecurableClassId;
+            newPermission.GranularPermissionId = databaseContext.GranularPermissions.Single(x => x.GranularPermissionName.Replace(" ", string.Empty).ToLower() == permission.Permission.ToString().ToLower()).GranularPermissionId;
             newPermission.WithGrantOption = command.PermissionOption;
 
             if (permission.CommandObject == null)

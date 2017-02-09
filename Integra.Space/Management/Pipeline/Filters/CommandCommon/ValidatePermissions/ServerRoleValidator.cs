@@ -51,7 +51,7 @@ namespace Integra.Space.Pipeline.Filters
         {
             // verifica si pertenece al rol del sistema sysadmin.
             bool isSysAdmin = this.databaseContext.ServerRoles
-                .Single(x => SystemRolesEnum.SysAdmin.ToString().Equals(x.ServerRoleName.ToString(), StringComparison.InvariantCultureIgnoreCase))
+                .Single(x => SystemRolesEnum.SysAdmin.ToString().ToLower() == x.ServerRoleName.ToLower())
                 .Logins
                 .Any(x => x.ServerId == this.login.ServerId && x.LoginId == this.login.LoginId);
 
@@ -62,7 +62,7 @@ namespace Integra.Space.Pipeline.Filters
 
             // verifica si pertenece al rol del sistema sysreader.
             bool isSysReader = this.databaseContext.ServerRoles
-                .Single(x => SystemRolesEnum.SysReader.ToString().Equals(x.ServerRoleName.ToString(), StringComparison.InvariantCultureIgnoreCase))
+                .Single(x => SystemRolesEnum.SysReader.ToString().ToLower() == x.ServerRoleName.ToLower())
                 .Logins
                 .Any(x => x.ServerId == this.login.ServerId && x.LoginId == this.login.LoginId);
 

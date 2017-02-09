@@ -24,8 +24,7 @@ namespace Integra.Space.Pipeline.Filters
             database.DatabaseName = command.MainCommandObject.Name;
 
             // se le establece como propietario al login que esta creando la entidad
-            database.OwnerServerId = login.ServerId;
-            database.OwnerId = login.LoginId;
+            database.Login = login;
 
             database.IsActive = true;
             if (command.Options.ContainsKey(Common.DatabaseOptionEnum.Status))
@@ -40,20 +39,22 @@ namespace Integra.Space.Pipeline.Filters
             Schema newSchema = new Schema()
             {
                 SchemaId = Guid.NewGuid(),
-                SchemaName = "dbo",
+                SchemaName = DatabaseConstants.DBO_SCHEMA_NAME,
                 Database = database
             };
-            
+
+            // se hacen nulas las siguiente columnas para poder crear el esquema.
+            SpaceEnvironment env = new SpaceEnvironment();
+            env.ExecuteCommandsBeforeCreateDatabase(databaseContext);
+
             databaseContext.Schemas.Add(newSchema);
             databaseContext.SaveChanges();
-
-            Login sa = databaseContext.Logins.Single(l => l.ServerId == schema.ServerId && l.LoginName == "sa");
-
+            
             DatabaseUser dboUser = new DatabaseUser()
             {
                 DbUsrId = Guid.NewGuid(),
-                DbUsrName = "dbo",
-                Login = sa,
+                DbUsrName = DatabaseConstants.DBO_USER_NAME,
+                Login = login,
                 IsActive = true,
                 DefaultSchema = newSchema,
                 Database = database
@@ -63,8 +64,11 @@ namespace Integra.Space.Pipeline.Filters
             databaseContext.DatabaseUsers.Add(dboUser);
             databaseContext.SaveChanges();
 
-            SecurableClass securableClass = databaseContext.SecurableClasses.Single(x => x.SecurableName.Equals("database", StringComparison.InvariantCultureIgnoreCase));
-            GranularPermission granularPermission = databaseContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("control", StringComparison.InvariantCultureIgnoreCase));
+            // una vez almacenado el usuario y definiendolo como propietario del esquema, se hacen no nulas las columnas.
+            env.ExecuteCommandsAfterCreateDatabase(databaseContext);
+
+            SecurableClass securableClass = databaseContext.SecurableClasses.Single(x => x.SecurableName.ToLower() == Common.SystemObjectEnum.Database.ToString().ToLower());
+            GranularPermission granularPermission = databaseContext.GranularPermissions.Single(x => x.GranularPermissionName.ToLower() == Common.PermissionsEnum.Control.ToString().ToLower());
             DatabaseAssignedPermissionsToUser newPermissionForDBO = new DatabaseAssignedPermissionsToUser()
             {
                 Database = database,
@@ -76,32 +80,6 @@ namespace Integra.Space.Pipeline.Filters
             };
 
             databaseContext.DatabaseAssignedPermissionsToUsers.Add(newPermissionForDBO);
-            databaseContext.SaveChanges();
-
-            DatabaseUser userForTheLogin = new DatabaseUser()
-            {
-                DbUsrId = Guid.NewGuid(),
-                DbUsrName = login.LoginName,
-                Login = login,
-                IsActive = true,
-                DefaultSchema = newSchema,
-                Database = database
-            };
-
-            databaseContext.DatabaseUsers.Add(userForTheLogin);
-            databaseContext.SaveChanges();
-
-            DatabaseAssignedPermissionsToUser newPermissionForUserLogin = new DatabaseAssignedPermissionsToUser()
-            {
-                Database = database,
-                DatabaseUser = userForTheLogin,
-                GranularPermissionId = granularPermission.GranularPermissionId,
-                SecurableClassId = securableClass.SecurableClassId,
-                Granted = true,
-                WithGrantOption = true
-            };
-
-            databaseContext.DatabaseAssignedPermissionsToUsers.Add(newPermissionForUserLogin);
             databaseContext.SaveChanges();
         }
     }

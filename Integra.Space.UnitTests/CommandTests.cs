@@ -1,77 +1,55 @@
-﻿using System;
-using System.Linq;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Integra.Space.Pipeline;
-using Ninject;
-using Integra.Space.Database;
-using System.Data.Entity;
-using Integra.Space.Compiler;
-using System.Reflection.Emit;
-using System.Threading.Tasks.Dataflow;
-using System.Reflection;
-using System.Reactive.Linq;
-using Ninject.Planning.Bindings;
-
+﻿//-----------------------------------------------------------------------
+// <copyright file="CommandTests.cs" company="ARITEC">
+// Copyright (c) ARITEC. All rights reserved.
+// </copyright>
+//-----------------------------------------------------------------------
 namespace Integra.Space.UnitTests
 {
+    using System;
+    using System.Data.Entity;
+    using System.Linq;
+    using System.Reactive.Linq;
+    using System.Reflection;
+    using System.Reflection.Emit;
+    using System.Threading.Tasks.Dataflow;
+    using Compiler;
+    using Database;
+    using Microsoft.VisualStudio.TestTools.UnitTesting;
+    using Ninject;
+    using Ninject.Planning.Bindings;
+    using Pipeline;
+
+    /// <summary>
+    /// A class that contains the test for space commands executed as an adminstrator login.
+    /// </summary>
     [TestClass]
     public class CommandTests
     {
-        private string loginName = "LoginAux";
+        /// <summary>
+        /// Login to use in the tests.
+        /// </summary>
+        private string loginName = DatabaseConstants.NORMAL_LOGIN_3_NAME;
 
-        private FirstLevelPipelineContext ProcessCommand(string command, IKernel kernel)
+        /// <summary>
+        /// Method to be called after each test.
+        /// </summary>
+        [TestInitialize]
+        public void SetUp()
         {
-            IBinding binding = kernel.GetBindings(typeof(Language.IGrammarRuleValidator)).FirstOrDefault();
-            if (binding != null)
-            {
-                kernel.RemoveBinding(binding);
-            }
-            kernel.Bind<Language.IGrammarRuleValidator>().ToConstant(new TestRuleValidator());
-            CommandPipelineBuilder cpb = new CommandPipelineBuilder();
-            Filter<FirstLevelPipelineContext, FirstLevelPipelineContext> pipeline = cpb.Build();
-
-            FirstLevelPipelineExecutor cpe = new FirstLevelPipelineExecutor(pipeline);
-            FirstLevelPipelineContext context = new FirstLevelPipelineContext(command, loginName, kernel);
-            FirstLevelPipelineContext result = cpe.Execute(context);
-            return result;
-        }
-
-        private CodeGeneratorConfiguration GetCodeGeneratorConfig(ManagementSchedulerFactory dsf, IKernel kernel)
-        {
-            bool printLog = false;
-            bool debugMode = false;
-            bool measureElapsedTime = false;
-            bool isTestMode = false;
-            Login login = new SpaceDbContext().Logins.Single(x => x.LoginName == "sa");
-            SpaceAssemblyBuilder sasmBuilder = new SpaceAssemblyBuilder("Test");
-            AssemblyBuilder asmBuilder = sasmBuilder.CreateAssemblyBuilder();
-            SpaceModuleBuilder smodBuilder = new SpaceModuleBuilder(asmBuilder);
-            smodBuilder.CreateModuleBuilder();
-            kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
-            kernel.Bind<ISource>().ToConstructor(x => new ConcreteSource());
-            CodeGeneratorConfiguration config = new CodeGeneratorConfiguration(
-                login,
-                dsf,
-                asmBuilder,
-                kernel,
-                printLog: printLog,
-                debugMode: debugMode,
-                measureElapsedTime: measureElapsedTime,
-                isTestMode: isTestMode,
-                queryName: "QueryTest"
-                );
-
-            return config;
+            var dependency = typeof(System.Data.Entity.SqlServer.SqlProviderServices);
         }
 
         #region insert
 
+        /// <summary>
+        /// First insert an event to a source, then a stream receive it and finally the output result is validated.
+        /// </summary>
         [TestMethod]
         public void Insert1()
         {
             #region commmand
 
-            string command = @"insert into SourceParaPruebas
+            string command = $@"insert into {DatabaseConstants.INPUT_SOURCE_NAME}
                                 (
                                 MessageType,
                                 PrimaryAccountNumber,
@@ -81,7 +59,7 @@ namespace Integra.Space.UnitTests
                                 SystemTraceAuditNumber,
                                 LocalTransactionTime,
                                 LocalTransactionDate,
-                                SettlementDate,
+                                SetElementDate,
                                 MerchantType,
                                 AcquiringInstitutionCountryCode,
                                 PointOfServiceEntryMode,
@@ -125,10 +103,10 @@ namespace Integra.Space.UnitTests
                                 )";
 
             #endregion command
-            
-            loginName = "sa";
+
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -136,7 +114,7 @@ namespace Integra.Space.UnitTests
 
                     #region create stream
 
-                    string eql = "use Database2; from SourceParaPruebas where MessageType == \"0100\" select true as resultado into SourceParaPruebas";
+                    string eql = $"use {DatabaseConstants.TEST_DATABASE_NAME}; from SourceParaPruebas where MessageType == \"0100\" select true as resultado into SourceParaPruebas";
                     ManagementSchedulerFactory dsf = new ManagementSchedulerFactory();
                     CodeGeneratorConfiguration context = this.GetCodeGeneratorConfig(dsf, kernel);
                     Language.CommandParser parser = new Language.CommandParser(eql, new TestRuleValidator());
@@ -152,11 +130,12 @@ namespace Integra.Space.UnitTests
                     object queryObject = Activator.CreateInstance(queryType);
                     MethodInfo result = queryObject.GetType().GetMethod("MainFunction");
 
-                    IObservable<TestObject1> o = Observable.Create<TestObject1>(x => {
+                    IObservable<TestObject1> o = Observable.Create<TestObject1>(x =>
+                    {
                         return BufferBlockForTest.BufferBlock1.AsObservable().Subscribe(y => x.OnNext((TestObject1)y));
                     });
 
-                    IObservable<object> resultObservable = ((IObservable<object>)result.Invoke(queryObject, new object[] { o /*, dsf.TestScheduler*/ }));
+                    IObservable<object> resultObservable = (IObservable<object>)result.Invoke(queryObject, new object[] { o /*, dsf.TestScheduler*/ });
 
                     #endregion create stream
 
@@ -183,14 +162,22 @@ namespace Integra.Space.UnitTests
 
         #region metadata query
 
+        /// <summary>
+        /// Get the streams metadata using a query with from, where, apply window of, select, order by and into statements.
+        /// </summary>
         [TestMethod]
         public void GetMetadataFromWhereSelectOrderByTest()
         {
-            string command = "use Database2; from sys.streams as x where (string)ServerId == \"59e858fc-c84d-48a7-8a98-c0e7adede20a\" apply window of '00:00:01' select ServerId as serverId, max(1) as entero order by desc serverId, entero into SourceParaMetadata";
-            loginName = "sa";
+            string command = $@"use {DatabaseConstants.TEST_DATABASE_NAME}; 
+                                from sys.streams as x where (string)ServerId == ""59e858fc-c84d-48a7-8a98-c0e7adede20a"" 
+                                apply window of '00:00:01' 
+                                select ServerId as serverId, max(1) as entero 
+                                order by desc serverId, entero 
+                                into {DatabaseConstants.METADATA_OUTPUT_SOURCE_NAME}";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -202,15 +189,19 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Get the streams metadata using a query with from, select and into statements.
+        /// </summary>
         [TestMethod]
         public void GetMetadataFromSelectTest()
         {
-            string command = "use Database2; from sys.streams as x select ServerId as serverId, 2 as entero into SourceParaMetadata";
+            string command = $@"use {DatabaseConstants.TEST_DATABASE_NAME};
+                                from sys.streams as x select ServerId as serverId, 2 as entero into {DatabaseConstants.METADATA_OUTPUT_SOURCE_NAME}";
 
-            loginName = "sa";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
             IKernel kernel = new StandardKernel();
 
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -226,16 +217,19 @@ namespace Integra.Space.UnitTests
 
         #region take ownership
 
+        /// <summary>
+        /// Takes ownership of a database role.
+        /// </summary>
         [TestMethod]
         public void TakeOwnershipOnDbRole()
         {
-            string entityName = "RoleForTest";
+            string entityName = DatabaseConstants.ROLE_1_NAME;
             string command = $"take ownership on role {entityName}";
-            string databaseName = "Database1";
-            loginName = "AdminLogin";
+            string databaseName = DatabaseConstants.MASTER_DATABASE_NAME;
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
             IKernel kernel = new StandardKernel();
 
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -243,10 +237,10 @@ namespace Integra.Space.UnitTests
 
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    Login login = dbContext.Logins.Single(x => x.Server.ServerName == "Server1" && x.LoginName == loginName);
-                    Database.Database database = dbContext.Databases.Single(x => x.ServerId == login.ServerId && x.DatabaseName == databaseName);
+                    Login login = dbContext.Logins.Single(x => x.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.LoginName == this.loginName);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.ServerId == login.ServerId && x.DatabaseName == databaseName);
                     DatabaseRole role = dbContext.DatabaseRoles.Single(x => x.ServerId == login.ServerId && x.DatabaseId == database.DatabaseId && x.DbRoleName == entityName);
-                    Assert.AreEqual<string>("AdminUser", role.DatabaseUser.DbUsrName);
+                    Assert.AreEqual<string>(DatabaseConstants.DBO_USER_NAME, role.DatabaseUser.DbUsrName);
 
                     Console.WriteLine();
                     tran.Rollback();
@@ -254,15 +248,18 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Takes ownership of a database.
+        /// </summary>
         [TestMethod]
         public void TakeOwnershipOnDatabase()
         {
-            string entityName = "Database1";
+            string entityName = DatabaseConstants.TEST_DATABASE_NAME;
             string command = $"take ownership on database {entityName}";
-            loginName = "AdminLogin";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
             IKernel kernel = new StandardKernel();
 
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -270,9 +267,9 @@ namespace Integra.Space.UnitTests
 
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    Login login = dbContext.Logins.Single(x => x.Server.ServerName == "Server1" && x.LoginName == loginName);
-                    Database.Database database = dbContext.Databases.Single(x => x.ServerId == login.ServerId && x.DatabaseName == entityName);
-                    Assert.AreEqual<string>("AdminLogin", database.Login.LoginName);
+                    Login login = dbContext.Logins.Single(x => x.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.LoginName == this.loginName);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.ServerId == login.ServerId && x.DatabaseName == entityName);
+                    Assert.AreEqual<string>(DatabaseConstants.SA_LOGIN_NAME, database.Login.LoginName);
 
                     Console.WriteLine();
                     tran.Rollback();
@@ -280,15 +277,18 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Takes ownership of an endpoint.
+        /// </summary>
         [TestMethod]
         public void TakeOwnershipOnEndpoint()
         {
-            string entityName = "EndpointForTest";
+            string entityName = DatabaseConstants.TCP_ENDPOINT_NAME;
             string command = $"take ownership on endpoint {entityName}";
-            loginName = "AdminLogin";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
             IKernel kernel = new StandardKernel();
 
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -296,9 +296,9 @@ namespace Integra.Space.UnitTests
 
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    Login login = dbContext.Logins.Single(x => x.Server.ServerName == "Server1" && x.LoginName == loginName);
-                    Database.Endpoint endpoint = dbContext.Endpoints.Single(x => x.ServerId == login.ServerId && x.EnpointName == entityName);
-                    Assert.AreEqual<string>("AdminLogin", endpoint.Login.LoginName);
+                    Login login = dbContext.Logins.Single(x => x.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.LoginName == this.loginName);
+                    Space.Database.Endpoint endpoint = dbContext.Endpoints.Single(x => x.ServerId == login.ServerId && x.EnpointName == entityName);
+                    Assert.AreEqual<string>(DatabaseConstants.SA_LOGIN_NAME, endpoint.Login.LoginName);
 
                     Console.WriteLine();
                     tran.Rollback();
@@ -306,16 +306,19 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Takes ownership of an schema.
+        /// </summary>
         [TestMethod]
         public void TakeOwnershipOnSchema()
         {
-            string entityName = "Schema1";
-            string command = $"take ownership on schema {entityName}";
-            string databaseName = "Database1";
-            loginName = "AdminLogin";
+            string entityName = DatabaseConstants.TEST_SCHEMA_NAME;
+            string databaseName = DatabaseConstants.MASTER_DATABASE_NAME;
+            string command = $"use {databaseName}; take ownership on schema {entityName}";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
             IKernel kernel = new StandardKernel();
 
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -323,10 +326,10 @@ namespace Integra.Space.UnitTests
 
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    Login login = dbContext.Logins.Single(x => x.Server.ServerName == "Server1" && x.LoginName == loginName);
-                    Database.Database database = dbContext.Databases.Single(x => x.ServerId == login.ServerId && x.DatabaseName == databaseName);
-                    Database.Schema schema = dbContext.Schemas.Single(x => x.ServerId == login.ServerId && x.DatabaseId == database.DatabaseId && x.SchemaName == entityName);
-                    Assert.AreEqual<string>("AdminUser", schema.DatabaseUser.DbUsrName);
+                    Login login = dbContext.Logins.Single(x => x.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.LoginName == this.loginName);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.ServerId == login.ServerId && x.DatabaseName == databaseName);
+                    Space.Database.Schema schema = dbContext.Schemas.Single(x => x.ServerId == login.ServerId && x.DatabaseId == database.DatabaseId && x.SchemaName == entityName);
+                    Assert.AreEqual<string>(DatabaseConstants.DBO_USER_NAME, schema.DatabaseUser.DbUsrName);
 
                     Console.WriteLine();
                     tran.Rollback();
@@ -334,17 +337,20 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Takes ownership of a source.
+        /// </summary>
         [TestMethod]
         public void TakeOwnershipOnSource()
         {
-            string entityName = "SourceInicial";
+            string entityName = DatabaseConstants.INPUT_SOURCE_NAME;
+            string databaseName = DatabaseConstants.MASTER_DATABASE_NAME;
             string command = $"take ownership on source {entityName}";
-            string databaseName = "Database1";
-            string schemaName = "schema1";
-            loginName = "AdminLogin";
+            string schemaName = DatabaseConstants.DBO_SCHEMA_NAME;
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
             IKernel kernel = new StandardKernel();
 
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -352,11 +358,11 @@ namespace Integra.Space.UnitTests
 
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    Login login = dbContext.Logins.Single(x => x.Server.ServerName == "Server1" && x.LoginName == loginName);
-                    Database.Database database = dbContext.Databases.Single(x => x.ServerId == login.ServerId && x.DatabaseName == databaseName);
-                    Database.Schema schema = dbContext.Schemas.Single(x => x.ServerId == database.ServerId && x.DatabaseId == database.DatabaseId && x.SchemaName == schemaName);
-                    Database.Source source = dbContext.Sources.Single(x => x.ServerId == login.ServerId && x.DatabaseId == database.DatabaseId && x.SchemaId == schema.SchemaId && x.SourceName == entityName);
-                    Assert.AreEqual<string>("AdminUser", source.DatabaseUser.DbUsrName);
+                    Login login = dbContext.Logins.Single(x => x.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.LoginName == this.loginName);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.ServerId == login.ServerId && x.DatabaseName == databaseName);
+                    Space.Database.Schema schema = dbContext.Schemas.Single(x => x.ServerId == database.ServerId && x.DatabaseId == database.DatabaseId && x.SchemaName == schemaName);
+                    Space.Database.Source source = dbContext.Sources.Single(x => x.ServerId == login.ServerId && x.DatabaseId == database.DatabaseId && x.SchemaId == schema.SchemaId && x.SourceName == entityName);
+                    Assert.AreEqual<string>(DatabaseConstants.DBO_USER_NAME, source.DatabaseUser.DbUsrName);
 
                     Console.WriteLine();
                     tran.Rollback();
@@ -364,17 +370,20 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Takes ownership of a stream.
+        /// </summary>
         [TestMethod]
         public void TakeOwnershipOnStream()
         {
-            string entityName = "Stream123";
+            string entityName = DatabaseConstants.TEST_STREAM_NAME;
             string command = $"take ownership on stream {entityName}";
-            string databaseName = "Database1";
-            string schemaName = "schema1";
-            loginName = "AdminLogin";
+            string databaseName = DatabaseConstants.MASTER_DATABASE_NAME;
+            string schemaName = DatabaseConstants.DBO_SCHEMA_NAME;
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
             IKernel kernel = new StandardKernel();
 
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -382,11 +391,11 @@ namespace Integra.Space.UnitTests
 
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    Login login = dbContext.Logins.Single(x => x.Server.ServerName == "Server1" && x.LoginName == loginName);
-                    Database.Database database = dbContext.Databases.Single(x => x.ServerId == login.ServerId && x.DatabaseName == databaseName);
-                    Database.Schema schema = dbContext.Schemas.Single(x => x.ServerId == database.ServerId && x.DatabaseId == database.DatabaseId && x.SchemaName == schemaName);
-                    Database.Stream stream = dbContext.Streams.Single(x => x.ServerId == login.ServerId && x.DatabaseId == database.DatabaseId && x.SchemaId == schema.SchemaId && x.StreamName == entityName);
-                    Assert.AreEqual<string>("AdminUser", stream.DatabaseUser.DbUsrName);
+                    Login login = dbContext.Logins.Single(x => x.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.LoginName == this.loginName);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.ServerId == login.ServerId && x.DatabaseName == databaseName);
+                    Space.Database.Schema schema = dbContext.Schemas.Single(x => x.ServerId == database.ServerId && x.DatabaseId == database.DatabaseId && x.SchemaName == schemaName);
+                    Space.Database.Stream stream = dbContext.Streams.Single(x => x.ServerId == login.ServerId && x.DatabaseId == database.DatabaseId && x.SchemaId == schema.SchemaId && x.StreamName == entityName);
+                    Assert.AreEqual<string>(DatabaseConstants.DBO_USER_NAME, stream.DatabaseUser.DbUsrName);
 
                     Console.WriteLine();
                     tran.Rollback();
@@ -398,16 +407,19 @@ namespace Integra.Space.UnitTests
 
         #region add
 
+        /// <summary>
+        /// Add a user to a database role.
+        /// </summary>
         [TestMethod]
         public void AddUserToRole()
         {
-            string roleName = "RoleForTest";
-            string userName = "UserForTest";
-            loginName = "AdminLogin";
+            string roleName = DatabaseConstants.ROLE_1_NAME;
+            string userName = DatabaseConstants.NORMAL_USER_1_NAME;
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
             string command = $"add {userName} to {roleName}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -415,7 +427,7 @@ namespace Integra.Space.UnitTests
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
                     try
                     {
-                        Database.DatabaseUser dbUser = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName).DatabaseUsers.Single(x => x.DbUsrName == userName);
+                        Space.Database.DatabaseUser dbUser = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName).DatabaseUsers.Single(x => x.DbUsrName == userName);
                         Assert.AreEqual(userName, dbUser.DbUsrName);
                         tran.Rollback();
                     }
@@ -428,17 +440,20 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Add a user to multiple roles.
+        /// </summary>
         [TestMethod]
         public void AddUserToRoles()
         {
-            string roleName1 = "RoleForTest";
-            string roleName2 = "RoleForTest2";
-            string userName = "UserForTest";
+            string roleName1 = DatabaseConstants.ROLE_1_NAME;
+            string roleName2 = DatabaseConstants.ROLE_2_NAME;
+            string userName = DatabaseConstants.NORMAL_USER_1_NAME;
             string command = $"add {userName} to {roleName1}, {roleName2}";
-            loginName = "AdminLogin";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -446,9 +461,9 @@ namespace Integra.Space.UnitTests
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
                     try
                     {
-                        Database.DatabaseUser dbUser1 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName1).DatabaseUsers.Single(x => x.DbUsrName == userName);
+                        Space.Database.DatabaseUser dbUser1 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName1).DatabaseUsers.Single(x => x.DbUsrName == userName);
                         Assert.AreEqual(userName, dbUser1.DbUsrName);
-                        Database.DatabaseUser dbUser2 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName2).DatabaseUsers.Single(x => x.DbUsrName == userName);
+                        Space.Database.DatabaseUser dbUser2 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName2).DatabaseUsers.Single(x => x.DbUsrName == userName);
                         Assert.AreEqual(userName, dbUser2.DbUsrName);
                         tran.Rollback();
                     }
@@ -461,17 +476,20 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Add multiple users to a single database role.
+        /// </summary>
         [TestMethod]
         public void AddUserListToRole()
         {
-            string roleName = "RoleForTest";
-            string userName1 = "UserForTest";
-            string userName2 = "UserAux";
+            string roleName = DatabaseConstants.ROLE_1_NAME;
+            string userName1 = DatabaseConstants.NORMAL_USER_1_NAME;
+            string userName2 = DatabaseConstants.NORMAL_USER_2_NAME;
             string command = $"add {userName1}, {userName2} to {roleName}";
-            loginName = "AdminLogin";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -479,9 +497,9 @@ namespace Integra.Space.UnitTests
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
                     try
                     {
-                        Database.DatabaseUser dbUser1 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName).DatabaseUsers.Single(x => x.DbUsrName == userName1);
+                        Space.Database.DatabaseUser dbUser1 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName).DatabaseUsers.Single(x => x.DbUsrName == userName1);
                         Assert.AreEqual(userName1, dbUser1.DbUsrName);
-                        Database.DatabaseUser dbUser2 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName).DatabaseUsers.Single(x => x.DbUsrName == userName2);
+                        Space.Database.DatabaseUser dbUser2 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName).DatabaseUsers.Single(x => x.DbUsrName == userName2);
                         Assert.AreEqual(userName2, dbUser2.DbUsrName);
                         tran.Rollback();
                     }
@@ -494,18 +512,21 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Add multple users to multiple database roles.
+        /// </summary>
         [TestMethod]
         public void AddUserListToRoles()
         {
-            string roleName1 = "RoleForTest";
-            string roleName2 = "RoleForTest2";
-            string userName1 = "UserForTest";
-            string userName2 = "UserAux";
+            string roleName1 = DatabaseConstants.ROLE_1_NAME;
+            string roleName2 = DatabaseConstants.ROLE_2_NAME;
+            string userName1 = DatabaseConstants.NORMAL_USER_1_NAME;
+            string userName2 = DatabaseConstants.NORMAL_USER_2_NAME;
             string command = $"add {userName1}, {userName2} to {roleName1}, {roleName2}";
-            loginName = "AdminLogin";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -513,14 +534,14 @@ namespace Integra.Space.UnitTests
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
                     try
                     {
-                        Database.DatabaseUser dbUser1 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName1).DatabaseUsers.Single(x => x.DbUsrName == userName1);
+                        Space.Database.DatabaseUser dbUser1 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName1).DatabaseUsers.Single(x => x.DbUsrName == userName1);
                         Assert.AreEqual(userName1, dbUser1.DbUsrName);
-                        Database.DatabaseUser dbUser2 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName2).DatabaseUsers.Single(x => x.DbUsrName == userName1);
+                        Space.Database.DatabaseUser dbUser2 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName2).DatabaseUsers.Single(x => x.DbUsrName == userName1);
                         Assert.AreEqual(userName1, dbUser2.DbUsrName);
 
-                        Database.DatabaseUser dbUser3 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName1).DatabaseUsers.Single(x => x.DbUsrName == userName2);
+                        Space.Database.DatabaseUser dbUser3 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName1).DatabaseUsers.Single(x => x.DbUsrName == userName2);
                         Assert.AreEqual(userName2, dbUser3.DbUsrName);
-                        Database.DatabaseUser dbUser4 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName2).DatabaseUsers.Single(x => x.DbUsrName == userName2);
+                        Space.Database.DatabaseUser dbUser4 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName2).DatabaseUsers.Single(x => x.DbUsrName == userName2);
                         Assert.AreEqual(userName2, dbUser4.DbUsrName);
 
                         tran.Rollback();
@@ -538,17 +559,20 @@ namespace Integra.Space.UnitTests
 
         #region remove
 
+        /// <summary>
+        /// Removes a user from a role.
+        /// </summary>
         [TestMethod]
         public void RemoveUserToRole()
         {
-            string roleName = "RoleForTest";
-            string userName = "UserForTest";
-            loginName = "AdminLogin";
+            string roleName = DatabaseConstants.ROLE_1_NAME;
+            string userName = DatabaseConstants.NORMAL_USER_1_NAME;
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
             string command = $"add {userName} to {roleName}";
             command += $"; remove {userName} to {roleName}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -569,18 +593,21 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Removes a user from multiple roles.
+        /// </summary>
         [TestMethod]
         public void RemoveUserToRoles()
         {
-            string roleName1 = "RoleForTest";
-            string roleName2 = "RoleForTest2";
-            string userName = "UserForTest";
+            string roleName1 = DatabaseConstants.ROLE_1_NAME;
+            string roleName2 = DatabaseConstants.ROLE_2_NAME;
+            string userName = DatabaseConstants.NORMAL_USER_1_NAME;
             string command = $"add {userName} to {roleName1}, {roleName2}";
             command += $"; remove {userName} to {roleName1}, {roleName2}";
-            loginName = "AdminLogin";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -602,18 +629,21 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Removes multiple users from a role.
+        /// </summary>
         [TestMethod]
         public void RemoveUserListToRole()
         {
-            string roleName = "RoleForTest";
-            string userName1 = "UserForTest";
-            string userName2 = "UserAux";
+            string roleName = DatabaseConstants.ROLE_1_NAME;
+            string userName1 = DatabaseConstants.NORMAL_USER_1_NAME;
+            string userName2 = DatabaseConstants.NORMAL_USER_2_NAME;
             string command = $"add {userName1}, {userName2} to {roleName}";
             command += $"; remove {userName1}, {userName2} to {roleName}";
-            loginName = "AdminLogin";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -635,19 +665,22 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Remove multiple users from multiple roles.
+        /// </summary>
         [TestMethod]
         public void RemoveUserListToRoles()
         {
-            string roleName1 = "RoleForTest";
-            string roleName2 = "RoleForTest2";
-            string userName1 = "UserForTest";
-            string userName2 = "UserAux";
+            string roleName1 = DatabaseConstants.ROLE_1_NAME;
+            string roleName2 = DatabaseConstants.ROLE_2_NAME;
+            string userName1 = DatabaseConstants.NORMAL_USER_1_NAME;
+            string userName2 = DatabaseConstants.NORMAL_USER_2_NAME;
             string command = $"add {userName1}, {userName2} to {roleName1}, {roleName2}";
             command += $"; remove {userName1}, {userName2} to {roleName1}, {roleName2}";
-            loginName = "AdminLogin";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -678,16 +711,19 @@ namespace Integra.Space.UnitTests
 
         #region create login
 
+        /// <summary>
+        /// Creates a new login without specifying options.
+        /// </summary>
         [TestMethod]
         public void CreateLogin()
         {
             string loginName = "login1";
             string password = "pass1234";
             string command = $"create login {loginName} with password = \"{password}\"";
-            this.loginName = "AdminLogin";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -709,16 +745,19 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Creates a new login with status on.
+        /// </summary>
         [TestMethod]
         public void CreateLoginWithStatusOn()
         {
             string loginName = "login1";
             string password = "pass1234";
             string command = $"create login {loginName} with password = \"{password}\", status = on";
-            this.loginName = "AdminLogin";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -741,16 +780,19 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Creates a new login with status off.
+        /// </summary>
         [TestMethod]
         public void CreateLoginWithStatusOff()
         {
             string loginName = "login1";
             string password = "pass1234";
             string command = $"create login {loginName} with password = \"{password}\", status = off";
-            this.loginName = "AdminLogin";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -773,17 +815,20 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Creates a new login with a default database.
+        /// </summary>
         [TestMethod]
         public void CreateLoginWithDefaultDatabase()
         {
             string loginName = "login1";
             string password = "pass1234";
-            string databaseName = "Database1";
+            string databaseName = DatabaseConstants.MASTER_DATABASE_NAME;
             string command = $"create login {loginName} with password = \"{password}\", default_database = {databaseName}";
-            this.loginName = "AdminLogin";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -806,17 +851,20 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Creates a new login with a default database and status on.
+        /// </summary>
         [TestMethod]
         public void CreateLoginWithDefaultDatabaseAndStatusOn()
         {
             string loginName = "login1";
             string password = "pass1234";
-            string databaseName = "Database1";
+            string databaseName = DatabaseConstants.MASTER_DATABASE_NAME;
             string command = $"create login {loginName} with password = \"{password}\", default_database = {databaseName}, status = on";
-            this.loginName = "AdminLogin";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -840,17 +888,20 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Creates a new login with a default database and status off.
+        /// </summary>
         [TestMethod]
         public void CreateLoginWithDefaultDatabaseAndStatusOff()
         {
             string loginName = "login1";
             string password = "pass1234";
-            string databaseName = "Database1";
+            string databaseName = DatabaseConstants.MASTER_DATABASE_NAME;
             string command = $"create login {loginName} with password = \"{password}\", default_database = {databaseName}, status = off";
-            this.loginName = "AdminLogin";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -878,15 +929,18 @@ namespace Integra.Space.UnitTests
 
         #region create database
 
+        /// <summary>
+        /// Creates a new database without specifying options.
+        /// </summary>
         [TestMethod]
         public void CreateDatabase()
         {
             string databaseName = "newDatabase";
             string command = $"create database {databaseName}";
-            this.loginName = "AdminLogin";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -894,7 +948,7 @@ namespace Integra.Space.UnitTests
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
                     try
                     {
-                        Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseName);
+                        Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseName);
                         Assert.AreEqual(databaseName, database.DatabaseName);
                         tran.Rollback();
                     }
@@ -907,15 +961,18 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Creates a new database with status on.
+        /// </summary>
         [TestMethod]
         public void CreateDatabaseWithStatusOn()
         {
             string databaseName = "newDatabase";
             string command = $"create database {databaseName} with status = on";
-            this.loginName = "AdminLogin";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -923,7 +980,7 @@ namespace Integra.Space.UnitTests
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
                     try
                     {
-                        Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseName);
+                        Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseName);
                         Assert.AreEqual(databaseName, database.DatabaseName);
                         Assert.IsTrue(database.IsActive);
                         tran.Rollback();
@@ -937,15 +994,18 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Creates a new database with status off.
+        /// </summary>
         [TestMethod]
         public void CreateDatabaseWithStatusOff()
         {
             string databaseName = "newDatabase";
             string command = $"create database {databaseName} with status = off";
-            this.loginName = "AdminLogin";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -953,7 +1013,7 @@ namespace Integra.Space.UnitTests
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
                     try
                     {
-                        Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseName);
+                        Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseName);
                         Assert.AreEqual(databaseName, database.DatabaseName);
                         Assert.IsFalse(database.IsActive);
                         tran.Rollback();
@@ -971,16 +1031,19 @@ namespace Integra.Space.UnitTests
 
         #region create user
 
+        /// <summary>
+        /// Creates a new user without specifying options.
+        /// </summary>
         [TestMethod]
         public void CreateUserWithLogin()
         {
-            string userName = "newUser";
-            string loginUserName = "AdminLogin2";
-            string command = $"create user {userName} with login = {loginUserName}";
-            this.loginName = "AdminLogin";
+            string userName = DatabaseConstants.NORMAL_LOGIN_2_NAME;
+            string loginUserName = DatabaseConstants.NORMAL_LOGIN_2_NAME;
+            string command = $"use {DatabaseConstants.TEST_DATABASE_NAME}; create user {userName} with login = {loginUserName}";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -988,7 +1051,7 @@ namespace Integra.Space.UnitTests
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
                     try
                     {
-                        DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.DbUsrName == userName);
+                        DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.Database.DatabaseName == DatabaseConstants.TEST_DATABASE_NAME && x.DbUsrName == userName);
                         Assert.AreEqual(userName, user.DbUsrName);
                         Assert.AreEqual(loginUserName, user.Login.LoginName);
                         Assert.IsTrue(user.IsActive);
@@ -1003,17 +1066,20 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Creates a new user with default schema.
+        /// </summary>
         [TestMethod]
         public void CreateUserWithLoginDefaultSchema()
         {
-            string userName = "newUser";
-            string loginUserName = "AdminLogin2";
-            string schemaName = "Schema1";
-            string command = $"create user {userName} with login = {loginUserName}, default_schema = {schemaName}";
-            this.loginName = "AdminLogin";
+            string userName = DatabaseConstants.NORMAL_LOGIN_2_NAME;
+            string loginUserName = DatabaseConstants.NORMAL_LOGIN_2_NAME;
+            string schemaName = DatabaseConstants.DBO_SCHEMA_NAME;
+            string command = $"use {DatabaseConstants.TEST_DATABASE_NAME}; create user {userName} with login = {loginUserName}, default_schema = {schemaName}";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -1021,7 +1087,7 @@ namespace Integra.Space.UnitTests
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
                     try
                     {
-                        DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.DbUsrName == userName);
+                        DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.Database.DatabaseName == DatabaseConstants.TEST_DATABASE_NAME && x.DbUsrName == userName);
                         Assert.AreEqual(userName, user.DbUsrName);
                         Assert.AreEqual(loginUserName, user.Login.LoginName);
                         Assert.AreEqual(schemaName, user.DefaultSchema.SchemaName);
@@ -1037,16 +1103,19 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Creates a new user with status on.
+        /// </summary>
         [TestMethod]
         public void CreateUserWithStatusOn()
         {
-            string userName = "newUser";
-            string loginUserName = "AdminLogin2";
-            string command = $"create user {userName} with login = {loginUserName}, status = on";
-            this.loginName = "AdminLogin";
+            string userName = DatabaseConstants.NORMAL_USER_2_NAME;
+            string loginUserName = DatabaseConstants.NORMAL_LOGIN_2_NAME;
+            string command = $"use {DatabaseConstants.TEST_DATABASE_NAME}; create user {userName} with login = {loginUserName}, status = on";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -1054,7 +1123,7 @@ namespace Integra.Space.UnitTests
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
                     try
                     {
-                        DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.DbUsrName == userName);
+                        DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.Database.DatabaseName == DatabaseConstants.TEST_DATABASE_NAME && x.DbUsrName == userName);
                         Assert.AreEqual(userName, user.DbUsrName);
                         Assert.AreEqual(loginUserName, user.Login.LoginName);
                         Assert.IsTrue(user.IsActive);
@@ -1069,16 +1138,19 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Creates a new user with status off.
+        /// </summary>
         [TestMethod]
         public void CreateUserWithStatusOff()
         {
-            string userName = "newUser";
-            string loginUserName = "AdminLogin2";
-            string command = $"create user {userName} with login = {loginUserName}, status = off";
-            this.loginName = "AdminLogin";
+            string userName = DatabaseConstants.NORMAL_LOGIN_2_NAME;
+            string loginUserName = DatabaseConstants.NORMAL_LOGIN_2_NAME;
+            string command = $"use {DatabaseConstants.TEST_DATABASE_NAME}; create user {userName} with login = {loginUserName}, status = off";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -1086,7 +1158,7 @@ namespace Integra.Space.UnitTests
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
                     try
                     {
-                        DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.DbUsrName == userName);
+                        DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.Database.DatabaseName == DatabaseConstants.TEST_DATABASE_NAME && x.DbUsrName == userName);
                         Assert.AreEqual(userName, user.DbUsrName);
                         Assert.AreEqual(loginUserName, user.Login.LoginName);
                         Assert.IsFalse(user.IsActive);
@@ -1101,17 +1173,20 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Creates a new user with default schema and status off.
+        /// </summary>
         [TestMethod]
         public void CreateUserWithDefaultSchemaLoginStatusOff()
         {
-            string userName = "newUser";
-            string loginUserName = "AdminLogin2";
-            string schemaName = "Schema1";
-            string command = $"create user {userName} with login = {loginUserName}, default_schema = {schemaName}, status = off";
-            this.loginName = "AdminLogin";
+            string userName = DatabaseConstants.NORMAL_LOGIN_2_NAME;
+            string loginUserName = DatabaseConstants.NORMAL_LOGIN_2_NAME;
+            string schemaName = DatabaseConstants.DBO_SCHEMA_NAME;
+            string command = $"use {DatabaseConstants.TEST_DATABASE_NAME}; create user {userName} with login = {loginUserName}, default_schema = {schemaName}, status = off";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -1119,7 +1194,7 @@ namespace Integra.Space.UnitTests
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
                     try
                     {
-                        DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.DbUsrName == userName);
+                        DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.Database.DatabaseName == DatabaseConstants.TEST_DATABASE_NAME && x.DbUsrName == userName);
                         Assert.AreEqual(userName, user.DbUsrName);
                         Assert.AreEqual(loginUserName, user.Login.LoginName);
                         Assert.AreEqual(schemaName, user.DefaultSchema.SchemaName);
@@ -1135,17 +1210,20 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Creates a new user with default schema and status on.
+        /// </summary>
         [TestMethod]
         public void CreateUserWithDefaultSchemaLoginStatusOn()
         {
-            string userName = "newUser";
-            string loginUserName = "AdminLogin2";
-            string schemaName = "Schema1";
-            string command = $"create user {userName} with login = {loginUserName}, default_schema = {schemaName}, status = on";
-            this.loginName = "AdminLogin";
+            string userName = DatabaseConstants.NORMAL_LOGIN_2_NAME;
+            string loginUserName = DatabaseConstants.NORMAL_LOGIN_2_NAME;
+            string schemaName = DatabaseConstants.DBO_SCHEMA_NAME;
+            string command = $"use {DatabaseConstants.TEST_DATABASE_NAME}; create user {userName} with login = {loginUserName}, default_schema = {schemaName}, status = on";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -1153,7 +1231,7 @@ namespace Integra.Space.UnitTests
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
                     try
                     {
-                        DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.DbUsrName == userName);
+                        DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.Database.DatabaseName == DatabaseConstants.TEST_DATABASE_NAME && x.DbUsrName == userName);
                         Assert.AreEqual(userName, user.DbUsrName);
                         Assert.AreEqual(loginUserName, user.Login.LoginName);
                         Assert.AreEqual(schemaName, user.DefaultSchema.SchemaName);
@@ -1173,15 +1251,18 @@ namespace Integra.Space.UnitTests
 
         #region create role
 
+        /// <summary>
+        /// Creates a new database role without specifying options.
+        /// </summary>
         [TestMethod]
         public void CreateRole()
         {
-            string roleName = "role1";
-            string command = $"create role {roleName}";
-            this.loginName = "AdminLogin";
+            string roleName = DatabaseConstants.INEXISTENT_ROLE_NAME_1;
+            string command = $"use {DatabaseConstants.TEST_DATABASE_NAME}; create role {roleName}";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -1189,7 +1270,7 @@ namespace Integra.Space.UnitTests
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
                     try
                     {
-                        DatabaseRole role = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName);
+                        DatabaseRole role = dbContext.DatabaseRoles.Single(x => x.Database.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.Database.DatabaseName == DatabaseConstants.TEST_DATABASE_NAME && x.DbRoleName == roleName);
                         Assert.AreEqual(roleName, role.DbRoleName);
                         Assert.IsTrue(role.IsActive);
                         tran.Rollback();
@@ -1203,15 +1284,18 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Creates a new role with status on.
+        /// </summary>
         [TestMethod]
         public void CreateRoleWithStatusOn()
         {
-            string roleName = "role1";
-            string command = $"create role {roleName} with status = on";
-            this.loginName = "AdminLogin";
+            string roleName = DatabaseConstants.INEXISTENT_ROLE_NAME_1;
+            string command = $"use {DatabaseConstants.TEST_DATABASE_NAME}; create role {roleName} with status = on";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -1219,7 +1303,7 @@ namespace Integra.Space.UnitTests
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
                     try
                     {
-                        DatabaseRole role = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName);
+                        DatabaseRole role = dbContext.DatabaseRoles.Single(x => x.Database.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.Database.DatabaseName == DatabaseConstants.TEST_DATABASE_NAME && x.DbRoleName == roleName);
                         Assert.AreEqual(roleName, role.DbRoleName);
                         Assert.IsTrue(role.IsActive);
                         tran.Rollback();
@@ -1233,15 +1317,18 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Creates a new role with status off.
+        /// </summary>
         [TestMethod]
         public void CreateRoleWithStatusOff()
         {
-            string roleName = "role1";
-            string command = $"create role {roleName} with status = off";
-            this.loginName = "AdminLogin";
+            string roleName = DatabaseConstants.INEXISTENT_ROLE_NAME_1;
+            string command = $"use {DatabaseConstants.TEST_DATABASE_NAME}; create role {roleName} with status = off";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -1249,7 +1336,7 @@ namespace Integra.Space.UnitTests
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
                     try
                     {
-                        DatabaseRole role = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName);
+                        DatabaseRole role = dbContext.DatabaseRoles.Single(x => x.Database.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.Database.DatabaseName == DatabaseConstants.TEST_DATABASE_NAME && x.DbRoleName == roleName);
                         Assert.AreEqual(roleName, role.DbRoleName);
                         Assert.IsFalse(role.IsActive);
                         tran.Rollback();
@@ -1263,16 +1350,19 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Creates a new role with a user.
+        /// </summary>
         [TestMethod]
         public void CreateRoleAddUser()
         {
-            string roleName = "role1";
-            string userName = "UserAux";
-            string command = $"Create role {roleName} with add = {userName}";
-            this.loginName = "AdminLogin";
+            string roleName = DatabaseConstants.INEXISTENT_ROLE_NAME_1;
+            string userName = DatabaseConstants.NORMAL_USER_2_NAME;
+            string command = $"create role {roleName} with add = {userName}";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -1297,18 +1387,21 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Creates a new role with users.
+        /// </summary>
         [TestMethod]
         public void CreateRoleAddUsers()
         {
-            string roleName = "role1";
-            string userName1 = "UserAux";
-            string userName2 = "UserForTest";
-            string userName3 = "AdminUser";
-            string command = $"Create role {roleName} with add = {userName1} {userName2} {userName3}";
-            this.loginName = "AdminLogin";
+            string roleName = DatabaseConstants.INEXISTENT_ROLE_NAME_1;
+            string userName1 = DatabaseConstants.NORMAL_USER_2_NAME;
+            string userName2 = DatabaseConstants.NORMAL_USER_1_NAME;
+            string userName3 = DatabaseConstants.NORMAL_USER_3_NAME;
+            string command = $"create role {roleName} with add = {userName1} {userName2} {userName3}";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -1316,7 +1409,7 @@ namespace Integra.Space.UnitTests
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
                     try
                     {
-                        DatabaseRole role = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName);
+                        DatabaseRole role = dbContext.DatabaseRoles.Single(x => x.Database.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.Database.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME && x.DbRoleName == roleName);
                         Assert.AreEqual(roleName, role.DbRoleName);
                         Assert.IsTrue(role.IsActive);
 
@@ -1341,15 +1434,18 @@ namespace Integra.Space.UnitTests
 
         #region create schema
 
+        /// <summary>
+        /// Creates a new schema without specifying opitons.
+        /// </summary>
         [TestMethod]
         public void CreateSchema()
         {
             string schemaName = "newSchema";
             string command = $"create schema {schemaName}";
-            this.loginName = "AdminLogin";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -1374,12 +1470,15 @@ namespace Integra.Space.UnitTests
 
         #region create source
 
+        /// <summary>
+        /// Creates a new source without specifying option.
+        /// </summary>
         [TestMethod]
         public void CreateSource()
         {
             string sourceName = "newSource";
             string command = $"create source {sourceName} (column1 int, column2 double, column3 string(4000))";
-            this.loginName = "AdminLogin";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
 
@@ -1389,7 +1488,7 @@ namespace Integra.Space.UnitTests
             modBuilder.CreateModuleBuilder();
             kernel.Bind<AssemblyBuilder>().ToConstant(asmBuilder);
 
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -1414,15 +1513,18 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Creates a new source with status on.
+        /// </summary>
         [TestMethod]
         public void CreateSourceWithStatusOn()
         {
             string sourceName = "newSource";
             string command = $"create source {sourceName} (column1 int, column2 double, column3 string(4000)) with status = on";
-            this.loginName = "AdminLogin";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -1449,15 +1551,18 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Creates a new source with status off.
+        /// </summary>
         [TestMethod]
         public void CreateSourceWithStatusOff()
         {
             string sourceName = "newSource";
             string command = $"create source {sourceName} (column1 int, column2 double, column3 string(4000)) with status = off";
-            this.loginName = "AdminLogin";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -1484,15 +1589,18 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Creates a new source with cache size.
+        /// </summary>
         [TestMethod]
         public void CreateSourceWithCacheSize()
         {
             string sourceName = "newSource";
             string command = $"create source {sourceName} (column1 int, column2 double, column3 string(4000)) with cache_size = 200";
-            this.loginName = "AdminLogin";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -1510,8 +1618,8 @@ namespace Integra.Space.UnitTests
                         Assert.IsTrue(dbContext.SourceColumns.Any(x => x.ColumnName == "column2"));
                         Assert.IsTrue(dbContext.SourceColumns.Any(x => x.ColumnName == "column3"));
                         Assert.AreEqual(sourceName, source.SourceName);
-                        Assert.AreEqual<uint>(200, source.CacheSize);
-                        Assert.AreEqual<uint>(60, source.CacheDurability);
+                        Assert.AreEqual<uint>(200, (uint)source.CacheSize);
+                        Assert.AreEqual<uint>(60, (uint)source.CacheDurability);
                         Assert.IsTrue(source.IsActive);
                         tran.Rollback();
                     }
@@ -1524,15 +1632,18 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Creates a new source with cache durability.
+        /// </summary>
         [TestMethod]
         public void CreateSourceWithCacheDurability()
         {
             string sourceName = "newSource";
             string command = $"create source {sourceName} (column1 int, column2 double, column3 string(4000)) with cache_durability = 70";
-            this.loginName = "AdminLogin";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -1550,8 +1661,8 @@ namespace Integra.Space.UnitTests
                         Assert.IsTrue(dbContext.SourceColumns.Any(x => x.ColumnName == "column2"));
                         Assert.IsTrue(dbContext.SourceColumns.Any(x => x.ColumnName == "column3"));
                         Assert.AreEqual(sourceName, source.SourceName);
-                        Assert.AreEqual<uint>(100, source.CacheSize);
-                        Assert.AreEqual<uint>(70, source.CacheDurability);
+                        Assert.AreEqual<uint>(100, (uint)source.CacheSize);
+                        Assert.AreEqual<uint>(70, (uint)source.CacheDurability);
                         Assert.IsTrue(source.IsActive);
                         tran.Rollback();
                     }
@@ -1564,15 +1675,18 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Creates a new source with cache durability and cache size.
+        /// </summary>
         [TestMethod]
         public void CreateSourceWithCacheDurabilityCacheSize()
         {
             string sourceName = "newSource";
             string command = $"create source {sourceName} (column1 int, column2 double, column3 string(4000)) with cache_durability = 70, cache_size = 200";
-            this.loginName = "AdminLogin";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -1590,8 +1704,8 @@ namespace Integra.Space.UnitTests
                         Assert.IsTrue(dbContext.SourceColumns.Any(x => x.ColumnName == "column2"));
                         Assert.IsTrue(dbContext.SourceColumns.Any(x => x.ColumnName == "column3"));
                         Assert.AreEqual(sourceName, source.SourceName);
-                        Assert.AreEqual<uint>(200, source.CacheSize);
-                        Assert.AreEqual<uint>(70, source.CacheDurability);
+                        Assert.AreEqual<uint>(200, (uint)source.CacheSize);
+                        Assert.AreEqual<uint>(70, (uint)source.CacheDurability);
                         Assert.IsTrue(source.IsActive);
                         tran.Rollback();
                     }
@@ -1608,24 +1722,27 @@ namespace Integra.Space.UnitTests
 
         #region create stream
 
+        /// <summary>
+        /// Creates a new stream without specifying options.
+        /// </summary>
         [TestMethod]
         public void CreateStream()
         {
             string streamName = "newStream";
             string sourceName = "newSource";
-            string eql = "cross " +
-                                   "JOIN SourceParaPruebas as t1 WHERE t1.PrimaryAccountNumber == \"9999941616073663_1\" " +
-                                   "WITH SourceParaPruebas as t2 WHERE t2.PrimaryAccountNumber == \"9999941616073663_2\" " +
-                                   "ON t1.AcquiringInstitutionIdentificationCode == t2.AcquiringInstitutionIdentificationCode " +
-                                   "TIMEOUT '00:00:02' " +
-                                   //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
-                                   $"SELECT (string)t1.PrimaryAccountNumber as c1, t2.PrimaryAccountNumber as c2, 1 as numeroXXX into {sourceName} ";
+            string eql = $@"cross " +
+                                   $@"JOIN {DatabaseConstants.INPUT_SOURCE_NAME} as t1 WHERE t1.PrimaryAccountNumber == ""9999941616073663_1"" " +
+                                   $@"WITH {DatabaseConstants.INPUT_SOURCE_NAME} as t2 WHERE t2.PrimaryAccountNumber == ""9999941616073663_2"" " +
+                                   $@"ON t1.AcquiringInstitutionIdentificationCode == t2.AcquiringInstitutionIdentificationCode " +
+                                   $@"TIMEOUT '00:00:02' " +
+                                   /*WHERE  t1.@event.Message.#1.#43 == ""Shell El RodeoGUATEMALA    GT""*/
+                                   $@"SELECT (string)t1.PrimaryAccountNumber as c1, t2.PrimaryAccountNumber as c2, 1 as numeroXXX into {sourceName} ";
 
-            string command = $"use Database2; create source {sourceName} (c1 string(4000), c2 string(4000), numeroXXX int); create stream {streamName} {{ {eql} }}";
-            this.loginName = "sa";
+            string command = $"create source {sourceName} (c1 string(4000), c2 string(4000), numeroXXX int); create stream {streamName} {{ {eql} }}";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -1641,7 +1758,7 @@ namespace Integra.Space.UnitTests
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
                     try
                     {
-                        Stream stream = dbContext.Streams.Single(x => x.StreamName == streamName);
+                        Stream stream = dbContext.Streams.Single(x => x.Schema.Database.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.Schema.Database.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME && x.StreamName == streamName);
                         Assert.AreEqual(streamName, stream.StreamName);
                         Assert.IsTrue(stream.IsActive);
                         Assert.AreEqual(eql.Replace('\n', '\0').Trim(), stream.Query);
@@ -1659,12 +1776,15 @@ namespace Integra.Space.UnitTests
                     catch (Exception e)
                     {
                         tran.Rollback();
-                        Assert.Fail($"Error al crear el rol de base de datos '{streamName}'. Mensaje: {e.Message}");
+                        Assert.Fail($"Error al crear el flujo de eventos '{streamName}'. Mensaje: {e.Message}");
                     }
                 }
             }
         }
 
+        /// <summary>
+        /// Creates a stream referencing a incompatible source.
+        /// </summary>
         [TestMethod]
         public void CreateStreamSourceIncompatible()
         {
@@ -1675,14 +1795,13 @@ namespace Integra.Space.UnitTests
                                    "WITH SourceInicial as t2 WHERE t2.PrimaryAccountNumber == \"9999941616073663_2\" " +
                                    "ON t1.AcquiringInstitutionIdentificationCode == t2.AcquiringInstitutionIdentificationCode " +
                                    "TIMEOUT '00:00:02' " +
-                                   //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
-                                   $"SELECT (string)t1.PrimaryAccountNumber as c1, t2.PrimaryAccountNumber as c2, 1 as numeroXXX into {sourceName} ";
+                                   $"SELECT t1.PrimaryAccountNumber as c1, t2.PrimaryAccountNumber as c2, 1 as numeroXXX into {sourceName} ";
 
-            string command = $"create source {sourceName} (c1 string, c2 object); create stream {streamName} {{ {eql} }}";
-            this.loginName = "AdminLogin";
+            string command = $"create source {sourceName} (c1 string(4000), c2 string(4000)); create stream {streamName} {{ {eql} }}";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -1693,7 +1812,7 @@ namespace Integra.Space.UnitTests
                         tran.Rollback();
                         Assert.Fail("Un stream con proyección incompatible con la funente especificada en el into fue creado.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                         tran.Rollback();
                     }
@@ -1701,24 +1820,26 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Creates a stream with status on.
+        /// </summary>
         [TestMethod]
         public void CreateStreamWithStatusOn()
         {
             string streamName = "newStream";
             string sourceName = "newSource";
             string eql = "cross " +
-                                   "JOIN SourceParaPruebas as t1 WHERE t1.PrimaryAccountNumber == \"9999941616073663_1\" " +
-                                   "WITH SourceParaPruebas as t2 WHERE t2.PrimaryAccountNumber == \"9999941616073663_2\" " +
+                                   $@"JOIN {DatabaseConstants.INPUT_SOURCE_NAME} as t1 WHERE t1.PrimaryAccountNumber == ""9999941616073663_1"" " +
+                                   $@"WITH {DatabaseConstants.INPUT_SOURCE_NAME} as t2 WHERE t2.PrimaryAccountNumber == ""9999941616073663_2"" " +
                                    "ON t1.AcquiringInstitutionIdentificationCode == t2.AcquiringInstitutionIdentificationCode " +
                                    "TIMEOUT '00:00:02' " +
-                                   //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
                                    $"SELECT (string)t1.PrimaryAccountNumber as c1, t2.PrimaryAccountNumber as c2, 1 as numeroXXX into {sourceName} ";
 
-            string command = $"use Database2; create source {sourceName} (c1 string(4000), c2 string(4000), numeroXXX int); create stream {streamName} {{ {eql} }} with status = on";
-            this.loginName = "sa";
+            string command = $"create source {sourceName} (c1 string(4000), c2 string(4000), numeroXXX int); create stream {streamName} {{ {eql} }} with status = on";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -1733,7 +1854,7 @@ namespace Integra.Space.UnitTests
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
                     try
                     {
-                        Stream stream = dbContext.Streams.Single(x => x.StreamName == streamName);
+                        Stream stream = dbContext.Streams.Single(x => x.Schema.Database.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.Schema.Database.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME && x.StreamName == streamName);
                         Assert.AreEqual(streamName, stream.StreamName);
                         Assert.IsTrue(stream.IsActive);
                         Assert.AreEqual(eql.Replace('\n', '\0').Trim(), stream.Query);
@@ -1756,24 +1877,26 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Creates a stream with status off.
+        /// </summary>
         [TestMethod]
         public void CreateStreamWithStatusOff()
         {
             string streamName = "newStream";
             string sourceName = "newSource";
             string eql = "cross " +
-                                   "JOIN SourceParaPruebas as t1 WHERE t1.PrimaryAccountNumber == \"9999941616073663_1\" " +
-                                   "WITH SourceParaPruebas as t2 WHERE t2.PrimaryAccountNumber == \"9999941616073663_2\" " +
+                                   $@"JOIN {DatabaseConstants.INPUT_SOURCE_NAME} as t1 WHERE t1.PrimaryAccountNumber == ""9999941616073663_1"" " +
+                                   $@"WITH {DatabaseConstants.INPUT_SOURCE_NAME} as t2 WHERE t2.PrimaryAccountNumber == ""9999941616073663_2"" " +
                                    "ON t1.AcquiringInstitutionIdentificationCode == t2.AcquiringInstitutionIdentificationCode " +
                                    "TIMEOUT '00:00:02' " +
-                                   //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
                                    $"SELECT (string)t1.PrimaryAccountNumber as c1, t2.PrimaryAccountNumber as c2, 1 as numeroXXX into {sourceName} ";
 
-            string command = $"use Database2; create source {sourceName} (c1 string(4000), c2 string(4000), numeroXXX int); create stream {streamName} {{ {eql} }} with status = off";
-            this.loginName = "sa";
+            string command = $"create source {sourceName} (c1 string(4000), c2 string(4000), numeroXXX int); create stream {streamName} {{ {eql} }} with status = off";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -1788,7 +1911,7 @@ namespace Integra.Space.UnitTests
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
                     try
                     {
-                        Stream stream = dbContext.Streams.Single(x => x.StreamName == streamName);
+                        Stream stream = dbContext.Streams.Single(x => x.Schema.Database.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.Schema.Database.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME && x.StreamName == streamName);
                         Assert.AreEqual(streamName, stream.StreamName);
                         Assert.IsFalse(stream.IsActive);
                         Assert.AreEqual(eql.Replace('\n', '\0').Trim(), stream.Query);
@@ -1819,6 +1942,9 @@ namespace Integra.Space.UnitTests
 
         #region alter login
 
+        /// <summary>
+        /// Alters the login name.
+        /// </summary>
         [TestMethod]
         public void AlterLoginName()
         {
@@ -1826,10 +1952,10 @@ namespace Integra.Space.UnitTests
             string newName = "newLogin";
             string password = "oldPassword";
             string command = $"create login {loginName} with password = \"{password}\"; alter login {loginName} with name = {newName}";
-            this.loginName = "AdminLogin";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -1851,6 +1977,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters the password of the login.
+        /// </summary>
         [TestMethod]
         public void AlterLoginPassword()
         {
@@ -1858,10 +1987,10 @@ namespace Integra.Space.UnitTests
             string oldPassword = "oldPassword";
             string newPassword = "newPassword";
             string command = $"create login {loginName} with password = \"{oldPassword}\"; alter login {loginName} with password = \"{newPassword}\"";
-            this.loginName = "AdminLogin";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -1883,16 +2012,19 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Changes the status of the login to on.
+        /// </summary>
         [TestMethod]
         public void AlterLoginWithStatusOn()
         {
             string loginName = "login1";
             string password = "pass1234";
             string command = $"create login {loginName} with password = \"{password}\", status = off; alter login {loginName} with status = on";
-            this.loginName = "AdminLogin";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -1915,16 +2047,19 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Changes the status of the login to off.
+        /// </summary>
         [TestMethod]
         public void AlterLoginWithStatusOff()
         {
             string loginName = "login1";
             string password = "pass1234";
             string command = $"create login {loginName} with password = \"{password}\", status = on; alter login {loginName} with status = off";
-            this.loginName = "AdminLogin";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -1947,18 +2082,21 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters the default database of the login.
+        /// </summary>
         [TestMethod]
         public void AlterLoginWithDefaultDatabase()
         {
             string loginName = "login1";
             string password = "pass1234";
-            string oldDatabaseName = "Database1";
-            string newDatabaseName = "Database2";
+            string oldDatabaseName = DatabaseConstants.MASTER_DATABASE_NAME;
+            string newDatabaseName = DatabaseConstants.TEST_DATABASE_NAME;
             string command = $"create login {loginName} with password = \"{password}\", default_database = {oldDatabaseName}; alter login {loginName} with default_database = {newDatabaseName}";
-            this.loginName = "AdminLogin";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -1981,19 +2119,22 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters the password, default database and status to 'on' of the login.
+        /// </summary>
         [TestMethod]
         public void AlterLoginWithPasswordDefaultDatabaseAndStatusOn()
         {
             string loginName = "login1";
             string oldPassword = "pass";
             string newPassword = "pass1234";
-            string oldDatabaseName = "Database1";
-            string newDatabaseName = "Database2";
+            string oldDatabaseName = DatabaseConstants.MASTER_DATABASE_NAME;
+            string newDatabaseName = DatabaseConstants.TEST_DATABASE_NAME;
             string command = $"create login {loginName} with password = \"{oldPassword}\", default_database = {oldDatabaseName}, status = off; alter login {loginName} with password = \"{newPassword}\", default_database = {newDatabaseName}, status = on";
-            this.loginName = "AdminLogin";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -2017,19 +2158,22 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters the password, default database and status to 'off' of the login.
+        /// </summary>
         [TestMethod]
         public void AlterLoginWithPasswordDefaultDatabaseAndStatusOff()
         {
             string loginName = "login1";
             string oldPassword = "pass";
             string newPassword = "pass1234";
-            string oldDatabaseName = "Database1";
-            string newDatabaseName = "Database2";
+            string oldDatabaseName = DatabaseConstants.MASTER_DATABASE_NAME;
+            string newDatabaseName = DatabaseConstants.TEST_DATABASE_NAME;
             string command = $"create login {loginName} with password = \"{oldPassword}\", default_database = {oldDatabaseName}, status = on; alter login {loginName} with password = \"{newPassword}\", default_database = {newDatabaseName}, status = off";
-            this.loginName = "AdminLogin";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -2057,16 +2201,19 @@ namespace Integra.Space.UnitTests
 
         #region alter database
 
+        /// <summary>
+        /// Alters the database name.
+        /// </summary>
         [TestMethod]
         public void AlterDatabaseName()
         {
             string oldDatabaseName = "oldDatabase";
             string newDatabaseName = "newDatabase";
             string command = $"create database {oldDatabaseName}; alter database {oldDatabaseName} with name = {newDatabaseName}";
-            this.loginName = "AdminLogin";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -2074,7 +2221,7 @@ namespace Integra.Space.UnitTests
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
                     try
                     {
-                        Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == newDatabaseName);
+                        Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == newDatabaseName);
                         Assert.AreEqual(newDatabaseName, database.DatabaseName);
                         tran.Rollback();
                     }
@@ -2087,15 +2234,18 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters the database status to on.
+        /// </summary>
         [TestMethod]
         public void AlterDatabaseWithStatusOn()
         {
             string databaseName = "newDatabase";
             string command = $"create database {databaseName} with status = off; alter database {databaseName} with status = on";
-            this.loginName = "AdminLogin";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -2103,7 +2253,7 @@ namespace Integra.Space.UnitTests
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
                     try
                     {
-                        Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseName);
+                        Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseName);
                         Assert.AreEqual(databaseName, database.DatabaseName);
                         Assert.IsTrue(database.IsActive);
                         tran.Rollback();
@@ -2117,15 +2267,18 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters the database status to off.
+        /// </summary>
         [TestMethod]
         public void AlterDatabaseWithStatusOff()
         {
             string databaseName = "newDatabase";
             string command = $"create database {databaseName} with status = on; alter database {databaseName} with status = off";
-            this.loginName = "AdminLogin";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -2133,7 +2286,7 @@ namespace Integra.Space.UnitTests
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
                     try
                     {
-                        Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseName);
+                        Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseName);
                         Assert.AreEqual(databaseName, database.DatabaseName);
                         Assert.IsFalse(database.IsActive);
                         tran.Rollback();
@@ -2151,17 +2304,20 @@ namespace Integra.Space.UnitTests
 
         #region alter user
 
+        /// <summary>
+        /// Alters the user name of an existing role.
+        /// </summary>
         [TestMethod]
         public void AlterUserWithName()
         {
             string oldUserName = "oldUser";
             string newUserName = "newUser";
-            string loginUserName = "AdminLogin2";
-            string command = $"create user {oldUserName} with login = {loginUserName}; alter user {oldUserName} with name = {newUserName}";
-            this.loginName = "AdminLogin";
+            string loginUserName = DatabaseConstants.ADMIN_LOGIN_1_NAME;
+            string command = $"use {DatabaseConstants.TEST_DATABASE_NAME}; create user {oldUserName} with login = {loginUserName}; alter user {oldUserName} with name = {newUserName}";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -2184,17 +2340,20 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters the login mapped of the user.
+        /// </summary>
         [TestMethod]
         public void AlterUserWithLogin()
         {
             string userName = "newUser";
-            string oldLoginName = "AdminLogin2";
-            string newLoginName = "AdminLogin3";
-            string command = $"create user {userName} with login = {oldLoginName}; alter user {userName} with login = {newLoginName}";
-            this.loginName = "AdminLogin";
+            string oldLoginName = DatabaseConstants.ADMIN_LOGIN_1_NAME;
+            string newLoginName = DatabaseConstants.NORMAL_LOGIN_2_NAME;
+            string command = $"use {DatabaseConstants.TEST_DATABASE_NAME}; create user {userName} with login = {oldLoginName}; alter user {userName} with login = {newLoginName}";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -2217,19 +2376,22 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters the user mapped login and default schema.
+        /// </summary>
         [TestMethod]
         public void AlterUserWithLoginDefaultSchema()
         {
             string userName = "newUser";
-            string oldLoginName = "AdminLogin2";
-            string newLoginName = "AdminLogin3";
+            string oldLoginName = DatabaseConstants.ADMIN_LOGIN_1_NAME;
+            string newLoginName = DatabaseConstants.ADMIN_LOGIN_2_NAME;
             string oldSchemaName = "Schema1";
             string newSchemaName = "Schema2";
-            string command = $"create user {userName} with login = {oldLoginName}, default_schema = {oldSchemaName}; alter user {userName} with login = {newLoginName}, default_schema = {newSchemaName}";
-            this.loginName = "AdminLogin";
+            string command = $"use {DatabaseConstants.TEST_DATABASE_NAME}; create schema {oldSchemaName}; create schema {newSchemaName}; create user {userName} with login = {oldLoginName}, default_schema = {oldSchemaName}; alter user {userName} with login = {newLoginName}, default_schema = {newSchemaName}";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -2253,16 +2415,19 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters the user status to on.
+        /// </summary>
         [TestMethod]
         public void AlterUserWithStatusOn()
         {
             string userName = "newUser";
-            string loginUserName = "AdminLogin2";
-            string command = $"create user {userName} with login = {loginUserName}, status = off; alter user {userName} with status = on";
-            this.loginName = "AdminLogin";
+            string loginUserName = DatabaseConstants.ADMIN_LOGIN_1_NAME;
+            string command = $"use {DatabaseConstants.TEST_DATABASE_NAME}; create user {userName} with login = {loginUserName}, status = off; alter user {userName} with status = on";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -2285,16 +2450,19 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters the user status to off.
+        /// </summary>
         [TestMethod]
         public void AlterUserWithStatusOff()
         {
             string userName = "newUser";
-            string loginUserName = "AdminLogin2";
-            string command = $"create user {userName} with login = {loginUserName}, status = on; alter user {userName} with status = off";
-            this.loginName = "AdminLogin";
+            string loginUserName = DatabaseConstants.ADMIN_LOGIN_1_NAME;
+            string command = $"use {DatabaseConstants.TEST_DATABASE_NAME}; create user {userName} with login = {loginUserName}, status = on; alter user {userName} with status = off";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -2317,19 +2485,22 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters the user mapped login, default schema and status to off of the user.
+        /// </summary>
         [TestMethod]
         public void AlterUserWithLoginDefaultSchemaLoginStatusOff()
         {
             string userName = "newUser";
-            string oldLoginName = "AdminLogin2";
-            string newLoginName = "AdminLogin3";
+            string oldLoginName = DatabaseConstants.ADMIN_LOGIN_1_NAME;
+            string newLoginName = DatabaseConstants.ADMIN_LOGIN_2_NAME;
             string oldSchemaName = "Schema1";
             string newSchemaName = "Schema2";
-            string command = $"create user {userName} with login = {oldLoginName}, default_schema = {oldSchemaName}, status = on; alter user {userName} with login = {newLoginName}, default_schema = {newSchemaName}, status = off";
-            this.loginName = "AdminLogin";
+            string command = $"use {DatabaseConstants.TEST_DATABASE_NAME}; create schema {oldSchemaName}; create schema {newSchemaName}; create user {userName} with login = {oldLoginName}, default_schema = {oldSchemaName}, status = on; alter user {userName} with login = {newLoginName}, default_schema = {newSchemaName}, status = off";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -2353,19 +2524,22 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters the user mapped login, default schema and status to on of the user.
+        /// </summary>
         [TestMethod]
         public void AlterUserWithDefaultSchemaLoginStatusOn()
         {
             string userName = "newUser";
-            string oldLoginName = "AdminLogin2";
-            string newLoginName = "AdminLogin3";
+            string oldLoginName = DatabaseConstants.ADMIN_LOGIN_1_NAME;
+            string newLoginName = DatabaseConstants.ADMIN_LOGIN_2_NAME;
             string oldSchemaName = "Schema1";
             string newSchemaName = "Schema2";
-            string command = $"create user {userName} with login = {oldLoginName}, default_schema = {oldSchemaName}, status = off; alter user {userName} with login = {newLoginName}, default_schema = {newSchemaName}, status = on";
-            this.loginName = "AdminLogin";
+            string command = $"use {DatabaseConstants.TEST_DATABASE_NAME}; create schema {oldSchemaName}; create schema {newSchemaName}; create user {userName} with login = {oldLoginName}, default_schema = {oldSchemaName}, status = off; alter user {userName} with login = {newLoginName}, default_schema = {newSchemaName}, status = on";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -2393,16 +2567,19 @@ namespace Integra.Space.UnitTests
 
         #region alter role
 
+        /// <summary>
+        /// Alters the role name of an existing role.
+        /// </summary>
         [TestMethod]
         public void AlterRoleName()
         {
-            string oldRoleName = "role1";
-            string newRoleName = "role2";
+            string oldRoleName = DatabaseConstants.INEXISTENT_ROLE_NAME_1;
+            string newRoleName = DatabaseConstants.INEXISTENT_ROLE_NAME_2;
             string command = $"create role {oldRoleName}; alter role {oldRoleName} with name = {newRoleName}";
-            this.loginName = "AdminLogin";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -2410,7 +2587,7 @@ namespace Integra.Space.UnitTests
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
                     try
                     {
-                        DatabaseRole role = dbContext.DatabaseRoles.Single(x => x.DbRoleName == newRoleName);
+                        DatabaseRole role = dbContext.DatabaseRoles.Single(x => x.Database.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.Database.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME && x.DbRoleName == newRoleName);
                         Assert.AreEqual(newRoleName, role.DbRoleName);
                         Assert.IsTrue(role.IsActive);
                         tran.Rollback();
@@ -2424,15 +2601,18 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters the role status to on.
+        /// </summary>
         [TestMethod]
         public void AlterRoleWithStatusOn()
         {
-            string roleName = "role1";
+            string roleName = DatabaseConstants.INEXISTENT_ROLE_NAME_1;
             string command = $"create role {roleName} with status = off; alter role {roleName} with status = on";
-            this.loginName = "AdminLogin";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -2440,7 +2620,7 @@ namespace Integra.Space.UnitTests
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
                     try
                     {
-                        DatabaseRole role = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName);
+                        DatabaseRole role = dbContext.DatabaseRoles.Single(x => x.Database.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.Database.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME && x.DbRoleName == roleName);
                         Assert.AreEqual(roleName, role.DbRoleName);
                         Assert.IsTrue(role.IsActive);
                         tran.Rollback();
@@ -2454,15 +2634,18 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters the role status to off.
+        /// </summary>
         [TestMethod]
         public void AlterRoleWithStatusOff()
         {
-            string roleName = "role1";
+            string roleName = DatabaseConstants.INEXISTENT_ROLE_NAME_1;
             string command = $"create role {roleName} with status = on; alter role {roleName} with status = off";
-            this.loginName = "AdminLogin";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -2470,7 +2653,7 @@ namespace Integra.Space.UnitTests
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
                     try
                     {
-                        DatabaseRole role = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName);
+                        DatabaseRole role = dbContext.DatabaseRoles.Single(x => x.Database.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.Database.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME && x.DbRoleName == roleName);
                         Assert.AreEqual(roleName, role.DbRoleName);
                         Assert.IsFalse(role.IsActive);
                         tran.Rollback();
@@ -2484,16 +2667,19 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters a role adding a user.
+        /// </summary>
         [TestMethod]
         public void AlterRoleAddUser()
         {
-            string roleName = "role1";
-            string userName = "UserAux";
+            string roleName = DatabaseConstants.INEXISTENT_ROLE_NAME_1;
+            string userName = DatabaseConstants.NORMAL_USER_2_NAME;
             string command = $"create role {roleName}; alter role {roleName} with add = {userName}";
-            this.loginName = "AdminLogin";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -2501,7 +2687,7 @@ namespace Integra.Space.UnitTests
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
                     try
                     {
-                        DatabaseRole role = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName);
+                        DatabaseRole role = dbContext.DatabaseRoles.Single(x => x.Database.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.Database.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME && x.DbRoleName == roleName);
                         Assert.AreEqual(roleName, role.DbRoleName);
                         Assert.IsTrue(role.IsActive);
 
@@ -2518,18 +2704,21 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters a role adding multiple users.
+        /// </summary>
         [TestMethod]
         public void AlterRoleAddUsers()
         {
-            string roleName = "role1";
-            string userName1 = "UserAux";
-            string userName2 = "UserForTest";
-            string userName3 = "AdminUser";
+            string roleName = DatabaseConstants.INEXISTENT_ROLE_NAME_1;
+            string userName1 = DatabaseConstants.NORMAL_USER_2_NAME;
+            string userName2 = DatabaseConstants.NORMAL_USER_1_NAME;
+            string userName3 = DatabaseConstants.DBO_USER_NAME;
             string command = $"Create role {roleName}; alter role {roleName} with add = {userName1} {userName2} {userName3}";
-            this.loginName = "AdminLogin";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -2537,7 +2726,7 @@ namespace Integra.Space.UnitTests
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
                     try
                     {
-                        DatabaseRole role = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName);
+                        DatabaseRole role = dbContext.DatabaseRoles.Single(x => x.Database.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.Database.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME && x.DbRoleName == roleName);
                         Assert.AreEqual(roleName, role.DbRoleName);
                         Assert.IsTrue(role.IsActive);
 
@@ -2558,16 +2747,19 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters a role removing a user.
+        /// </summary>
         [TestMethod]
         public void AlterRoleRemoveUser()
         {
-            string roleName = "role1";
-            string userName = "UserAux";
+            string roleName = DatabaseConstants.INEXISTENT_ROLE_NAME_1;
+            string userName = DatabaseConstants.NORMAL_USER_2_NAME;
             string command = $"create role {roleName}; alter role {roleName} with add = {userName}; alter role {roleName} with remove = {userName}";
-            this.loginName = "AdminLogin";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -2575,7 +2767,7 @@ namespace Integra.Space.UnitTests
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
                     try
                     {
-                        DatabaseRole role = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName);
+                        DatabaseRole role = dbContext.DatabaseRoles.Single(x => x.Database.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.Database.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME && x.DbRoleName == roleName);
                         Assert.AreEqual(roleName, role.DbRoleName);
                         Assert.IsTrue(role.IsActive);
 
@@ -2592,18 +2784,21 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters a role removing multiple users.
+        /// </summary>
         [TestMethod]
         public void AlterRoleRemoveUsers()
         {
-            string roleName = "role1";
-            string userName1 = "UserAux";
-            string userName2 = "UserForTest";
-            string userName3 = "AdminUser";
+            string roleName = DatabaseConstants.INEXISTENT_ROLE_NAME_1;
+            string userName1 = DatabaseConstants.NORMAL_USER_2_NAME;
+            string userName2 = DatabaseConstants.NORMAL_USER_1_NAME;
+            string userName3 = DatabaseConstants.DBO_USER_NAME;
             string command = $"Create role {roleName}; alter role {roleName} with add = {userName1} {userName2} {userName3}; alter role {roleName} with remove = {userName1} {userName2} {userName3}";
-            this.loginName = "AdminLogin";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -2611,7 +2806,7 @@ namespace Integra.Space.UnitTests
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
                     try
                     {
-                        DatabaseRole role = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName);
+                        DatabaseRole role = dbContext.DatabaseRoles.Single(x => x.Database.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.Database.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME && x.DbRoleName == roleName);
                         Assert.AreEqual(roleName, role.DbRoleName);
                         Assert.IsTrue(role.IsActive);
 
@@ -2634,16 +2829,19 @@ namespace Integra.Space.UnitTests
 
         #region alter schema
 
+        /// <summary>
+        /// Alters a schema name.
+        /// </summary>
         [TestMethod]
-        public void CreateSchemaWithName()
+        public void AlterSchemaWithName()
         {
             string oldSchemaName = "oldSchema";
             string newSchemaName = "newSchema";
             string command = $"create schema {oldSchemaName}; alter schema {oldSchemaName} with name = {newSchemaName}";
-            this.loginName = "AdminLogin";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -2658,6 +2856,7 @@ namespace Integra.Space.UnitTests
                     catch (Exception e)
                     {
                         tran.Rollback();
+
                         Assert.Fail($"Error al crear el rol de base de datos '{newSchemaName}'. Mensaje: {e.Message}");
                     }
                 }
@@ -2668,16 +2867,19 @@ namespace Integra.Space.UnitTests
 
         #region alter source
 
+        /// <summary>
+        /// Alters the name of an existing source.
+        /// </summary>
         [TestMethod]
         public void AlterSourceWithName()
         {
             string oldSourceName = "oldSourceName";
             string newSourceName = "newSource";
             string command = $"create source {oldSourceName} (column1 string(4000), column2 int, column3 double); alter source {oldSourceName} with name = {newSourceName}";
-            this.loginName = "AdminLogin";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -2707,16 +2909,19 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters the source structure adding columns.
+        /// </summary>
         [TestMethod]
         public void AlterSourceAddColumns()
         {
             string sourceName = "oldSourceName";
             string command = $@"create source {sourceName} (column1 string(4000), column2 int, column3 double); 
                                 alter source {sourceName} add (columnX string(4000), columnY int, columnZ double)";
-            this.loginName = "AdminLogin";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -2749,16 +2954,19 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters the source structure removing columns.
+        /// </summary>
         [TestMethod]
         public void AlterSourceRemoveColumns()
         {
             string sourceName = "oldSourceName";
             string command = $@"create source {sourceName} (column1 string(4000), column2 int, column3 double, columnX string(4000), columnY int, columnZ double); 
-                                alter source {sourceName} remove (columnX string(4000), columnY int, columnZ double)";
-            this.loginName = "AdminLogin";
+                                alter source {sourceName} remove (columnX, columnY, columnZ)";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -2791,16 +2999,19 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters the source structure trying to remove all columns, however this is not allowed.
+        /// </summary>
         [TestMethod]
         public void AlterSourceRemoveAllColumns()
         {
             string sourceName = "oldSourceName";
             string command = $@"create source {sourceName} (columnX string, columnY int, columnZ double); 
                                 alter source {sourceName} remove columnX string, columnY int, columnZ double";
-            this.loginName = "AdminLogin";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -2811,7 +3022,7 @@ namespace Integra.Space.UnitTests
                         tran.Rollback();
                         Assert.Fail("Dejó eliminar todas las columnas de la fuente");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                         tran.Rollback();
                     }
@@ -2819,15 +3030,18 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters a source changing its status to on.
+        /// </summary>
         [TestMethod]
         public void AlterSourceWithStatusOn()
         {
             string sourceName = "newSource";
             string command = $"create source {sourceName} (column1 string(4000), column2 int, column3 double) with status = off; alter source {sourceName} with status = on";
-            this.loginName = "AdminLogin";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -2854,15 +3068,18 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters a source changing its status to off.
+        /// </summary>
         [TestMethod]
         public void AlterSourceWithStatusOff()
         {
             string sourceName = "newSource";
             string command = $"create source {sourceName} (column1 string(4000), column2 int, column3 double) with status = on; alter source {sourceName} with status = off";
-            this.loginName = "AdminLogin";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -2889,15 +3106,18 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters a source changing its persistent flag to on.
+        /// </summary>
         [TestMethod]
         public void AlterSourceWithPersistentOn()
         {
             string sourceName = "newSource";
             string command = $"create source {sourceName} (column1 string(4000), column2 int, column3 double) with persistent = off; alter source {sourceName} with persistent = on";
-            this.loginName = "AdminLogin";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -2928,15 +3148,18 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters a source changing its persistent flag to on.
+        /// </summary>
         [TestMethod]
         public void AlterSourceWithPersistentOff()
         {
             string sourceName = "newSource";
             string command = $"create source {sourceName} (column1 string(4000), column2 int, column3 double) with persistent = on; alter source {sourceName} with persistent = off";
-            this.loginName = "AdminLogin";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -2967,15 +3190,18 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters a source changing its cache size.
+        /// </summary>
         [TestMethod]
         public void AlterSourceWithCacheSize()
         {
             string sourceName = "newSource";
             string command = $"create source {sourceName} (column1 string(4000), column2 int, column3 double) with status = on, cache_size = 100; alter source {sourceName} with status = off, cache_size = 200";
-            this.loginName = "AdminLogin";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -2993,7 +3219,7 @@ namespace Integra.Space.UnitTests
                         Assert.IsTrue(dbContext.SourceColumns.Any(x => x.ColumnName == "column1"));
                         Assert.IsTrue(dbContext.SourceColumns.Any(x => x.ColumnName == "column2"));
                         Assert.IsTrue(dbContext.SourceColumns.Any(x => x.ColumnName == "column3"));
-                        Assert.AreEqual<uint>(source.CacheSize, 200);
+                        Assert.AreEqual<uint>((uint)source.CacheSize, 200);
                         Assert.IsFalse(source.IsActive);
                         tran.Rollback();
                     }
@@ -3006,15 +3232,18 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters a source changing its cache durability.
+        /// </summary>
         [TestMethod]
         public void AlterSourceWithCacheDurability()
         {
             string sourceName = "newSource";
             string command = $"create source {sourceName} (column1 string(4000), column2 int, column3 double) with status = on, cache_durability = 100; alter source {sourceName} with status = off, cache_durability = 70";
-            this.loginName = "AdminLogin";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -3032,7 +3261,7 @@ namespace Integra.Space.UnitTests
                         Assert.IsTrue(dbContext.SourceColumns.Any(x => x.ColumnName == "column1"));
                         Assert.IsTrue(dbContext.SourceColumns.Any(x => x.ColumnName == "column2"));
                         Assert.IsTrue(dbContext.SourceColumns.Any(x => x.ColumnName == "column3"));
-                        Assert.AreEqual<uint>(source.CacheDurability, 70);
+                        Assert.AreEqual<uint>((uint)source.CacheDurability, 70);
                         Assert.IsFalse(source.IsActive);
                         tran.Rollback();
                     }
@@ -3045,15 +3274,18 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters a source changing its cache size and cache durability.
+        /// </summary>
         [TestMethod]
         public void AlterSourceWithCacheSizeCacheDurability()
         {
             string sourceName = "newSource";
             string command = $"create source {sourceName} (column1 string(4000), column2 int, column3 double) with status = on, cache_size = 100, cache_durability = 100; alter source {sourceName} with status = off, cache_size = 200, cache_durability = 70";
-            this.loginName = "AdminLogin";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -3071,8 +3303,8 @@ namespace Integra.Space.UnitTests
                         Assert.IsTrue(dbContext.SourceColumns.Any(x => x.ColumnName == "column1"));
                         Assert.IsTrue(dbContext.SourceColumns.Any(x => x.ColumnName == "column2"));
                         Assert.IsTrue(dbContext.SourceColumns.Any(x => x.ColumnName == "column3"));
-                        Assert.AreEqual<uint>(source.CacheSize, 200);
-                        Assert.AreEqual<uint>(source.CacheDurability, 70);
+                        Assert.AreEqual<uint>((uint)source.CacheSize, 200);
+                        Assert.AreEqual<uint>((uint)source.CacheDurability, 70);
                         Assert.IsFalse(source.IsActive);
                         tran.Rollback();
                     }
@@ -3089,6 +3321,9 @@ namespace Integra.Space.UnitTests
 
         #region alter stream
 
+        /// <summary>
+        /// Alters the name of an existing stream.
+        /// </summary>
         [TestMethod]
         public void AlterStreamWithName()
         {
@@ -3096,18 +3331,17 @@ namespace Integra.Space.UnitTests
             string newStreamName = "newStream";
             string sourceName = "newSource";
             string eql = "cross " +
-                                   "JOIN SourceParaPruebas as t1 WHERE t1.PrimaryAccountNumber == \"9999941616073663_1\" " +
-                                   "WITH SourceParaPruebas as t2 WHERE t2.PrimaryAccountNumber == \"9999941616073663_2\" " +
+                                   $@"JOIN {DatabaseConstants.INPUT_SOURCE_NAME} as t1 WHERE t1.PrimaryAccountNumber == ""9999941616073663_1"" " +
+                                   $@"WITH {DatabaseConstants.INPUT_SOURCE_NAME} as t2 WHERE t2.PrimaryAccountNumber == ""9999941616073663_2"" " +
                                    "ON t1.AcquiringInstitutionIdentificationCode == t2.AcquiringInstitutionIdentificationCode " +
                                    "TIMEOUT '00:00:02' " +
-                                   //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
                                    $"SELECT (string)t1.PrimaryAccountNumber as c1, t2.PrimaryAccountNumber as c2, 1 as numeroXXX into {sourceName}";
 
-            string command = $"use Database2; create source {sourceName} (c1 string(4000), c2 string(4000), numeroXXX int); create stream {oldStreamName} {{ {eql} }}; alter stream {oldStreamName} with name = {newStreamName}";
-            this.loginName = "sa";
+            string command = $"create source {sourceName} (c1 string(4000), c2 string(4000), numeroXXX int); create stream {oldStreamName} {{ {eql} }}; alter stream {oldStreamName} with name = {newStreamName}";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -3145,6 +3379,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters the query of a stream removing columns of its projection, i. e. the select statement.
+        /// </summary>
         [TestMethod]
         public void AlterStreamRemoveProjectionColumns()
         {
@@ -3152,26 +3389,24 @@ namespace Integra.Space.UnitTests
             string newStreamName = "newStream";
             string sourceName = "newSource";
             string eql = "cross " +
-                                   "JOIN SourceParaPruebas as t1 WHERE t1.PrimaryAccountNumber == \"9999941616073663_1\" " +
-                                   "WITH SourceParaPruebas as t2 WHERE t2.PrimaryAccountNumber == \"9999941616073663_2\" " +
+                                   $@"JOIN {DatabaseConstants.INPUT_SOURCE_NAME} as t1 WHERE t1.PrimaryAccountNumber == ""9999941616073663_1"" " +
+                                   $@"WITH {DatabaseConstants.INPUT_SOURCE_NAME} as t2 WHERE t2.PrimaryAccountNumber == ""9999941616073663_2"" " +
                                    "ON t1.AcquiringInstitutionIdentificationCode == t2.AcquiringInstitutionIdentificationCode " +
                                    "TIMEOUT '00:00:02' " +
-                                   //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
                                    $"SELECT (string)t1.PrimaryAccountNumber as c1, t2.PrimaryAccountNumber as c2, 1 as numeroXXX into {sourceName}";
-            
+
             string eql2 = "cross " +
-                                   "JOIN SourceParaPruebas as t1 WHERE t1.PrimaryAccountNumber == \"9999941616073663_1\" " +
-                                   "WITH SourceParaPruebas as t2 WHERE t2.PrimaryAccountNumber == \"9999941616073663_2\" " +
+                                   $@"JOIN {DatabaseConstants.INPUT_SOURCE_NAME} as t1 WHERE t1.PrimaryAccountNumber == ""9999941616073663_1"" " +
+                                   $@"WITH {DatabaseConstants.INPUT_SOURCE_NAME} as t2 WHERE t2.PrimaryAccountNumber == ""9999941616073663_2"" " +
                                    "ON t1.AcquiringInstitutionIdentificationCode == t2.AcquiringInstitutionIdentificationCode " +
                                    "TIMEOUT '00:00:02' " +
-                                   //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
                                    $"SELECT (string)t1.PrimaryAccountNumber as c1, 1 as numeroXXX into {sourceName}";
 
-            string command = $"use Database2; create source {sourceName} (c1 string(4000), c2 string(4000), numeroXXX int); create stream {oldStreamName} {{ {eql} }}; alter stream {oldStreamName} with query = {{ {eql2} }}";
-            this.loginName = "sa";
+            string command = $"create source {sourceName} (c1 string(4000), c2 string(4000), numeroXXX int); create stream {oldStreamName} {{ {eql} }}; alter stream {oldStreamName} with query = {{ {eql2} }}";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -3208,6 +3443,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters the query of a stream adding columns of its projection, i. e. the select statement.
+        /// </summary>
         [TestMethod]
         public void AlterStreamAddProjectionColumns()
         {
@@ -3215,26 +3453,24 @@ namespace Integra.Space.UnitTests
             string newStreamName = "newStream";
             string sourceName = "newSource";
             string eql = "cross " +
-                                   "JOIN SourceParaPruebas as t1 WHERE t1.PrimaryAccountNumber == \"9999941616073663_1\" " +
-                                   "WITH SourceParaPruebas as t2 WHERE t2.PrimaryAccountNumber == \"9999941616073663_2\" " +
+                                   $@"JOIN {DatabaseConstants.INPUT_SOURCE_NAME} as t1 WHERE t1.PrimaryAccountNumber == ""9999941616073663_1"" " +
+                                   $@"WITH {DatabaseConstants.INPUT_SOURCE_NAME} as t2 WHERE t2.PrimaryAccountNumber == ""9999941616073663_2"" " +
                                    "ON t1.AcquiringInstitutionIdentificationCode == t2.AcquiringInstitutionIdentificationCode " +
                                    "TIMEOUT '00:00:02' " +
-                                   //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
                                    $"SELECT (string)t1.PrimaryAccountNumber as c1, t2.PrimaryAccountNumber as c2, 1 as numeroXXX into {sourceName}";
 
             string eql2 = "cross " +
-                                   "JOIN SourceParaPruebas as t1 WHERE t1.PrimaryAccountNumber == \"9999941616073663_1\" " +
-                                   "WITH SourceParaPruebas as t2 WHERE t2.PrimaryAccountNumber == \"9999941616073663_2\" " +
+                                   $@"JOIN {DatabaseConstants.INPUT_SOURCE_NAME} as t1 WHERE t1.PrimaryAccountNumber == ""9999941616073663_1"" " +
+                                   $@"WITH {DatabaseConstants.INPUT_SOURCE_NAME} as t2 WHERE t2.PrimaryAccountNumber == ""9999941616073663_2"" " +
                                    "ON t1.AcquiringInstitutionIdentificationCode == t2.AcquiringInstitutionIdentificationCode " +
                                    "TIMEOUT '00:00:02' " +
-                                   //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
                                    $"SELECT (string)t1.PrimaryAccountNumber as c1, t2.PrimaryAccountNumber as c2, 1 as numeroXXX, 2 as numeroYYY into {sourceName}";
 
-            string command = $"use Database2; create source {sourceName} (c1 string(4000), c2 string(4000), numeroXXX int); create stream {oldStreamName} {{ {eql} }}; alter source {sourceName} add (numeroYYY int); alter stream {oldStreamName} with query = {{ {eql2} }}";
-            this.loginName = "sa";
+            string command = $"create source {sourceName} (c1 string(4000), c2 string(4000), numeroXXX int); create stream {oldStreamName} {{ {eql} }}; alter source {sourceName} add (numeroYYY int); alter stream {oldStreamName} with query = {{ {eql2} }}";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -3268,6 +3504,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters the query of a stream renaming columns of its projection, i. e. the select statement.
+        /// </summary>
         [TestMethod]
         public void AlterStreamRenameProjectionColumns()
         {
@@ -3275,26 +3514,24 @@ namespace Integra.Space.UnitTests
             string newStreamName = "newStream";
             string sourceName = "newSource";
             string eql = "cross " +
-                                   "JOIN SourceParaPruebas as t1 WHERE t1.PrimaryAccountNumber == \"9999941616073663_1\" " +
-                                   "WITH SourceParaPruebas as t2 WHERE t2.PrimaryAccountNumber == \"9999941616073663_2\" " +
+                                   $@"JOIN {DatabaseConstants.INPUT_SOURCE_NAME} as t1 WHERE t1.PrimaryAccountNumber == ""9999941616073663_1"" " +
+                                   $@"WITH {DatabaseConstants.INPUT_SOURCE_NAME} as t2 WHERE t2.PrimaryAccountNumber == ""9999941616073663_2"" " +
                                    "ON t1.AcquiringInstitutionIdentificationCode == t2.AcquiringInstitutionIdentificationCode " +
                                    "TIMEOUT '00:00:02' " +
-                                   //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
                                    $"SELECT (string)t1.PrimaryAccountNumber as c1, t2.PrimaryAccountNumber as c2, 1 as numeroXXX into {sourceName}";
 
             string eql2 = "cross " +
-                                   "JOIN SourceParaPruebas as t1 WHERE t1.PrimaryAccountNumber == \"9999941616073663_1\" " +
-                                   "WITH SourceParaPruebas as t2 WHERE t2.PrimaryAccountNumber == \"9999941616073663_2\" " +
+                                   $@"JOIN {DatabaseConstants.INPUT_SOURCE_NAME} as t1 WHERE t1.PrimaryAccountNumber == ""9999941616073663_1"" " +
+                                   $@"WITH {DatabaseConstants.INPUT_SOURCE_NAME} as t2 WHERE t2.PrimaryAccountNumber == ""9999941616073663_2"" " +
                                    "ON t1.AcquiringInstitutionIdentificationCode == t2.AcquiringInstitutionIdentificationCode " +
                                    "TIMEOUT '00:00:02' " +
-                                   //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
                                    $"SELECT (string)t1.PrimaryAccountNumber as column1, t2.PrimaryAccountNumber as column2, 1 as column3 into {sourceName}";
 
-            string command = $"use Database2; create source {sourceName} (column1 string(4000), column2 string(4000), column3 int, c1 string(4000), c2 string(4000), numeroXXX int); create stream {oldStreamName} {{ {eql} }}; alter stream {oldStreamName} with query = {{ {eql2} }}";
-            this.loginName = "sa";
+            string command = $"create source {sourceName} (column1 string(4000), column2 string(4000), column3 int, c1 string(4000), c2 string(4000), numeroXXX int); create stream {oldStreamName} {{ {eql} }}; alter stream {oldStreamName} with query = {{ {eql2} }}";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -3336,33 +3573,35 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters the query of a stream renaming a column of its projection, i. e. the select statement, making it incompatible with the output source column structure.
+        /// </summary>
         [TestMethod]
         public void AlterStreamRenameProjectionColumnsSourceIncompatible()
         {
             string oldStreamName = "oldStream";
-            string newStreamName = "newStream";
             string sourceName = "newSource";
             string eql = "cross " +
-                                   "JOIN SourceInicial as t1 WHERE t1.PrimaryAccountNumber == \"9999941616073663_1\" " +
-                                   "WITH SourceInicial as t2 WHERE t2.PrimaryAccountNumber == \"9999941616073663_2\" " +
+                                   $@"JOIN {DatabaseConstants.INPUT_SOURCE_NAME} as t1 WHERE t1.PrimaryAccountNumber == ""9999941616073663_1"" " +
+                                   $@"WITH {DatabaseConstants.INPUT_SOURCE_NAME} as t2 WHERE t2.PrimaryAccountNumber == ""9999941616073663_2"" " +
                                    "ON t1.AcquiringInstitutionIdentificationCode == t2.AcquiringInstitutionIdentificationCode " +
                                    "TIMEOUT '00:00:02' " +
-                                   //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
+                                   /* "WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " + */
                                    $"SELECT (string)t1.PrimaryAccountNumber as c1, t2.PrimaryAccountNumber as c2, 1 as numeroXXX into {sourceName}";
 
             string eql2 = "cross " +
-                                   "JOIN SourceInicial as t1 WHERE t1.PrimaryAccountNumber == \"9999941616073663_1\" " +
-                                   "WITH SourceInicial as t2 WHERE t2.PrimaryAccountNumber == \"9999941616073663_2\" " +
+                                   $@"JOIN {DatabaseConstants.INPUT_SOURCE_NAME} as t1 WHERE t1.PrimaryAccountNumber == ""9999941616073663_1"" " +
+                                   $@"WITH {DatabaseConstants.INPUT_SOURCE_NAME} as t2 WHERE t2.PrimaryAccountNumber == ""9999941616073663_2"" " +
                                    "ON t1.AcquiringInstitutionIdentificationCode == t2.AcquiringInstitutionIdentificationCode " +
                                    "TIMEOUT '00:00:02' " +
-                                   //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
+                                   /* "WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " + */
                                    $"SELECT (string)t1.PrimaryAccountNumber as column1, t2.PrimaryAccountNumber as column2, 1 as column3 into {sourceName}";
 
             string command = $"create source {sourceName} (column1 string(4000), column3 int, c1 string, c2 object, numeroXXX int); create stream {oldStreamName} {{ {eql} }}; alter stream {oldStreamName} with query = {{ {eql2} }}";
-            this.loginName = "AdminLogin";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -3380,7 +3619,7 @@ namespace Integra.Space.UnitTests
                         tran.Rollback();
                         Assert.Fail("Un stream con proyección incompatible con la funente especificada en el into fue creado.");
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                         tran.Rollback();
                     }
@@ -3388,24 +3627,26 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters the stream status to on.
+        /// </summary>
         [TestMethod]
         public void AlterStreamWithStatusOn()
         {
             string streamName = "newStream";
             string sourceName = "newSource";
             string eql = "cross " +
-                                   "JOIN SourceParaPruebas as t1 WHERE t1.PrimaryAccountNumber == \"9999941616073663_1\" " +
-                                   "WITH SourceParaPruebas as t2 WHERE t2.PrimaryAccountNumber == \"9999941616073663_2\" " +
+                                   $@"JOIN {DatabaseConstants.INPUT_SOURCE_NAME} as t1 WHERE t1.PrimaryAccountNumber == ""9999941616073663_1"" " +
+                                   $@"WITH {DatabaseConstants.INPUT_SOURCE_NAME} as t2 WHERE t2.PrimaryAccountNumber == ""9999941616073663_2"" " +
                                    "ON t1.AcquiringInstitutionIdentificationCode == t2.AcquiringInstitutionIdentificationCode " +
                                    "TIMEOUT '00:00:02' " +
-                                   //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
                                    $"SELECT (string)t1.PrimaryAccountNumber as c1, t2.PrimaryAccountNumber as c2, 1 as numeroXXX into {sourceName} ";
 
-            string command = $"use Database2; create source {sourceName} (c1 string(4000), c2 string(4000), numeroXXX int); create stream {streamName} {{ {eql} }} with status = off; alter stream {streamName} with status = on";
-            this.loginName = "sa";
+            string command = $"create source {sourceName} (c1 string(4000), c2 string(4000), numeroXXX int); create stream {streamName} {{ {eql} }} with status = off; alter stream {streamName} with status = on";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -3443,24 +3684,26 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Alters the stream status to off.
+        /// </summary>
         [TestMethod]
         public void AlterStreamWithStatusOff()
         {
             string streamName = "newStream";
             string sourceName = "newSource";
             string eql = "cross " +
-                                   "JOIN SourceParaPruebas as t1 WHERE t1.PrimaryAccountNumber == \"9999941616073663_1\" " +
-                                   "WITH SourceParaPruebas as t2 WHERE t2.PrimaryAccountNumber == \"9999941616073663_2\" " +
+                                   $@"JOIN {DatabaseConstants.INPUT_SOURCE_NAME} as t1 WHERE t1.PrimaryAccountNumber == ""9999941616073663_1"" " +
+                                   $@"WITH {DatabaseConstants.INPUT_SOURCE_NAME} as t2 WHERE t2.PrimaryAccountNumber == ""9999941616073663_2"" " +
                                    "ON t1.AcquiringInstitutionIdentificationCode == t2.AcquiringInstitutionIdentificationCode " +
                                    "TIMEOUT '00:00:02' " +
-                                   //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
                                    $"SELECT (string)t1.PrimaryAccountNumber as c1, t2.PrimaryAccountNumber as c2, 1 as numeroXXX into {sourceName} ";
 
-            string command = $"use Database2; create source {sourceName} (c1 string(4000), c2 string(4000), numeroXXX int); create stream {streamName} {{ {eql} }} with status = on; alter stream {streamName} with status = off";
-            this.loginName = "sa";
+            string command = $"create source {sourceName} (c1 string(4000), c2 string(4000), numeroXXX int); create stream {streamName} {{ {eql} }} with status = on; alter stream {streamName} with status = off";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -3504,16 +3747,19 @@ namespace Integra.Space.UnitTests
 
         #region drop
 
+        /// <summary>
+        /// Drops a login.
+        /// </summary>
         [TestMethod]
         public void DropLogin()
         {
             string loginName = "login1";
             string password = "pass1234";
             string command = $"create login {loginName} with password = \"{password}\"; drop login {loginName}";
-            this.loginName = "AdminLogin";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -3534,15 +3780,18 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Drops a database.
+        /// </summary>
         [TestMethod]
         public void DropDatabase()
         {
             string databaseName = "newDatabase";
             string command = $"create database {databaseName}; drop database {databaseName}";
-            this.loginName = "AdminLogin";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -3563,16 +3812,19 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Drops a user.
+        /// </summary>
         [TestMethod]
         public void DropUser()
         {
             string userName = "newUser";
-            string loginUserName = "AdminLogin2";
-            string command = $"create user {userName} with login = {loginUserName}; drop user {userName}";
-            this.loginName = "AdminLogin";
+            string loginUserName = DatabaseConstants.ADMIN_LOGIN_1_NAME;
+            string command = $"use {DatabaseConstants.TEST_DATABASE_NAME}; create user {userName} with login = {loginUserName}; drop user {userName}";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -3593,15 +3845,18 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Drops a database role.
+        /// </summary>
         [TestMethod]
         public void DropDatabaseRole()
         {
-            string roleName = "role1";
+            string roleName = DatabaseConstants.INEXISTENT_ROLE_NAME_1;
             string command = $"create role {roleName}; drop role {roleName}";
-            this.loginName = "AdminLogin";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -3622,15 +3877,18 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Drops a schema.
+        /// </summary>
         [TestMethod]
         public void DropSchema()
         {
             string schemaName = "newSchema";
             string command = $"create schema {schemaName}; drop schema {schemaName}";
-            this.loginName = "AdminLogin";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -3651,15 +3909,18 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Drops a source.
+        /// </summary>
         [TestMethod]
         public void DropSource()
         {
             string sourceName = "newSource";
             string command = $"create source {sourceName} (column1 int, column2 double, column3 string(4000)); drop source {sourceName}";
-            this.loginName = "AdminLogin";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -3685,24 +3946,26 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Drops a stream.
+        /// </summary>
         [TestMethod]
         public void DropStream()
         {
             string sourceName = "sourceNameXX";
             string streamName = "newStream";
             string eql = "cross " +
-                                   $"JOIN SourceParaPruebas as t1 WHERE t1.PrimaryAccountNumber == \"9999941616073663_1\" " +
-                                   $"WITH SourceParaPruebas as t2 WHERE t2.PrimaryAccountNumber == \"9999941616073663_2\" " +
+                                   $@"JOIN {DatabaseConstants.INPUT_SOURCE_NAME} as t1 WHERE t1.PrimaryAccountNumber == ""9999941616073663_1"" " +
+                                   $@"WITH {DatabaseConstants.INPUT_SOURCE_NAME} as t2 WHERE t2.PrimaryAccountNumber == ""9999941616073663_2"" " +
                                    "ON t1.AcquiringInstitutionIdentificationCode == t2.AcquiringInstitutionIdentificationCode " +
                                    "TIMEOUT '00:00:02' " +
-                                   //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
                                    $"SELECT (string)t1.PrimaryAccountNumber as c1, t2.PrimaryAccountNumber as c2, 1 as numeroXXX into {sourceName} ";
 
-            string command = $"use Database2; create source {sourceName} (c1 string(4000), c2 string(4000), numeroXXX int); create stream {streamName} {{ {eql} }}; drop stream {streamName}";
-            this.loginName = "sa";
+            string command = $"create source {sourceName} (c1 string(4000), c2 string(4000), numeroXXX int); create stream {streamName} {{ {eql} }}; drop stream {streamName}";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -3727,19 +3990,23 @@ namespace Integra.Space.UnitTests
                 }
             }
         }
+
         #endregion drop
 
-        #region
+        #region truncate
 
+        /// <summary>
+        /// Truncates a source deleting all messages "saved" (pending of review) in it.
+        /// </summary>
         [TestMethod]
         public void TruncateSource()
         {
             string sourceName = "newSource";
             string command = $"create source {sourceName} (column1 int, column2 double, column3 string(4000)); truncate source {sourceName}";
-            this.loginName = "AdminLogin";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -3765,19 +4032,22 @@ namespace Integra.Space.UnitTests
             }
         }
 
-        #endregion
+        #endregion truncate
 
         #region otros
 
+        /// <summary>
+        /// Grants permission test.
+        /// </summary>
         [TestMethod]
         public void TestGrantPermissionOnDatabase()
         {
-            loginName = "AdminLogin";
-            string principalName = "AdminUser";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
+            string principalName = DatabaseConstants.DBO_USER_NAME;
             string command = $"grant alter any user to user {principalName}";
             IKernel kernel = new StandardKernel();
 
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -3791,15 +4061,18 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Creates multiple schemas.
+        /// </summary>
         [TestMethod]
-        public void TestCreateSchema()
+        public void TestCreateSchemas()
         {
-            loginName = "AdminLogin";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
             string newSchemaName = "Schema123";
-            string command = $"use Database1; create schema {newSchemaName}; create schema {newSchemaName + "XX"}; create schema {newSchemaName + "YY"}";
+            string command = $"create schema {newSchemaName}; create schema {newSchemaName + "XX"}; create schema {newSchemaName + "YY"}";
             IKernel kernel = new StandardKernel();
 
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -3807,11 +4080,11 @@ namespace Integra.Space.UnitTests
 
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    Server server = dbContext.Servers.Single(x => x.ServerName == "Server1");
-                    Database.Database db = dbContext.Databases.Single(x => x.ServerId == server.ServerId && x.DatabaseName == "Database1");
-                    Database.Schema schema1 = dbContext.Schemas.Single(x => x.ServerId == db.ServerId && x.DatabaseId == db.DatabaseId && x.SchemaName == newSchemaName);
-                    Database.Schema schema2 = dbContext.Schemas.Single(x => x.ServerId == db.ServerId && x.DatabaseId == db.DatabaseId && x.SchemaName == newSchemaName + "XX");
-                    Database.Schema schema3 = dbContext.Schemas.Single(x => x.ServerId == db.ServerId && x.DatabaseId == db.DatabaseId && x.SchemaName == newSchemaName + "YY");
+                    Server server = dbContext.Servers.Single(x => x.ServerName == DatabaseConstants.TEST_SERVER_NAME);
+                    Space.Database.Database db = dbContext.Databases.Single(x => x.ServerId == server.ServerId && x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
+                    Space.Database.Schema schema1 = dbContext.Schemas.Single(x => x.ServerId == db.ServerId && x.DatabaseId == db.DatabaseId && x.SchemaName == newSchemaName);
+                    Space.Database.Schema schema2 = dbContext.Schemas.Single(x => x.ServerId == db.ServerId && x.DatabaseId == db.DatabaseId && x.SchemaName == newSchemaName + "XX");
+                    Space.Database.Schema schema3 = dbContext.Schemas.Single(x => x.ServerId == db.ServerId && x.DatabaseId == db.DatabaseId && x.SchemaName == newSchemaName + "YY");
                     Assert.IsNotNull(schema1);
                     Assert.IsNotNull(schema2);
                     Assert.IsNotNull(schema3);
@@ -3825,14 +4098,20 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Creates a new stream with a non administrator login and user.
+        /// </summary>
         [TestMethod]
         public void TestCreateStream()
         {
-            string userNameThatCreateTheStream = "UserAux";
+            string userNameThatCreateTheStream = DatabaseConstants.NORMAL_USER_2_NAME;
             string sourceNameTest = "source1234";
             string sourceNameTest2 = "sourceForInto";
-            string databaseName = "Database2";
-            string firstCommand = $"use {databaseName}; create source {sourceNameTest2} (c1 string(4000), c3 string(4000)); create source {sourceNameTest} (MessageType string(4000), RetrievalReferenceNumber string(4000), PrimaryAccountNumber string(4000), SourceTimestamp datetime, column1 int, column2 double, column3 string(4000)); grant create stream, read on source {sourceNameTest}, write on source {sourceNameTest2} to user {userNameThatCreateTheStream}";
+            string databaseName = DatabaseConstants.MASTER_DATABASE_NAME;
+            string firstCommand = $@"use {databaseName}; 
+                                        create source {sourceNameTest2} (c1 string(4000), c3 string(4000)); 
+                                        create source {sourceNameTest} (MessageType string(4000), RetrievalReferenceNumber string(4000), PrimaryAccountNumber string(4000), SourceTimestamp datetime, column1 int, column2 double, column3 string(4000)); 
+                                        grant connect on database {databaseName}, create stream, read on source {sourceNameTest}, write on source {sourceNameTest2} to user {userNameThatCreateTheStream}";
 
             string newStreamName = "Stream1234";
             string eql = $@"cross 
@@ -3846,28 +4125,28 @@ namespace Integra.Space.UnitTests
                                           t2.PrimaryAccountNumber as c3 
                                   INTO {sourceNameTest2} ";
 
-            string secondCommand = $"use {databaseName}; create stream {newStreamName} {{\n{ eql }\n}}";
+            string secondCommand = $"use {databaseName}; create stream {newStreamName} {{\n{eql}\n}}";
             IKernel kernel = new StandardKernel();
 
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
-                    this.loginName = "sa";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(firstCommand, kernel);
 
                     kernel = new StandardKernel();
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
                     kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
                     kernel.Bind<ISource>().ToConstructor(x => new ConcreteSource());
-                    this.loginName = "LoginAux";
+                    this.loginName = DatabaseConstants.NORMAL_LOGIN_2_NAME;
                     FirstLevelPipelineContext result2 = this.ProcessCommand(secondCommand, kernel);
 
-                    Server server = dbContext.Servers.Single(x => x.ServerName == "Server1");
-                    Database.Database db = dbContext.Databases.Single(x => x.ServerId == server.ServerId && x.DatabaseName == databaseName);
-                    Database.Schema schema = dbContext.Schemas.Single(x => x.ServerId == server.ServerId && x.DatabaseId == db.DatabaseId && x.SchemaName == "dbo");
-                    Database.Stream stream = dbContext.Streams.Single(x => x.ServerId == schema.ServerId && x.DatabaseId == schema.DatabaseId && x.SchemaId == schema.SchemaId && x.StreamName == newStreamName);
+                    Server server = dbContext.Servers.Single(x => x.ServerName == DatabaseConstants.TEST_SERVER_NAME);
+                    Space.Database.Database db = dbContext.Databases.Single(x => x.ServerId == server.ServerId && x.DatabaseName == databaseName);
+                    Space.Database.Schema schema = dbContext.Schemas.Single(x => x.ServerId == server.ServerId && x.DatabaseId == db.DatabaseId && x.SchemaName == DatabaseConstants.DBO_SCHEMA_NAME);
+                    Space.Database.Stream stream = dbContext.Streams.Single(x => x.ServerId == schema.ServerId && x.DatabaseId == schema.DatabaseId && x.SchemaId == schema.SchemaId && x.StreamName == newStreamName);
                     Assert.IsNotNull(stream);
                     Assert.AreEqual<string>(newStreamName, stream.StreamName);
 
@@ -3880,15 +4159,18 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Creates a new role.
+        /// </summary>
         [TestMethod]
         public void TestCreateRole()
         {
-            loginName = "AdminLogin";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
             string newRoleName = "Role123";
             string command = "create role " + newRoleName;
             IKernel kernel = new StandardKernel();
 
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -3896,9 +4178,9 @@ namespace Integra.Space.UnitTests
 
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    Server server = dbContext.Servers.Single(x => x.ServerName == "Server1");
-                    Database.Database db = dbContext.Databases.Single(x => x.DatabaseName == "Database1");
-                    Database.DatabaseRole role = dbContext.DatabaseRoles.Single(x => x.ServerId == server.ServerId && x.DatabaseId == db.DatabaseId && x.DbRoleName == newRoleName);
+                    Server server = dbContext.Servers.Single(x => x.ServerName == DatabaseConstants.TEST_SERVER_NAME);
+                    Space.Database.Database db = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
+                    Space.Database.DatabaseRole role = dbContext.DatabaseRoles.Single(x => x.ServerId == server.ServerId && x.DatabaseId == db.DatabaseId && x.DbRoleName == newRoleName);
                     Assert.IsNotNull(role);
                     Assert.AreEqual<string>(newRoleName, role.DbRoleName);
 
@@ -3907,15 +4189,19 @@ namespace Integra.Space.UnitTests
                 }
             }
         }
-        
+
+        /// <summary>
+        /// Creates a new database.
+        /// </summary>
         [TestMethod]
         public void TestCreateDatabase()
         {
             string newDatabaseName = "Database1234";
+            this.loginName = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string command = "create database " + newDatabaseName;
             IKernel kernel = new StandardKernel();
 
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -3923,9 +4209,8 @@ namespace Integra.Space.UnitTests
 
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    Server server = dbContext.Servers.Single(x => x.ServerName == "Server1");
-                    Database.Database db = dbContext.Databases.Single(x => x.DatabaseName == "Database1");
-                    Database.Database database = dbContext.Databases.Single(x => x.ServerId == server.ServerId && x.DatabaseName == newDatabaseName);
+                    Server server = dbContext.Servers.Single(x => x.ServerName == DatabaseConstants.TEST_SERVER_NAME);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.ServerId == server.ServerId && x.DatabaseName == newDatabaseName);
                     Assert.IsNotNull(database);
                     Assert.AreEqual<string>(newDatabaseName, database.DatabaseName);
 
@@ -3935,29 +4220,32 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Creates a new login with a non administrator login and user.
+        /// </summary>
         [TestMethod]
         public void TestCreateLogin()
         {
             string newloginName = "Login123";
-            string loginNameThatCreateTheLogin = "LoginAux";
+            string loginNameThatCreateTheLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string firstCommand = $"grant alter any login to login {loginNameThatCreateTheLogin}";
-            string secondCommand = $"create login {newloginName} with password = \"abc\", default_database = Database1";
+            string secondCommand = $"create login {newloginName} with password = \"abc\", default_database = {DatabaseConstants.MASTER_DATABASE_NAME}";
             IKernel kernel = new StandardKernel();
 
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(firstCommand, kernel);
 
                     this.loginName = loginNameThatCreateTheLogin;
                     FirstLevelPipelineContext result2 = this.ProcessCommand(secondCommand, kernel);
-                    Server server = dbContext.Servers.Single(x => x.ServerName == "Server1");
-                    Database.Database db = dbContext.Databases.Single(x => x.DatabaseName == "Database1");
-                    Database.Login login = dbContext.Logins.Single(x => x.ServerId == server.ServerId && x.LoginName == newloginName);
+                    Server server = dbContext.Servers.Single(x => x.ServerName == DatabaseConstants.TEST_SERVER_NAME);
+                    Space.Database.Database db = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
+                    Space.Database.Login login = dbContext.Logins.Single(x => x.ServerId == server.ServerId && x.LoginName == newloginName);
                     Assert.IsNotNull(login);
                     Assert.AreEqual<string>(newloginName, login.LoginName);
 
@@ -3967,16 +4255,19 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Creates a new source with a non administrator login and user.
+        /// </summary>
         [TestMethod]
         public void TestCreateSource()
         {
             string newSource = "SourceInicial_nueva";
-            string userNameThatCreateTheSource = "UserAux";
+            string userNameThatCreateTheSource = DatabaseConstants.NORMAL_USER_1_NAME;
             string firstCommand = $"grant create source to user {userNameThatCreateTheSource}";
             string secondCommand = $"create source {newSource} (column1 int, column2 double, column3 string(4000))";
             IKernel kernel = new StandardKernel();
 
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(initializer: null))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
@@ -3987,15 +4278,15 @@ namespace Integra.Space.UnitTests
                     smodBuilder.CreateModuleBuilder();
                     kernel.Bind<AssemblyBuilder>().ToConstant(asmBuilder);
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(firstCommand, kernel);
 
-                    this.loginName = "LoginAux";
+                    this.loginName = DatabaseConstants.NORMAL_LOGIN_1_NAME;
                     FirstLevelPipelineContext result2 = this.ProcessCommand(secondCommand, kernel);
 
-                    Server server = dbContext.Servers.Single(x => x.ServerName == "Server1");
-                    Database.Database db = dbContext.Databases.Single(x => x.DatabaseName == "Database1");
-                    Database.Source source = dbContext.Sources.Single(x => x.ServerId == server.ServerId && x.DatabaseId == db.DatabaseId && x.SourceName == newSource);
+                    Server server = dbContext.Servers.Single(x => x.ServerName == DatabaseConstants.TEST_SERVER_NAME);
+                    Space.Database.Database db = dbContext.Databases.Single(x => x.DatabaseName == DatabaseConstants.MASTER_DATABASE_NAME);
+                    Space.Database.Source source = dbContext.Sources.Single(x => x.ServerId == server.ServerId && x.DatabaseId == db.DatabaseId && x.SourceName == newSource);
                     Assert.IsNotNull(source);
                     Assert.AreEqual<string>(newSource, source.SourceName);
 
@@ -4006,5 +4297,61 @@ namespace Integra.Space.UnitTests
         }
 
         #endregion otros
+
+        /// <summary>
+        /// This method create a pipeline context and execute the specified command.
+        /// </summary>
+        /// <param name="command">Command to execute.</param>
+        /// <param name="kernel">DI kernel.</param>
+        /// <returns>Pipeline context.</returns>
+        private FirstLevelPipelineContext ProcessCommand(string command, IKernel kernel)
+        {
+            IBinding binding = kernel.GetBindings(typeof(Language.IGrammarRuleValidator)).FirstOrDefault();
+            if (binding != null)
+            {
+                kernel.RemoveBinding(binding);
+            }
+
+            kernel.Bind<Language.IGrammarRuleValidator>().ToConstant(new TestRuleValidator());
+            CommandPipelineBuilder cpb = new CommandPipelineBuilder();
+            Filter<FirstLevelPipelineContext, FirstLevelPipelineContext> pipeline = cpb.Build();
+
+            FirstLevelPipelineExecutor cpe = new FirstLevelPipelineExecutor(pipeline);
+            FirstLevelPipelineContext context = new FirstLevelPipelineContext(command, this.loginName, kernel);
+            FirstLevelPipelineContext result = cpe.Execute(context);
+            return result;
+        }
+
+        /// <summary>
+        /// Creates a code generator configuration object.
+        /// </summary>
+        /// <param name="dsf">A scheduler factory.</param>
+        /// <param name="kernel">DI kernel.</param>
+        /// <returns>Code generator configuration object.</returns>
+        private CodeGeneratorConfiguration GetCodeGeneratorConfig(ManagementSchedulerFactory dsf, IKernel kernel)
+        {
+            bool printLog = false;
+            bool debugMode = false;
+            bool measureElapsedTime = false;
+            bool isTestMode = false;
+            Login login = new SpaceDbContext(initializer: null).Logins.Single(x => x.LoginName == DatabaseConstants.SA_LOGIN_NAME);
+            SpaceAssemblyBuilder sasmBuilder = new SpaceAssemblyBuilder("Test");
+            AssemblyBuilder asmBuilder = sasmBuilder.CreateAssemblyBuilder();
+            SpaceModuleBuilder smodBuilder = new SpaceModuleBuilder(asmBuilder);
+            smodBuilder.CreateModuleBuilder();
+            kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
+            kernel.Bind<ISource>().ToConstructor(x => new ConcreteSource());
+            CodeGeneratorConfiguration config = new CodeGeneratorConfiguration(
+                dsf,
+                asmBuilder,
+                kernel,
+                printLog: printLog,
+                debugMode: debugMode,
+                measureElapsedTime: measureElapsedTime,
+                isTestMode: isTestMode,
+                queryName: "QueryTest");
+
+            return config;
+        }
     }
 }
