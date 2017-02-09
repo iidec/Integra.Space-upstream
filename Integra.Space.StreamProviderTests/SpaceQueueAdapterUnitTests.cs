@@ -31,6 +31,8 @@ namespace Integra.Space.StreamProviderTests
 			streamQueueMapper = new HashRingBasedStreamQueueMapper(1, "NN");
 			connectionString = new RedisConnectionString(TestContext.Properties["redisconnectionstring"].ToString());
 			invalidConnectionString = new RedisConnectionString(TestContext.Properties["invalidredisconnectionstring"].ToString());
+			TestContext.WriteLine("redisconnectionstring = '{0}'", TestContext.Properties["redisconnectionstring"].ToString());
+			TestContext.WriteLine("invalidredisconnectionstring = '{0}'", TestContext.Properties["invalidredisconnectionstring"].ToString());
 		}
 
 		public TestContext TestContext
