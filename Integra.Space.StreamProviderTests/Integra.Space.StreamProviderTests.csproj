@@ -104,11 +104,11 @@
     </Otherwise>
   </Choose>
   <ItemGroup>
-    <Compile Include="BasicStreamingTests.cs" />
-    <Compile Include="SpaceQueueAdapterReceiverUnitTests.cs" />
+    <None Include="BasicStreamingTests.cs" />
+    <None Include="SpaceQueueAdapterReceiverUnitTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SpaceQueueAdapterUnitTests.cs" />
-    <Compile Include="UnitTestSiloHost.cs" />
+    <None Include="UnitTestSiloHost.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
