@@ -4,4 +4,7 @@
 		<Parameter name="redisconnectionstring" value="HostAddress=54.172.20.246;HostPort=12574;Password=redizz;DatabaseId=0" />
 		<Parameter name="invalidredisconnectionstring" value="HostAddress=54.172.20.246;HostPort=12574;Password=redizz1;DatabaseId=0" />
 	</TestRunParameters>
+	<MSTest>
+		<CaptureTraceOutput>true</CaptureTraceOutput>
+	</MSTest>
 </RunSettings>
