@@ -32,10 +32,11 @@ namespace Integra.Space.StreamProviderTests
 			connectionString = new RedisConnectionString(TestContext.Properties["redisconnectionstring"].ToString());
 			invalidConnectionString = new RedisConnectionString(TestContext.Properties["invalidredisconnectionstring"].ToString());
 
+			System.Diagnostics.Trace.Listeners.Add(new System.Diagnostics.DefaultTraceListener());
+			System.Diagnostics.Trace.Listeners.Add(new System.Diagnostics.ConsoleTraceListener());
+
 			System.Diagnostics.Debug.AutoFlush = true;
 			System.Diagnostics.Trace.AutoFlush = true;
-
-			System.Diagnostics.Trace.Listeners.Add(new System.Diagnostics.DefaultTraceListener());
 
 			System.Diagnostics.Trace.WriteLine(string.Format("1 redisconnectionstring = '{0}'", TestContext.Properties["redisconnectionstring"].ToString()));
 			System.Diagnostics.Trace.WriteLine(string.Format("1 invalidredisconnectionstring = '{0}'", TestContext.Properties["invalidredisconnectionstring"].ToString()));
