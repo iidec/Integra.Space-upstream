@@ -40,6 +40,9 @@ namespace Integra.Space.StreamProviderTests
 
 			TestContext.WriteLine(string.Format("3 redisconnectionstring = '{0}'", TestContext.Properties["redisconnectionstring"].ToString()));
 			TestContext.WriteLine(string.Format("3 invalidredisconnectionstring = '{0}'", TestContext.Properties["invalidredisconnectionstring"].ToString()));
+
+			Console.WriteLine(string.Format("4 redisconnectionstring = '{0}'", TestContext.Properties["redisconnectionstring"].ToString()));
+			Console.WriteLine(string.Format("4 invalidredisconnectionstring = '{0}'", TestContext.Properties["invalidredisconnectionstring"].ToString()));
 		}
 
 		public TestContext TestContext
