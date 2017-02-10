@@ -21,6 +21,7 @@ namespace Integra.Space.StreamProviderTests
 		private const string SpaceStreamProviderName = "SpaceProvider";
 		private const string StreamNamespace = "SpaceStreamNamespace";
 		private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
+		private TestContext testContext;
 
 		private Guid streamId;
 		private string streamProvider;
@@ -48,7 +49,7 @@ namespace Integra.Space.StreamProviderTests
 		[TestMethod]
 		public async Task BasicStreamingTests_1()
 		{
-			this.logger.Info("************************ BasicStreamingTests_1 *********************************");
+			this.TestContext.WriteLine("************************ BasicStreamingTests_1 *********************************");
 			this.streamId = Guid.NewGuid();
 			streamProvider = SpaceStreamProviderName;
 			await StreamingTests_Consumer_Producer(streamId, streamProvider);
@@ -74,11 +75,23 @@ namespace Integra.Space.StreamProviderTests
 			await consumer.StopConsuming();
 		}
 
+		public TestContext TestContext
+		{
+			get
+			{
+				return this.testContext;
+			}
+			set
+			{
+				this.testContext = value;
+			}
+		}
+
 		private async Task<bool> CheckCounters(IBasicStreaming_ProducerGrain producer, IBasicStreaming_ConsumerGrain consumer, bool assertIsTrue)
 		{
 			var numProduced = await producer.GetNumberProduced();
 			var numConsumed = await consumer.GetNumberConsumed();
-			logger.Info("CheckCounters: numProduced = {0}, numConsumed = {1}", numProduced, numConsumed);
+			this.TestContext.WriteLine(string.Format("CheckCounters: numProduced = {0}, numConsumed = {1}", numProduced, numConsumed));
 			if (assertIsTrue)
 			{
 				Assert.AreEqual(numProduced, numConsumed, String.Format("numProduced = {0}, numConsumed = {1}", numProduced, numConsumed));
