@@ -20,9 +20,14 @@ namespace Integra.Space.Pipeline.Filters
         {
             Database database = databaseContext.Databases.Single(x => x.ServerId == schema.ServerId
                                             && x.DatabaseName == command.MainCommandObject.Name);
-            
+
             if (options.ContainsKey(Common.DatabaseOptionEnum.Name))
             {
+                if (database.DatabaseName == "master")
+                {
+                    throw new System.InvalidOperationException("Can't change the name of the master database.");
+                }
+
                 database.DatabaseName = options[Common.DatabaseOptionEnum.Name].ToString();
             }
 

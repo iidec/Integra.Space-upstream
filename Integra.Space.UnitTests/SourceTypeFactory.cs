@@ -1,10 +1,23 @@
-﻿using Integra.Space.Common;
-using System;
-
+﻿//-----------------------------------------------------------------------
+// <copyright file="SourceTypeFactory.cs" company="ARITEC">
+// Copyright (c) ARITEC. All rights reserved.
+// </copyright>
+//-----------------------------------------------------------------------
 namespace Integra.Space.UnitTests
 {
+    using System;
+    using Common;
+
+    /// <summary>
+    /// Source type factory class.
+    /// </summary>
     internal class SourceTypeFactory : Compiler.ISourceTypeFactory
     {
+        /// <summary>
+        /// Returns the source type depending on a source command object.
+        /// </summary>
+        /// <param name="source">Source command object.</param>
+        /// <returns>Source type.</returns>
         public Type GetSourceType(CommandObject source)
         {
             /*
@@ -24,7 +37,6 @@ namespace Integra.Space.UnitTests
                 sourceGeneratedType = typeof(System.IObservable<>).MakeGenericType(new Type[] { sourceGeneratedType });
             }
             */
-
 
             if (source.Name.ToString().Equals("servers", StringComparison.InvariantCultureIgnoreCase))
             {

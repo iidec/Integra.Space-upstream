@@ -52,6 +52,9 @@ namespace Integra.Space.Pipeline.Filters
                 case SystemSourceEnum.Servers:
                     sourceType = typeof(ServerView);
                     break;
+                case SystemSourceEnum.Endpoints:
+                    sourceType = typeof(EndpointView);
+                    break;
                 case SystemSourceEnum.ServerRoles:
                     sourceType = typeof(ServerRoleView);
                     break;

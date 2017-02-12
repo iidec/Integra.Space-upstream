@@ -16,6 +16,8 @@
     <ReferencePath>$(ProgramFiles)\Common Files\microsoft shared\VSTT\$(VisualStudioVersion)\UITestExtensionPackages</ReferencePath>
     <IsCodedUITest>False</IsCodedUITest>
     <TestProjectType>UnitTest</TestProjectType>
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -25,6 +27,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <DocumentationFile>bin\Debug\Integra.Space.UnitTests.XML</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -44,23 +47,23 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="Integra.Space.Common, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Integra.Space.Common.Debug.0.0.1.8\lib\Integra.Space.Common.dll</HintPath>
+      <HintPath>..\packages\Integra.Space.Common.2017.2.7.12\lib\net452\Integra.Space.Common.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Integra.Space.Compiler.CodeGeneration, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Integra.Space.Compiler.CodeGenerator.0.0.1\lib\Integra.Space.Compiler.CodeGeneration.dll</HintPath>
+      <HintPath>..\packages\Integra.Space.Compiler.CodeGeneration.2017.2.7.12\lib\net452\Integra.Space.Compiler.CodeGeneration.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Integra.Space.Database, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Integra.Space.Database.Debug.0.0.2\lib\Integra.Space.Database.dll</HintPath>
+      <HintPath>..\packages\Integra.Space.Database.2017.2.10.1\lib\net452\Integra.Space.Database.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Integra.Space.Language, Version=0.0.1.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Integra.Space.Language.Debug.1.0.6.6\lib\Integra.Space.Language.dll</HintPath>
+      <HintPath>..\packages\Integra.Space.Language.Release.2017.2.7.12\lib\net452\Integra.Space.Language.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Integra.Space.Runtime, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Integra.Space.Runtime.Debug.0.0.2\lib\Integra.Space.Runtime.dll</HintPath>
+      <HintPath>..\packages\Integra.Space.Runtime.2017.2.7.12\lib\net452\Integra.Space.Runtime.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Irony, Version=1.0.0.0, Culture=neutral, PublicKeyToken=ca48ace7223ead47, processorArchitecture=MSIL">
@@ -75,6 +78,7 @@
       <HintPath>..\packages\Microsoft.Reactive.Testing.3.1.1\lib\net45\Microsoft.Reactive.Testing.dll</HintPath>
       <Private>True</Private>
     </Reference>
+    <Reference Include="Microsoft.VisualStudio.QualityTools.UnitTestFramework, Version=10.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL" />
     <Reference Include="Ninject, Version=3.2.0.0, Culture=neutral, PublicKeyToken=c7192dc5380945e7, processorArchitecture=MSIL">
       <HintPath>..\packages\Ninject.3.2.2.0\lib\net45-full\Ninject.dll</HintPath>
       <Private>True</Private>
@@ -111,14 +115,17 @@
       <HintPath>..\packages\System.Reactive.Providers.3.1.1\lib\net45\System.Reactive.Providers.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="System.Reactive.Windows.Threading, Version=3.0.0.0, Culture=neutral, PublicKeyToken=94bc3704cddfc263, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Reactive.Windows.Threading.3.0.0\lib\net45\System.Reactive.Windows.Threading.dll</HintPath>
+    <Reference Include="System.Reactive.Windows.Threading, Version=3.0.1000.0, Culture=neutral, PublicKeyToken=94bc3704cddfc263, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Reactive.Windows.Threading.3.1.1\lib\net45\System.Reactive.Windows.Threading.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="System.Threading.Tasks.Dataflow, Version=4.5.24.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.Tpl.Dataflow.4.5.24\lib\portable-net45+win8+wpa81\System.Threading.Tasks.Dataflow.dll</HintPath>
       <Private>True</Private>
     </Reference>
+    <Reference Include="System.Transactions" />
+    <Reference Include="System.Windows" />
+    <Reference Include="System.Xml" />
     <Reference Include="WindowsBase" />
   </ItemGroup>
   <Choose>
@@ -127,18 +134,14 @@
         <Reference Include="Microsoft.VisualStudio.QualityTools.UnitTestFramework, Version=10.1.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL" />
       </ItemGroup>
     </When>
-    <Otherwise>
-      <ItemGroup>
-        <Reference Include="Microsoft.VisualStudio.QualityTools.UnitTestFramework">
-          <Private>False</Private>
-        </Reference>
-      </ItemGroup>
-    </Otherwise>
+    <Otherwise />
   </Choose>
   <ItemGroup>
+    <Compile Include="BaseTest.cs" />
     <Compile Include="BufferBlockForTest.cs" />
     <Compile Include="CommandTests.cs" />
     <Compile Include="ConcreteSource.cs" />
+    <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="RevokeCommandTests.cs" />
     <Compile Include="DenyCommandTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -158,6 +161,12 @@
     <None Include="packages.config">
       <SubType>Designer</SubType>
     </None>
+    <AdditionalFiles Include="stylecop.json" />
+  </ItemGroup>
+  <ItemGroup>
+    <Analyzer Include="..\packages\StyleCop.Analyzers.1.0.0\analyzers\dotnet\cs\Newtonsoft.Json.dll" />
+    <Analyzer Include="..\packages\StyleCop.Analyzers.1.0.0\analyzers\dotnet\cs\StyleCop.Analyzers.CodeFixes.dll" />
+    <Analyzer Include="..\packages\StyleCop.Analyzers.1.0.0\analyzers\dotnet\cs\StyleCop.Analyzers.dll" />
   </ItemGroup>
   <Choose>
     <When Condition="'$(VisualStudioVersion)' == '10.0' And '$(IsCodedUITest)' == 'True'">
@@ -179,6 +188,13 @@
   </Choose>
   <Import Project="$(VSToolsPath)\TeamTest\Microsoft.TestTools.targets" Condition="Exists('$(VSToolsPath)\TeamTest\Microsoft.TestTools.targets')" />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\packages\StyleCop.Error.MSBuild.1.0.0\build\StyleCop.Error.MSBuild.Targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\StyleCop.Error.MSBuild.1.0.0\build\StyleCop.Error.MSBuild.Targets'))" />
+  </Target>
+  <Import Project="..\packages\StyleCop.Error.MSBuild.1.0.0\build\StyleCop.Error.MSBuild.Targets" Condition="Exists('..\packages\StyleCop.Error.MSBuild.1.0.0\build\StyleCop.Error.MSBuild.Targets')" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

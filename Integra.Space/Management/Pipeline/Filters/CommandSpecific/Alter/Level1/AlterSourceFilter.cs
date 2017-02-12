@@ -34,12 +34,12 @@ namespace Integra.Space.Pipeline.Filters
 
             if (command.Options.ContainsKey(Common.SourceOptionEnum.Cache_Durability))
             {
-                source.CacheDurability = (uint)(int)command.Options[Common.SourceOptionEnum.Cache_Durability];
+                source.CacheDurability = (int)command.Options[Common.SourceOptionEnum.Cache_Durability];
             }
 
             if (command.Options.ContainsKey(Common.SourceOptionEnum.Cache_Size))
             {
-                source.CacheSize = (uint)(int)command.Options[Common.SourceOptionEnum.Cache_Size];
+                source.CacheSize = (int)command.Options[Common.SourceOptionEnum.Cache_Size];
             }
 
             if (command.Options.ContainsKey(Common.SourceOptionEnum.Persistent))

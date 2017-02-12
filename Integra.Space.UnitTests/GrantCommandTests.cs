@@ -1,65 +1,58 @@
-﻿using System;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Integra.Space.Pipeline;
-using Ninject;
-using Integra.Space.Database;
-using System.Data.Entity;
-using System.Linq;
-using System.Reflection.Emit;
-using Integra.Space.Compiler;
-using Ninject.Planning.Bindings;
+﻿// <copyright file="GrantCommandTests.cs" company="ARITEC">
+// Copyright (c) ARITEC. All rights reserved.
+// </copyright>
 
 namespace Integra.Space.UnitTests
 {
+    using System;
+    using System.Data.Entity;
+    using System.Linq;
+    using System.Reflection.Emit;
+    using Compiler;
+    using Database;
+    using Microsoft.VisualStudio.TestTools.UnitTesting;
+    using Ninject;
+    using Ninject.Planning.Bindings;
+    using Pipeline;
+
+    /// <summary>
+    /// A class containing the tests for grant permissions.
+    /// </summary>
     [TestClass]
-    public class GrantCommandTests
+    public class GrantCommandTests : BaseTest
     {
-        private string loginName = "LoginAux";
-
-        private FirstLevelPipelineContext ProcessCommand(string command, IKernel kernel)
-        {
-            IBinding binding = kernel.GetBindings(typeof(Language.IGrammarRuleValidator)).FirstOrDefault();
-            if (binding != null)
-            {
-                kernel.RemoveBinding(binding);
-            }
-            kernel.Bind<Language.IGrammarRuleValidator>().ToConstant(new TestRuleValidator());
-            CommandPipelineBuilder cpb = new CommandPipelineBuilder();
-            Filter<FirstLevelPipelineContext, FirstLevelPipelineContext> pipeline = cpb.Build();
-
-            FirstLevelPipelineExecutor cpe = new FirstLevelPipelineExecutor(pipeline);
-            FirstLevelPipelineContext context = new FirstLevelPipelineContext(command, loginName, kernel);
-            FirstLevelPipelineContext result = cpe.Execute(context);
-            return result;
-        }
+        private string loginName = DatabaseConstants.NORMAL_LOGIN_1_NAME;
 
         #region grant
 
         #region grant alter
 
+        /// <summary>
+        /// Grants alter permission on a specific database to user.
+        /// </summary>
         [TestMethod]
         public void GrantAlterOnDatabase()
         {
             string databaseName = "Database123456789";
             string databaseNewName = "dbnueva";
             string userName = "newUser";
-            string otherLogin = "LoginAux";
+            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string command = $"create database {databaseName}; use {databaseName}; use {databaseName}; create user {userName} with login = {otherLogin}; grant alter on database {databaseName} to user {userName}";
             string command2 = $"use {databaseName}; alter database {databaseName} with name = {databaseNewName}";
 
             IKernel kernel = new StandardKernel();
 
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
                     this.loginName = otherLogin;
                     FirstLevelPipelineContext result2 = this.ProcessCommand(command2, kernel);
 
-                    Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseNewName);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseNewName);
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == databaseNewName && x.DbUsrName == userName);
 
                     GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("alter", StringComparison.InvariantCultureIgnoreCase));
@@ -76,6 +69,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants alter permission on a specific database to user.
+        /// </summary>
         [TestMethod]
         public void GrantAlterOnDatabaseRole()
         {
@@ -83,18 +79,18 @@ namespace Integra.Space.UnitTests
             string newRoleName = "newNameRole";
             string databaseName = "newDatabase";
             string userName = "newUser";
-            string otherLogin = "LoginAux";
+            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string command = $"create database {databaseName}; use {databaseName}; create role {roleName}; create user {userName} with login = {otherLogin}; grant alter on role {roleName} to user {userName}";
             string command2 = $"use {databaseName}; alter role {roleName} with name = {newRoleName}";
             IKernel kernel = new StandardKernel();
 
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     this.loginName = otherLogin;
@@ -113,24 +109,27 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants alter permission on a specific database role to user.
+        /// </summary>
         [TestMethod]
         public void GrantAlterOnDatabaseRoleAddUserToRole()
         {
             string roleName = "roleAux";
             string databaseName = "newDatabase";
             string userName = "newUser";
-            string otherLogin = "LoginAux";
+            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string command = $"create database {databaseName}; use {databaseName}; create role {roleName}; create user {userName} with login = {otherLogin}; grant alter on role {roleName} to user {userName}";
             string command2 = $"use {databaseName}; add {userName} to {roleName}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     this.loginName = otherLogin;
@@ -138,7 +137,7 @@ namespace Integra.Space.UnitTests
 
                     try
                     {
-                        Database.DatabaseUser dbUser = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName).DatabaseUsers.Single(x => x.DbUsrName == userName);
+                        Space.Database.DatabaseUser dbUser = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName).DatabaseUsers.Single(x => x.DbUsrName == userName);
                         Assert.AreEqual(userName, dbUser.DbUsrName);
                         tran.Rollback();
                     }
@@ -151,6 +150,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants alter permission on multiple roles to user.
+        /// </summary>
         [TestMethod]
         public void GrantAlterOnDatabaseRoleAddUserToRoles()
         {
@@ -158,18 +160,18 @@ namespace Integra.Space.UnitTests
             string roleName2 = "newRole2";
             string databaseName = "newDatabase";
             string userName = "newUser";
-            string otherLogin = "LoginAux";
+            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string command = $"create database {databaseName}; use {databaseName}; create role {roleName1}; create role {roleName2}; create user {userName} with login = {otherLogin}; grant alter on role {roleName1}, alter on role {roleName2} to user {userName}";
             string command2 = $"use {databaseName}; add {userName} to {roleName1}, {roleName2}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     this.loginName = otherLogin;
@@ -177,9 +179,9 @@ namespace Integra.Space.UnitTests
 
                     try
                     {
-                        Database.DatabaseUser dbUser1 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName1).DatabaseUsers.Single(x => x.DbUsrName == userName);
+                        Space.Database.DatabaseUser dbUser1 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName1).DatabaseUsers.Single(x => x.DbUsrName == userName);
                         Assert.AreEqual(userName, dbUser1.DbUsrName);
-                        Database.DatabaseUser dbUser2 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName2).DatabaseUsers.Single(x => x.DbUsrName == userName);
+                        Space.Database.DatabaseUser dbUser2 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName2).DatabaseUsers.Single(x => x.DbUsrName == userName);
                         Assert.AreEqual(userName, dbUser2.DbUsrName);
                         tran.Rollback();
                     }
@@ -192,6 +194,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants alter permission on a specific database role to multiple users.
+        /// </summary>
         [TestMethod]
         public void GrantAlterOnDatabaseRoleAddUserListToRole1()
         {
@@ -199,19 +204,19 @@ namespace Integra.Space.UnitTests
             string databaseName = "newDatabase";
             string userName1 = "newUser1";
             string userName2 = "newUser2";
-            string otherLogin1 = "LoginAux";
-            string otherLogin2 = "LoginForTest";
+            string otherLogin1 = DatabaseConstants.NORMAL_LOGIN_1_NAME;
+            string otherLogin2 = DatabaseConstants.NORMAL_LOGIN_2_NAME;
             string command = $"create database {databaseName}; use {databaseName}; create role {roleName}; create user {userName1} with login = {otherLogin1}; create user {userName2} with login = {otherLogin2}; grant alter on role {roleName} to user {userName1}, user {userName2}";
             string command2 = $"use {databaseName}; add {userName1}, {userName2} to {roleName}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     this.loginName = otherLogin1;
@@ -219,9 +224,9 @@ namespace Integra.Space.UnitTests
 
                     try
                     {
-                        Database.DatabaseUser dbUser1 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName).DatabaseUsers.Single(x => x.DbUsrName == userName1);
+                        DatabaseUser dbUser1 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName).DatabaseUsers.Single(x => x.DbUsrName == userName1);
                         Assert.AreEqual(userName1, dbUser1.DbUsrName);
-                        Database.DatabaseUser dbUser2 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName).DatabaseUsers.Single(x => x.DbUsrName == userName2);
+                        DatabaseUser dbUser2 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName).DatabaseUsers.Single(x => x.DbUsrName == userName2);
                         Assert.AreEqual(userName2, dbUser2.DbUsrName);
                         tran.Rollback();
                     }
@@ -234,6 +239,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants alter permission on a specific database role to multiple users.
+        /// </summary>
         [TestMethod]
         public void GrantAlterOnDatabaseRoleAddUserListToRole2()
         {
@@ -241,19 +249,19 @@ namespace Integra.Space.UnitTests
             string databaseName = "newDatabase";
             string userName1 = "newUser1";
             string userName2 = "newUser2";
-            string otherLogin1 = "LoginAux";
-            string otherLogin2 = "LoginForTest";
+            string otherLogin1 = DatabaseConstants.NORMAL_LOGIN_1_NAME;
+            string otherLogin2 = DatabaseConstants.NORMAL_LOGIN_2_NAME;
             string command = $"create database {databaseName}; use {databaseName}; create role {roleName}; create user {userName1} with login = {otherLogin1}; create user {userName2} with login = {otherLogin2}; grant alter on role {roleName} to user {userName1}, user {userName2}";
             string command2 = $"use {databaseName}; add {userName1}, {userName2} to {roleName}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     this.loginName = otherLogin2;
@@ -261,9 +269,9 @@ namespace Integra.Space.UnitTests
 
                     try
                     {
-                        Database.DatabaseUser dbUser1 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName).DatabaseUsers.Single(x => x.DbUsrName == userName1);
+                        DatabaseUser dbUser1 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName).DatabaseUsers.Single(x => x.DbUsrName == userName1);
                         Assert.AreEqual(userName1, dbUser1.DbUsrName);
-                        Database.DatabaseUser dbUser2 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName).DatabaseUsers.Single(x => x.DbUsrName == userName2);
+                        DatabaseUser dbUser2 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName).DatabaseUsers.Single(x => x.DbUsrName == userName2);
                         Assert.AreEqual(userName2, dbUser2.DbUsrName);
                         tran.Rollback();
                     }
@@ -276,6 +284,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants alter permission on multiple database roles to multiple users.
+        /// </summary>
         [TestMethod]
         public void GrantAlterOnDatabaseRoleAddUserListToRoles1()
         {
@@ -284,19 +295,19 @@ namespace Integra.Space.UnitTests
             string databaseName = "newDatabase";
             string userName1 = "newUser1";
             string userName2 = "newUser2";
-            string otherLogin1 = "LoginAux";
-            string otherLogin2 = "LoginForTest";
+            string otherLogin1 = DatabaseConstants.NORMAL_LOGIN_1_NAME;
+            string otherLogin2 = DatabaseConstants.NORMAL_LOGIN_2_NAME;
             string command = $"create database {databaseName}; use {databaseName}; create role {roleName1}; create role {roleName2}; create user {userName1} with login = {otherLogin1}; create user {userName2} with login = {otherLogin2}; grant alter on role {roleName1}, alter on role {roleName2} to user {userName1}, user {userName2}";
             string command2 = $"use {databaseName}; add {userName1}, {userName2} to {roleName1}, {roleName2}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     this.loginName = otherLogin1;
@@ -304,14 +315,14 @@ namespace Integra.Space.UnitTests
 
                     try
                     {
-                        Database.DatabaseUser dbUser1 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName1).DatabaseUsers.Single(x => x.DbUsrName == userName1);
+                        DatabaseUser dbUser1 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName1).DatabaseUsers.Single(x => x.DbUsrName == userName1);
                         Assert.AreEqual(userName1, dbUser1.DbUsrName);
-                        Database.DatabaseUser dbUser2 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName2).DatabaseUsers.Single(x => x.DbUsrName == userName1);
+                        DatabaseUser dbUser2 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName2).DatabaseUsers.Single(x => x.DbUsrName == userName1);
                         Assert.AreEqual(userName1, dbUser2.DbUsrName);
 
-                        Database.DatabaseUser dbUser3 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName1).DatabaseUsers.Single(x => x.DbUsrName == userName2);
+                        DatabaseUser dbUser3 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName1).DatabaseUsers.Single(x => x.DbUsrName == userName2);
                         Assert.AreEqual(userName2, dbUser3.DbUsrName);
-                        Database.DatabaseUser dbUser4 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName2).DatabaseUsers.Single(x => x.DbUsrName == userName2);
+                        DatabaseUser dbUser4 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName2).DatabaseUsers.Single(x => x.DbUsrName == userName2);
                         Assert.AreEqual(userName2, dbUser4.DbUsrName);
 
                         tran.Rollback();
@@ -325,6 +336,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants alter permission on multiple database roles to multiple users.
+        /// </summary>
         [TestMethod]
         public void GrantAlterOnDatabaseRoleAddUserListToRoles2()
         {
@@ -333,19 +347,19 @@ namespace Integra.Space.UnitTests
             string databaseName = "newDatabase";
             string userName1 = "newUser1";
             string userName2 = "newUser2";
-            string otherLogin1 = "LoginAux";
-            string otherLogin2 = "LoginForTest";
+            string otherLogin1 = DatabaseConstants.NORMAL_LOGIN_1_NAME;
+            string otherLogin2 = DatabaseConstants.NORMAL_LOGIN_2_NAME;
             string command = $"create database {databaseName}; use {databaseName}; create role {roleName1}; create role {roleName2}; create user {userName1} with login = {otherLogin1}; create user {userName2} with login = {otherLogin2}; grant alter on role {roleName1}, alter on role {roleName2} to user {userName1}, user {userName2}";
             string command2 = $"use {databaseName}; add {userName1}, {userName2} to {roleName1}, {roleName2}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     this.loginName = otherLogin2;
@@ -353,14 +367,14 @@ namespace Integra.Space.UnitTests
 
                     try
                     {
-                        Database.DatabaseUser dbUser1 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName1).DatabaseUsers.Single(x => x.DbUsrName == userName1);
+                        DatabaseUser dbUser1 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName1).DatabaseUsers.Single(x => x.DbUsrName == userName1);
                         Assert.AreEqual(userName1, dbUser1.DbUsrName);
-                        Database.DatabaseUser dbUser2 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName2).DatabaseUsers.Single(x => x.DbUsrName == userName1);
+                        DatabaseUser dbUser2 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName2).DatabaseUsers.Single(x => x.DbUsrName == userName1);
                         Assert.AreEqual(userName1, dbUser2.DbUsrName);
 
-                        Database.DatabaseUser dbUser3 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName1).DatabaseUsers.Single(x => x.DbUsrName == userName2);
+                        DatabaseUser dbUser3 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName1).DatabaseUsers.Single(x => x.DbUsrName == userName2);
                         Assert.AreEqual(userName2, dbUser3.DbUsrName);
-                        Database.DatabaseUser dbUser4 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName2).DatabaseUsers.Single(x => x.DbUsrName == userName2);
+                        DatabaseUser dbUser4 = dbContext.DatabaseRoles.Single(x => x.DbRoleName == roleName2).DatabaseUsers.Single(x => x.DbUsrName == userName2);
                         Assert.AreEqual(userName2, dbUser4.DbUsrName);
 
                         tran.Rollback();
@@ -374,25 +388,28 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants alter permission on a specific database role to user.
+        /// </summary>
         [TestMethod]
         public void GrantAlterOnDatabaseRoleRemoveUserToRole()
         {
             string roleName = "roleAux";
             string databaseName = "newDatabase";
             string userName = "newUser";
-            string otherLogin = "LoginAux";
+            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string command = $"create database {databaseName}; use {databaseName}; create role {roleName}; create user {userName} with login = {otherLogin}; grant alter on role {roleName} to user {userName}";
             string command2 = $"use {databaseName}; add {userName} to {roleName}";
             command2 += $"; remove {userName} to {roleName}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     this.loginName = otherLogin;
@@ -413,6 +430,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants alter permission on multiple database role to user.
+        /// </summary>
         [TestMethod]
         public void GrantAlterOnDatabaseRoleRemoveUserToRoles()
         {
@@ -420,19 +440,19 @@ namespace Integra.Space.UnitTests
             string roleName2 = "newRole2";
             string databaseName = "newDatabase";
             string userName = "newUser";
-            string otherLogin = "LoginAux";
+            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string command = $"create database {databaseName}; use {databaseName}; create role {roleName1}; create role {roleName2}; create user {userName} with login = {otherLogin}; grant alter on role {roleName1}, alter on role {roleName2} to user {userName}";
             string command2 = $"use {databaseName}; add {userName} to {roleName1}, {roleName2}";
             command2 += $"; remove {userName} to {roleName1}, {roleName2}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     this.loginName = otherLogin;
@@ -454,6 +474,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants alter permission on a specific database role to multiple user.
+        /// </summary>
         [TestMethod]
         public void GrantAlterOnDatabaseRoleRemoveUserListToRole1()
         {
@@ -461,20 +484,20 @@ namespace Integra.Space.UnitTests
             string databaseName = "newDatabase";
             string userName1 = "newUser1";
             string userName2 = "newUser2";
-            string otherLogin1 = "LoginAux";
-            string otherLogin2 = "LoginForTest";
+            string otherLogin1 = DatabaseConstants.NORMAL_LOGIN_1_NAME;
+            string otherLogin2 = DatabaseConstants.NORMAL_LOGIN_2_NAME;
             string command = $"create database {databaseName}; use {databaseName}; create role {roleName}; create user {userName1} with login = {otherLogin1}; create user {userName2} with login = {otherLogin2}; grant alter on role {roleName} to user {userName1}, user {userName2}";
             string command2 = $"use {databaseName}; add {userName1}, {userName2} to {roleName}";
             command2 += $"; remove {userName1}, {userName2} to {roleName}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     this.loginName = otherLogin1;
@@ -496,6 +519,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants alter permission on a specific database role to multiple user.
+        /// </summary>
         [TestMethod]
         public void GrantAlterOnDatabaseRoleRemoveUserListToRole2()
         {
@@ -503,20 +529,20 @@ namespace Integra.Space.UnitTests
             string databaseName = "newDatabase";
             string userName1 = "newUser1";
             string userName2 = "newUser2";
-            string otherLogin1 = "LoginAux";
-            string otherLogin2 = "LoginForTest";
+            string otherLogin1 = DatabaseConstants.NORMAL_LOGIN_1_NAME;
+            string otherLogin2 = DatabaseConstants.NORMAL_LOGIN_2_NAME;
             string command = $"create database {databaseName}; use {databaseName}; create role {roleName}; create user {userName1} with login = {otherLogin1}; create user {userName2} with login = {otherLogin2}; grant alter on role {roleName} to user {userName1}, user {userName2}";
             string command2 = $"use {databaseName}; add {userName1}, {userName2} to {roleName}";
             command2 += $"; remove {userName1}, {userName2} to {roleName}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     this.loginName = otherLogin2;
@@ -538,6 +564,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants alter permission on multiple database roles to multiple user.
+        /// </summary>
         [TestMethod]
         public void GrantAlterOnDatabaseRoleRemoveUserListToRoles1()
         {
@@ -546,20 +575,20 @@ namespace Integra.Space.UnitTests
             string databaseName = "newDatabase";
             string userName1 = "newUser1";
             string userName2 = "newUser2";
-            string otherLogin1 = "LoginAux";
-            string otherLogin2 = "LoginForTest";
+            string otherLogin1 = DatabaseConstants.NORMAL_LOGIN_1_NAME;
+            string otherLogin2 = DatabaseConstants.NORMAL_LOGIN_2_NAME;
             string command = $"create database {databaseName}; use {databaseName}; create role {roleName1}; create role {roleName2}; create user {userName1} with login = {otherLogin1}; create user {userName2} with login = {otherLogin2}; grant alter on role {roleName1}, alter on role {roleName2} to user {userName1}, user {userName2}";
             string command2 = $"use {databaseName}; add {userName1}, {userName2} to {roleName1}, {roleName2}";
             command2 += $"; remove {userName1}, {userName2} to {roleName1}, {roleName2}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     this.loginName = otherLogin1;
@@ -584,6 +613,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants alter permission on multiple database roles to multiple user.
+        /// </summary>
         [TestMethod]
         public void GrantAlterOnDatabaseRoleRemoveUserListToRoles2()
         {
@@ -592,20 +624,20 @@ namespace Integra.Space.UnitTests
             string databaseName = "newDatabase";
             string userName1 = "newUser1";
             string userName2 = "newUser2";
-            string otherLogin1 = "LoginAux";
-            string otherLogin2 = "LoginForTest";
+            string otherLogin1 = DatabaseConstants.NORMAL_LOGIN_1_NAME;
+            string otherLogin2 = DatabaseConstants.NORMAL_LOGIN_2_NAME;
             string command = $"create database {databaseName}; use {databaseName}; create role {roleName1}; create role {roleName2}; create user {userName1} with login = {otherLogin1}; create user {userName2} with login = {otherLogin2}; grant alter on role {roleName1}, alter on role {roleName2} to user {userName1}, user {userName2}";
             string command2 = $"use {databaseName}; add {userName1}, {userName2} to {roleName1}, {roleName2}";
             command2 += $"; remove {userName1}, {userName2} to {roleName1}, {roleName2}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     this.loginName = otherLogin2;
@@ -630,24 +662,27 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants alter permission on specific database to user.
+        /// </summary>
         [TestMethod]
         public void GrantAlterOnDatabaseUser()
         {
             string newUserName = "newNameUser";
             string databaseName = "newDatabase";
             string userName = "newUser";
-            string otherLogin = "LoginAux";
+            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string command = $"create database {databaseName}; use {databaseName}; create user {userName} with login = {otherLogin}; grant alter on user {userName} to user {userName}";
             string command2 = $"use {databaseName}; alter user {userName} with name = {newUserName}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     this.loginName = otherLogin;
@@ -672,26 +707,29 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants alter permission on specific login to login.
+        /// </summary>
         [TestMethod]
         public void GrantAlterOnLogin1()
         {
-            string existingLogin = "LoginAux";
+            string existingLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string newLogin = "AdminLogin12345";
             string newLoginName = "foo";
             string command = $@"create login {newLogin} with password = ""pass1234""; 
                                     grant alter on login {existingLogin} to login {newLogin};
-                                    use Database1;
+                                    use {DatabaseConstants.MASTER_DATABASE_NAME};
                                     create user bar with login = {newLogin}";
-            string command2 = $"use Database1; alter login {existingLogin} with name = {newLoginName}";
+            string command2 = $"use {DatabaseConstants.MASTER_DATABASE_NAME}; alter login {existingLogin} with name = {newLoginName}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     this.loginName = newLogin;
@@ -723,25 +761,28 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants alter permission on specific schema to user.
+        /// </summary>
         [TestMethod]
         public void GrantAlterOnSchema()
         {
             string oldSchemaName = "oldSchema";
             string newSchemaName = "newSchema";
-            string existingUserName = "UserAux";
-            string databaseName = "Database1";
-            string loginNameAux = "LoginAux";
+            string existingUserName = DatabaseConstants.NORMAL_USER_1_NAME;
+            string databaseName = DatabaseConstants.MASTER_DATABASE_NAME;
+            string loginNameAux = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string command = $"use {databaseName}; create schema {oldSchemaName}; grant connect on database {databaseName} to user {existingUserName}; grant alter on schema {oldSchemaName} to user {existingUserName}";
             string command2 = $"use {databaseName}; alter schema {oldSchemaName} with name = {newSchemaName}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     this.loginName = loginNameAux;
@@ -762,13 +803,16 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants alter permission on specific stream to user and; read and write on specific source.
+        /// </summary>
         [TestMethod]
         public void GrantAlterOnStreamAndReadSource()
         {
             string oldStreamName = "oldStream";
             string newStreamName = "newStream";
-            string userName = "UserAux";
-            string databaseName = "Database1";
+            string userName = DatabaseConstants.NORMAL_USER_1_NAME;
+            string databaseName = DatabaseConstants.MASTER_DATABASE_NAME;
             string sourceNameTest = "source1234";
             string sourceForInto = "sourceForInto";
             string eql = "cross " +
@@ -781,21 +825,21 @@ namespace Integra.Space.UnitTests
                                           $@"t1.PrimaryAccountNumber as c1, " +
                                           $@"t2.PrimaryAccountNumber as c3 into {sourceForInto} ";
 
-            string command = $"use Database1; create source {sourceNameTest} (MessageType string(4000), PrimaryAccountNumber string(4000), RetrievalReferenceNumber string(4000), SourceTimestamp datetime); create source {sourceForInto} (c1 string(4000), c3 string(4000)); create stream {oldStreamName} {{ {eql} }}; grant connect on database {databaseName} to user {userName}; grant alter on stream {oldStreamName}, read on source {sourceNameTest}, write on source {sourceForInto} to user {userName}";
-            string command2 = $"use Database1; alter stream {oldStreamName} with name = {newStreamName}";
+            string command = $"use {DatabaseConstants.MASTER_DATABASE_NAME}; create source {sourceNameTest} (MessageType string(4000), PrimaryAccountNumber string(4000), RetrievalReferenceNumber string(4000), SourceTimestamp datetime); create source {sourceForInto} (c1 string(4000), c3 string(4000)); create stream {oldStreamName} {{ {eql} }}; grant connect on database {databaseName} to user {userName}; grant alter on stream {oldStreamName}, read on source {sourceNameTest}, write on source {sourceForInto} to user {userName}";
+            string command2 = $"use {DatabaseConstants.MASTER_DATABASE_NAME}; alter stream {oldStreamName} with name = {newStreamName}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
                     kernel.Bind<ISource>().ToConstructor(x => new ConcreteSource());
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    this.loginName = "LoginAux";
+                    this.loginName = DatabaseConstants.NORMAL_LOGIN_1_NAME;
                     kernel = new StandardKernel();
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
                     kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
@@ -823,24 +867,27 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants alter permission on specific source to user.
+        /// </summary>
         [TestMethod]
         public void GrantAlterOnSource()
         {
             string oldSourceName = "oldSourceName";
             string newSourceName = "newSource";
-            string userName = "UserAux";
-            string databaseName = "Database1";
+            string userName = DatabaseConstants.NORMAL_USER_1_NAME;
+            string databaseName = DatabaseConstants.MASTER_DATABASE_NAME;
             string command = $"create source {oldSourceName} (column1 int, column2 double, column3 string(4000)); grant connect on database {databaseName}, alter on source {oldSourceName} to user {userName}";
-            string command2 = $"use Database1; alter source {oldSourceName} with name = {newSourceName}";
+            string command2 = $"use {DatabaseConstants.MASTER_DATABASE_NAME}; alter source {oldSourceName} with name = {newSourceName}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     SpaceAssemblyBuilder sasmBuilder1 = new SpaceAssemblyBuilder("Test");
                     AssemblyBuilder asmBuilder1 = sasmBuilder1.CreateAssemblyBuilder();
                     SpaceModuleBuilder smodBuilder1 = new SpaceModuleBuilder(asmBuilder1);
@@ -848,7 +895,7 @@ namespace Integra.Space.UnitTests
                     kernel.Bind<AssemblyBuilder>().ToConstant(asmBuilder1);
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    this.loginName = "LoginAux";
+                    this.loginName = DatabaseConstants.NORMAL_LOGIN_1_NAME;
                     SpaceAssemblyBuilder sasmBuilder2 = new SpaceAssemblyBuilder("Test");
                     AssemblyBuilder asmBuilder2 = sasmBuilder2.CreateAssemblyBuilder();
                     SpaceModuleBuilder smodBuilder2 = new SpaceModuleBuilder(asmBuilder2);
@@ -876,29 +923,32 @@ namespace Integra.Space.UnitTests
 
         #region grant alter any
 
+        /// <summary>
+        /// Grants alter any database permission.
+        /// </summary>
         [TestMethod]
         public void GrantAlterAnyDatabase()
         {
             string databaseName = "Database123456789";
             string userName = "newUser";
-            string otherLogin = "LoginAux";
+            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string databaseNewName = "newDatabaseName";
             string command = $"create database {databaseName}; use {databaseName}; create user {userName} with login = {otherLogin}; grant alter any database to login {otherLogin}";
             string command2 = $"use {databaseName}; alter database {databaseName} with name = {databaseNewName}";
             IKernel kernel = new StandardKernel();
 
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     this.loginName = otherLogin;
                     FirstLevelPipelineContext result2 = this.ProcessCommand(command2, kernel);
 
-                    Server server = dbContext.Servers.Single(x => x.ServerName == "Server1");
+                    Server server = dbContext.Servers.Single(x => x.ServerName == DatabaseConstants.TEST_SERVER_NAME);
                     Login onLogin = dbContext.Logins.Single(x => x.LoginName == otherLogin);
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == databaseNewName && x.DbUsrName == userName);
 
@@ -912,6 +962,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants alter any database role permission.
+        /// </summary>
         [TestMethod]
         public void GrantAlterAnyDatabaseRole()
         {
@@ -919,24 +972,24 @@ namespace Integra.Space.UnitTests
             string newRoleName = "newNameRole";
             string databaseName = "newDatabase";
             string userName = "newUser";
-            string otherLogin = "LoginAux";
+            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string command = $"create database {databaseName}; use {databaseName}; create role {roleName}; create user {userName} with login = {otherLogin}; grant alter any role to user {userName}";
             string command2 = $"use {databaseName}; alter role {roleName} with name = {newRoleName}";
             IKernel kernel = new StandardKernel();
 
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     this.loginName = otherLogin;
                     FirstLevelPipelineContext result2 = this.ProcessCommand(command2, kernel);
 
-                    Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseName);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseName);
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == databaseName && x.DbUsrName == userName);
 
                     bool exists = dbContext.DatabaseAssignedPermissionsToUsers.Any(x => x.DatabaseServerId == database.ServerId && x.DatabaseId == database.DatabaseId
@@ -949,24 +1002,27 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants alter any user.
+        /// </summary>
         [TestMethod]
         public void GrantAlterAnyDatabaseUser()
         {
             string newUserName = "newNameUser";
             string databaseName = "newDatabase";
             string userName = "newUser";
-            string otherLogin = "LoginAux";
+            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string command = $"create database {databaseName}; use {databaseName}; create user {userName} with login = {otherLogin}; grant alter any user to user {userName}";
             string command2 = $"use {databaseName}; alter user {userName} with name = {newUserName}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     this.loginName = otherLogin;
@@ -975,7 +1031,7 @@ namespace Integra.Space.UnitTests
                     try
                     {
                         DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == databaseName && x.DbUsrName == newUserName);
-                        Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseName);
+                        Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseName);
                         GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("alter any user", StringComparison.InvariantCultureIgnoreCase));
                         SecurableClass sc = dbContext.SecurableClasses.Single(x => x.SecurableName.Equals("database", StringComparison.InvariantCultureIgnoreCase));
                         bool exists = dbContext.DatabaseAssignedPermissionsToUsers.Any(x => x.DbUsrServerId == user.ServerId && x.DbUsrDatabaseId == user.DatabaseId && x.DbUsrId == user.DbUsrId
@@ -996,33 +1052,36 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants alter any login.
+        /// </summary>
         [TestMethod]
         public void GrantAlterAnyLogin()
         {
-            string existingLogin = "LoginAux";
+            string existingLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string newLogin = "AdminLogin12345";
             string newLoginName = "foo";
             string command = $@"create login {newLogin} with password = ""pass1234""; 
                                     grant alter any login to login {newLogin};
-                                    use Database1;
+                                    use {DatabaseConstants.MASTER_DATABASE_NAME};
                                     create user bar with login = {newLogin}";
-            string command2 = $"use Database1; alter login {existingLogin} with name = {newLoginName}";
+            string command2 = $"use {DatabaseConstants.MASTER_DATABASE_NAME}; alter login {existingLogin} with name = {newLoginName}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     this.loginName = newLogin;
                     FirstLevelPipelineContext result2 = this.ProcessCommand(command2, kernel);
                     try
                     {
-                        Server server = dbContext.Servers.Single(x => x.ServerName == "Server1");
+                        Server server = dbContext.Servers.Single(x => x.ServerName == DatabaseConstants.TEST_SERVER_NAME);
                         Login onLogin = dbContext.Logins.Single(x => x.LoginName == newLogin);
                         GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("alter any login", StringComparison.InvariantCultureIgnoreCase));
                         SecurableClass sc = dbContext.SecurableClasses.Single(x => x.SecurableName.Equals("server", StringComparison.InvariantCultureIgnoreCase));
@@ -1047,26 +1106,29 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants alter any login.
+        /// </summary>
         [TestMethod]
         public void GrantAlterAnyLogin2()
         {
-            string existingLogin = "LoginAux";
+            string existingLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string newLogin = "AdminLogin12345";
             string newLoginName = "foo";
             string command = $@"create login {newLogin} with password = ""pass1234""; 
                                     grant alter any login to login {newLogin};
-                                    use Database1;
+                                    use {DatabaseConstants.MASTER_DATABASE_NAME};
                                     create user bar with login = {newLogin}";
-            string command2 = $"use Database1; alter login {existingLogin} with name = {newLoginName}";
+            string command2 = $"use {DatabaseConstants.MASTER_DATABASE_NAME}; alter login {existingLogin} with name = {newLoginName}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     this.loginName = newLogin;
@@ -1074,7 +1136,7 @@ namespace Integra.Space.UnitTests
                     try
                     {
                         Login toLogin = dbContext.Logins.Single(x => x.LoginName == newLogin);
-                        Server server = dbContext.Servers.Single(x => x.ServerName == "Server1");
+                        Server server = dbContext.Servers.Single(x => x.ServerName == DatabaseConstants.TEST_SERVER_NAME);
                         GranularPermission gp = dbContext.GranularPermissions.Single(x => x.GranularPermissionName.Equals("alter any login", StringComparison.InvariantCultureIgnoreCase));
                         SecurableClass sc = dbContext.SecurableClasses.Single(x => x.SecurableName.Equals("server", StringComparison.InvariantCultureIgnoreCase));
                         bool exists = dbContext.ServersAssignedPermissionsToLogins.Any(x => x.ServerId == server.ServerId
@@ -1098,25 +1160,28 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants alter any schema.
+        /// </summary>
         [TestMethod]
         public void GrantAlterAnySchema()
         {
             string oldSchemaName = "oldSchema";
             string newSchemaName = "newSchema";
-            string existingUserName = "UserAux";
-            string databaseName = "Database1";
-            string loginNameAux = "LoginAux";
+            string existingUserName = DatabaseConstants.NORMAL_USER_1_NAME;
+            string databaseName = DatabaseConstants.MASTER_DATABASE_NAME;
+            string loginNameAux = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string command = $"use {databaseName}; create schema {oldSchemaName}; grant connect on database {databaseName} to user {existingUserName}; grant alter any schema to user {existingUserName}";
             string command2 = $"use {databaseName}; alter schema {oldSchemaName} with name = {newSchemaName}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     this.loginName = loginNameAux;
@@ -1137,13 +1202,16 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants alter any schema and; read and write source.
+        /// </summary>
         [TestMethod]
         public void GrantAlterAnySchemaAndReadSource()
         {
             string oldStreamName = "oldStream";
             string newStreamName = "newStream";
-            string userName = "UserAux";
-            string databaseName = "Database1";
+            string userName = DatabaseConstants.NORMAL_USER_1_NAME;
+            string databaseName = DatabaseConstants.MASTER_DATABASE_NAME;
             string sourceNameTest = "source1234";
             string sourceForInto = "sourceForInto";
             string eql = "cross " +
@@ -1160,21 +1228,21 @@ namespace Integra.Space.UnitTests
             string command2 = $"use {databaseName}; alter stream {oldStreamName} with name = {newStreamName}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
                     kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
                     kernel.Bind<ISource>().ToConstructor(x => new ConcreteSource());
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     kernel = new StandardKernel();
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
                     kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
                     kernel.Bind<ISource>().ToConstructor(x => new ConcreteSource());
-                    this.loginName = "LoginAux";
+                    this.loginName = DatabaseConstants.NORMAL_LOGIN_1_NAME;
                     FirstLevelPipelineContext result2 = this.ProcessCommand(command2, kernel);
 
                     try
@@ -1194,32 +1262,35 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants alter any schema.
+        /// </summary>
         [TestMethod]
         public void GrantAlterAnySchema2()
         {
             string oldSourceName = "oldSourceName";
             string newSourceName = "newSource";
-            string userName = "UserAux";
-            string databaseName = "Database1";
+            string userName = DatabaseConstants.NORMAL_USER_1_NAME;
+            string databaseName = DatabaseConstants.MASTER_DATABASE_NAME;
             string command = $"create source {oldSourceName} (column1 int, column2 double, column3 string(4000)); grant connect on database {databaseName}, alter any schema to user {userName}";
-            string command2 = $"use Database1; alter source {oldSourceName} with name = {newSourceName}";
+            string command2 = $"use {DatabaseConstants.MASTER_DATABASE_NAME}; alter source {oldSourceName} with name = {newSourceName}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     SpaceAssemblyBuilder sasmBuilder1 = new SpaceAssemblyBuilder("Test");
                     AssemblyBuilder asmBuilder1 = sasmBuilder1.CreateAssemblyBuilder();
                     SpaceModuleBuilder smodBuilder1 = new SpaceModuleBuilder(asmBuilder1);
                     smodBuilder1.CreateModuleBuilder();
                     kernel.Bind<AssemblyBuilder>().ToConstant(asmBuilder1);
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
-                    
-                    this.loginName = "LoginAux";
+
+                    this.loginName = DatabaseConstants.NORMAL_LOGIN_1_NAME;
                     SpaceAssemblyBuilder sasmBuilder2 = new SpaceAssemblyBuilder("Test");
                     AssemblyBuilder asmBuilder2 = sasmBuilder2.CreateAssemblyBuilder();
                     SpaceModuleBuilder smodBuilder2 = new SpaceModuleBuilder(asmBuilder2);
@@ -1247,29 +1318,32 @@ namespace Integra.Space.UnitTests
 
         #region grant control
 
+        /// <summary>
+        /// Grant control on database.
+        /// </summary>
         [TestMethod]
         public void GrantControlOnDatabase()
         {
             string databaseName = "Database123456789";
             string databaseNewName = "dbnueva";
             string userName = "newUser";
-            string otherLogin = "LoginAux";
+            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string command = $"create database {databaseName}; use {databaseName}; use {databaseName}; create user {userName} with login = {otherLogin}; grant control on database {databaseName} to user {userName}";
             string command2 = $"use {databaseName}; alter database {databaseName} with name = {databaseNewName}";
 
             IKernel kernel = new StandardKernel();
 
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
                     this.loginName = otherLogin;
                     FirstLevelPipelineContext result2 = this.ProcessCommand(command2, kernel);
 
-                    Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseNewName);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseNewName);
                     DatabaseUser user = dbContext.DatabaseUsers.Single(x => x.Database.DatabaseName == databaseNewName && x.DbUsrName == userName);
 
                     bool exists = dbContext.DatabaseAssignedPermissionsToUsers.Any(x => x.DatabaseServerId == database.ServerId && x.DatabaseId == database.DatabaseId
@@ -1282,6 +1356,9 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grant control on database role.
+        /// </summary>
         [TestMethod]
         public void GrantControlOnDatabaseRole()
         {
@@ -1289,18 +1366,18 @@ namespace Integra.Space.UnitTests
             string newRoleName = "newNameRole";
             string databaseName = "newDatabase";
             string userName = "newUser";
-            string otherLogin = "LoginAux";
+            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string command = $"create database {databaseName}; use {databaseName}; create role {roleName}; create user {userName} with login = {otherLogin}; grant control on role {roleName} to user {userName}";
             string command2 = $"use {databaseName}; alter role {roleName} with name = {newRoleName}";
             IKernel kernel = new StandardKernel();
 
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     this.loginName = otherLogin;
@@ -1319,24 +1396,27 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grant control on user.
+        /// </summary>
         [TestMethod]
         public void GrantControlOnDatabaseUser()
         {
             string newUserName = "newNameUser";
             string databaseName = "newDatabase";
             string userName = "newUser";
-            string otherLogin = "LoginAux";
+            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string command = $"create database {databaseName}; use {databaseName}; create user {userName} with login = {otherLogin}; grant control on user {userName} to user {userName}";
             string command2 = $"use {databaseName}; alter user {userName} with name = {newUserName}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     this.loginName = otherLogin;
@@ -1361,26 +1441,29 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grant control on login.
+        /// </summary>
         [TestMethod]
         public void GrantControlOnLogin()
         {
-            string existingLogin = "LoginAux";
+            string existingLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string newLogin = "AdminLogin12345";
             string newLoginName = "foo";
             string command = $@"create login {newLogin} with password = ""pass1234""; 
                                     grant control on login {existingLogin} to login {newLogin};
-                                    use Database1;
+                                    use {DatabaseConstants.MASTER_DATABASE_NAME};
                                     create user bar with login = {newLogin}";
-            string command2 = $"use Database1; alter login {existingLogin} with name = {newLoginName}";
+            string command2 = $"use {DatabaseConstants.MASTER_DATABASE_NAME}; alter login {existingLogin} with name = {newLoginName}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     this.loginName = newLogin;
@@ -1412,25 +1495,28 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grant control on schema.
+        /// </summary>
         [TestMethod]
         public void GrantControlOnSchema()
         {
             string oldSchemaName = "oldSchema";
             string newSchemaName = "newSchema";
-            string existingUserName = "UserAux";
-            string databaseName = "Database1";
-            string loginNameAux = "LoginAux";
+            string existingUserName = DatabaseConstants.NORMAL_USER_1_NAME;
+            string databaseName = DatabaseConstants.MASTER_DATABASE_NAME;
+            string loginNameAux = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string command = $"use {databaseName}; create schema {oldSchemaName}; grant connect on database {databaseName} to user {existingUserName}; grant control on schema {oldSchemaName} to user {existingUserName}";
             string command2 = $"use {databaseName}; alter schema {oldSchemaName} with name = {newSchemaName}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     this.loginName = loginNameAux;
@@ -1451,13 +1537,16 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grant control on stream and; read and write source.
+        /// </summary>
         [TestMethod]
         public void GrantControlOnStreamAndReadSource()
         {
             string oldStreamName = "oldStream";
             string newStreamName = "newStream";
-            string userName = "UserAux";
-            string databaseName = "Database1";
+            string userName = DatabaseConstants.NORMAL_USER_1_NAME;
+            string databaseName = DatabaseConstants.MASTER_DATABASE_NAME;
             string sourceNameTest = "source1234";
             string sourceForInto = "sourceForInto";
             string eql = "cross " +
@@ -1474,17 +1563,17 @@ namespace Integra.Space.UnitTests
             string command2 = $"use {databaseName}; alter stream {oldStreamName} with name = {newStreamName}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
                     kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
                     kernel.Bind<ISource>().ToConstructor(x => new ConcreteSource());
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    this.loginName = "LoginAux";
+                    this.loginName = DatabaseConstants.NORMAL_LOGIN_1_NAME;
                     kernel = new StandardKernel();
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
                     kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
@@ -1512,24 +1601,27 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grant control on source.
+        /// </summary>
         [TestMethod]
         public void GrantControlOnSource()
         {
             string oldSourceName = "oldSourceName";
             string newSourceName = "newSource";
-            string userName = "UserAux";
-            string databaseName = "Database1";
+            string userName = DatabaseConstants.NORMAL_USER_1_NAME;
+            string databaseName = DatabaseConstants.MASTER_DATABASE_NAME;
             string command = $"create source {oldSourceName} (column1 int, column2 double, column3 string(4000)); grant connect on database {databaseName}, control on source {oldSourceName} to user {userName}";
-            string command2 = $"use Database1; alter source {oldSourceName} with name = {newSourceName}";
+            string command2 = $"use {DatabaseConstants.MASTER_DATABASE_NAME}; alter source {oldSourceName} with name = {newSourceName}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     SpaceAssemblyBuilder sasmBuilder1 = new SpaceAssemblyBuilder("Test");
                     AssemblyBuilder asmBuilder1 = sasmBuilder1.CreateAssemblyBuilder();
                     SpaceModuleBuilder smodBuilder1 = new SpaceModuleBuilder(asmBuilder1);
@@ -1537,7 +1629,7 @@ namespace Integra.Space.UnitTests
                     kernel.Bind<AssemblyBuilder>().ToConstant(asmBuilder1);
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    this.loginName = "LoginAux";
+                    this.loginName = DatabaseConstants.NORMAL_LOGIN_1_NAME;
                     SpaceAssemblyBuilder sasmBuilder2 = new SpaceAssemblyBuilder("Test");
                     AssemblyBuilder asmBuilder2 = sasmBuilder2.CreateAssemblyBuilder();
                     SpaceModuleBuilder smodBuilder2 = new SpaceModuleBuilder(asmBuilder2);
@@ -1565,32 +1657,35 @@ namespace Integra.Space.UnitTests
 
         #region grant take ownership
 
+        /// <summary>
+        /// Grants take ownership permission on database role.
+        /// </summary>
         [TestMethod]
         public void GrantTakeOwnershipOnDbRole()
         {
             string roleName = "roleAux";
             string databaseName = "newDatabase";
             string userName = "newUser";
-            string otherLogin = "LoginAux";
+            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string command = $"create database {databaseName}; use {databaseName}; create role {roleName}; create user {userName} with login = {otherLogin}; grant take ownership on role {roleName} to user {userName}";
             string command2 = $"use {databaseName}; take ownership on role {roleName}";
 
             IKernel kernel = new StandardKernel();
 
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     this.loginName = otherLogin;
                     FirstLevelPipelineContext result2 = this.ProcessCommand(command2, kernel);
 
-                    Login login = dbContext.Logins.Single(x => x.Server.ServerName == "Server1" && x.LoginName == loginName);
-                    Database.Database database = dbContext.Databases.Single(x => x.ServerId == login.ServerId && x.DatabaseName == databaseName);
+                    Login login = dbContext.Logins.Single(x => x.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.LoginName == this.loginName);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.ServerId == login.ServerId && x.DatabaseName == databaseName);
                     DatabaseRole role = dbContext.DatabaseRoles.Single(x => x.ServerId == login.ServerId && x.DatabaseId == database.DatabaseId && x.DbRoleName == roleName);
                     Assert.AreEqual<string>(userName, role.DatabaseUser.DbUsrName);
 
@@ -1600,31 +1695,34 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants take ownership permission on database.
+        /// </summary>
         [TestMethod]
         public void GrantTakeOwnershipOnDatabase()
         {
             string databaseName = "Database123456789";
             string userName = "newUser";
-            string otherLogin = "LoginAux";
+            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string command = $"create database {databaseName}; use {databaseName}; create user {userName} with login = {otherLogin}; grant take ownership on database {databaseName} to user {userName}";
             string command2 = $"use {databaseName}; take ownership on database {databaseName}";
 
             IKernel kernel = new StandardKernel();
 
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     this.loginName = otherLogin;
                     FirstLevelPipelineContext result2 = this.ProcessCommand(command2, kernel);
 
-                    Login login = dbContext.Logins.Single(x => x.Server.ServerName == "Server1" && x.LoginName == loginName);
-                    Database.Database database = dbContext.Databases.Single(x => x.ServerId == login.ServerId && x.DatabaseName == databaseName);
+                    Login login = dbContext.Logins.Single(x => x.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.LoginName == this.loginName);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.ServerId == login.ServerId && x.DatabaseName == databaseName);
                     Assert.AreEqual<string>(otherLogin, database.Login.LoginName);
 
                     Console.WriteLine();
@@ -1633,32 +1731,35 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants take ownership permission on schema.
+        /// </summary>
         [TestMethod]
         public void GrantTakeOwnershipOnSchema()
         {
             string schemaName = "oldSchema";
-            string existingUserName = "UserAux";
-            string databaseName = "Database1";
-            string otherLogin = "LoginAux";
+            string existingUserName = DatabaseConstants.NORMAL_USER_1_NAME;
+            string databaseName = DatabaseConstants.MASTER_DATABASE_NAME;
+            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string command = $"use {databaseName}; create schema {schemaName}; grant connect on database {databaseName} to user {existingUserName}; grant take ownership on schema {schemaName} to user {existingUserName}";
             string command2 = $"use {databaseName}; take ownership on schema {schemaName}";
             IKernel kernel = new StandardKernel();
 
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     this.loginName = otherLogin;
                     FirstLevelPipelineContext result2 = this.ProcessCommand(command2, kernel);
 
-                    Login login = dbContext.Logins.Single(x => x.Server.ServerName == "Server1" && x.LoginName == loginName);
-                    Database.Database database = dbContext.Databases.Single(x => x.ServerId == login.ServerId && x.DatabaseName == databaseName);
-                    Database.Schema schema = dbContext.Schemas.Single(x => x.ServerId == login.ServerId && x.DatabaseId == database.DatabaseId && x.SchemaName == schemaName);
+                    Login login = dbContext.Logins.Single(x => x.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.LoginName == this.loginName);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.ServerId == login.ServerId && x.DatabaseName == databaseName);
+                    Schema schema = dbContext.Schemas.Single(x => x.ServerId == login.ServerId && x.DatabaseId == database.DatabaseId && x.SchemaName == schemaName);
                     Assert.AreEqual<string>(existingUserName, schema.DatabaseUser.DbUsrName);
 
                     Console.WriteLine();
@@ -1667,25 +1768,28 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants take ownership permission on source.
+        /// </summary>
         [TestMethod]
         public void GrantTakeOwnershipOnSource()
         {
             string oldSourceName = "oldSourceName";
-            string userName = "UserAux";
-            string databaseName = "Database1";
+            string userName = DatabaseConstants.NORMAL_USER_1_NAME;
+            string databaseName = DatabaseConstants.MASTER_DATABASE_NAME;
             string command = $"create source {oldSourceName} (column1 int, column2 double, column3 string(4000)); grant connect on database {databaseName}, take ownership on source {oldSourceName} to user {userName}";
             string command2 = $"use {databaseName}; take ownership on source {oldSourceName}";
-            string schemaName = "schema1";
+            string schemaName = DatabaseConstants.DBO_SCHEMA_NAME;
 
             IKernel kernel = new StandardKernel();
 
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     SpaceAssemblyBuilder sasmBuilder1 = new SpaceAssemblyBuilder("Test");
                     AssemblyBuilder asmBuilder1 = sasmBuilder1.CreateAssemblyBuilder();
                     SpaceModuleBuilder smodBuilder1 = new SpaceModuleBuilder(asmBuilder1);
@@ -1693,13 +1797,13 @@ namespace Integra.Space.UnitTests
                     kernel.Bind<AssemblyBuilder>().ToConstant(asmBuilder1);
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    this.loginName = "LoginAux";
+                    this.loginName = DatabaseConstants.NORMAL_LOGIN_1_NAME;
                     FirstLevelPipelineContext result2 = this.ProcessCommand(command2, kernel);
 
-                    Login login = dbContext.Logins.Single(x => x.Server.ServerName == "Server1" && x.LoginName == loginName);
-                    Database.Database database = dbContext.Databases.Single(x => x.ServerId == login.ServerId && x.DatabaseName == databaseName);
-                    Database.Schema schema = dbContext.Schemas.Single(x => x.ServerId == database.ServerId && x.DatabaseId == database.DatabaseId && x.SchemaName == schemaName);
-                    Database.Source source = dbContext.Sources.Single(x => x.ServerId == login.ServerId && x.DatabaseId == database.DatabaseId && x.SchemaId == schema.SchemaId && x.SourceName == oldSourceName);
+                    Login login = dbContext.Logins.Single(x => x.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.LoginName == this.loginName);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.ServerId == login.ServerId && x.DatabaseName == databaseName);
+                    Schema schema = dbContext.Schemas.Single(x => x.ServerId == database.ServerId && x.DatabaseId == database.DatabaseId && x.SchemaName == schemaName);
+                    Source source = dbContext.Sources.Single(x => x.ServerId == login.ServerId && x.DatabaseId == database.DatabaseId && x.SchemaId == schema.SchemaId && x.SourceName == oldSourceName);
                     Assert.AreEqual<string>(userName, source.DatabaseUser.DbUsrName);
 
                     Console.WriteLine();
@@ -1708,12 +1812,15 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants take ownership permission on stream.
+        /// </summary>
         [TestMethod]
         public void GrantTakeOwnershipOnStream()
         {
             string oldStreamName = "oldStream";
-            string userName = "UserAux";
-            string databaseName = "Database1";
+            string userName = DatabaseConstants.NORMAL_USER_1_NAME;
+            string databaseName = DatabaseConstants.MASTER_DATABASE_NAME;
             string sourceNameTest = "source1234";
             string sourceForInto = "sourceForInto";
             string eql = "cross " +
@@ -1731,25 +1838,25 @@ namespace Integra.Space.UnitTests
 
             IKernel kernel = new StandardKernel();
 
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
                     kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
                     kernel.Bind<ISource>().ToConstructor(x => new ConcreteSource());
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    this.loginName = "LoginAux";
+                    this.loginName = DatabaseConstants.NORMAL_LOGIN_1_NAME;
                     kernel = new StandardKernel();
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
                     FirstLevelPipelineContext result2 = this.ProcessCommand(command2, kernel);
 
-                    Login login = dbContext.Logins.Single(x => x.Server.ServerName == "Server1" && x.LoginName == loginName);
-                    Database.Database database = dbContext.Databases.Single(x => x.ServerId == login.ServerId && x.DatabaseName == databaseName);
-                    Database.Schema schema = dbContext.Schemas.Single(x => x.ServerId == database.ServerId && x.DatabaseId == database.DatabaseId && x.SchemaName == "Schema1");
-                    Database.Stream stream = dbContext.Streams.Single(x => x.ServerId == login.ServerId && x.DatabaseId == database.DatabaseId && x.SchemaId == schema.SchemaId && x.StreamName == oldStreamName);
+                    Login login = dbContext.Logins.Single(x => x.Server.ServerName == DatabaseConstants.TEST_SERVER_NAME && x.LoginName == this.loginName);
+                    Space.Database.Database database = dbContext.Databases.Single(x => x.ServerId == login.ServerId && x.DatabaseName == databaseName);
+                    Schema schema = dbContext.Schemas.Single(x => x.ServerId == database.ServerId && x.DatabaseId == database.DatabaseId && x.SchemaName == DatabaseConstants.DBO_SCHEMA_NAME);
+                    Stream stream = dbContext.Streams.Single(x => x.ServerId == login.ServerId && x.DatabaseId == database.DatabaseId && x.SchemaId == schema.SchemaId && x.StreamName == oldStreamName);
                     Assert.AreEqual<string>(userName, stream.DatabaseUser.DbUsrName);
 
                     Assert.IsTrue(stream.ProjectionColumns.Any(x => x.ColumnName == "c1" && x.ColumnType == typeof(string).AssemblyQualifiedName));
@@ -1764,22 +1871,25 @@ namespace Integra.Space.UnitTests
 
         #region grant view any definition
 
+        /// <summary>
+        /// Grants view any definition permission.
+        /// </summary>
         [TestMethod]
         public void GrantViewAnyDefinitionAndFromServerRoles()
         {
-            string otherLogin = "LoginAux";
+            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string command = $"grant view any definition to login {otherLogin}";
-            string command2 = "use Database2; from sys.serverroles select ServerId as serverId into dbo.SourceParaMetadata";
+            string command2 = $"use {DatabaseConstants.TEST_DATABASE_NAME}; from sys.serverroles select ServerId as serverId into {DatabaseConstants.METADATA_OUTPUT_SOURCE_NAME}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
                     kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     this.loginName = otherLogin;
@@ -1790,22 +1900,25 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants view any definition permission.
+        /// </summary>
         [TestMethod]
         public void GrantViewAnyDefinitionAndFromEndpoints()
         {
-            string otherLogin = "LoginAux";
+            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string command = $"grant view any definition to login {otherLogin}";
-            string command2 = "use Database2; from sys.endpoints select ServerId as serverId into dbo.SourceParaMetadata";
+            string command2 = $"use {DatabaseConstants.TEST_DATABASE_NAME}; from sys.endpoints select ServerId as serverId into {DatabaseConstants.METADATA_OUTPUT_SOURCE_NAME}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
                     kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     this.loginName = otherLogin;
@@ -1816,22 +1929,25 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants view any definition permission.
+        /// </summary>
         [TestMethod]
         public void GrantViewAnyDefinitionAndFromLogins()
         {
-            string otherLogin = "LoginAux";
+            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string command = $"grant view any definition to login {otherLogin}";
-            string command2 = "use Database2; from sys.logins select ServerId as serverId into dbo.SourceParaMetadata";
+            string command2 = $"use {DatabaseConstants.TEST_DATABASE_NAME}; from sys.logins select ServerId as serverId into {DatabaseConstants.METADATA_OUTPUT_SOURCE_NAME}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
                     kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     this.loginName = otherLogin;
@@ -1842,22 +1958,25 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants view any definition permission.
+        /// </summary>
         [TestMethod]
         public void GrantViewAnyDefinitionAndFromDatabases()
         {
-            string otherLogin = "LoginAux";
+            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string command = $"grant view any definition to login {otherLogin}";
-            string command2 = "use Database2; from sys.databases select ServerId as serverId into dbo.SourceParaMetadata";
+            string command2 = $"use {DatabaseConstants.TEST_DATABASE_NAME}; from sys.databases select ServerId as serverId into {DatabaseConstants.METADATA_OUTPUT_SOURCE_NAME}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
                     kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     this.loginName = otherLogin;
@@ -1868,22 +1987,25 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants view any definition permission.
+        /// </summary>
         [TestMethod]
         public void GrantViewAnyDefinitionAndFromUsers()
         {
-            string otherLogin = "LoginAux";
+            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string command = $"grant view any definition to login {otherLogin}";
-            string command2 = "use Database2; from sys.users select ServerId as serverId into dbo.SourceParaMetadata";
+            string command2 = $"use {DatabaseConstants.TEST_DATABASE_NAME}; from sys.users select ServerId as serverId into {DatabaseConstants.METADATA_OUTPUT_SOURCE_NAME}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
                     kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     this.loginName = otherLogin;
@@ -1894,22 +2016,25 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants view any definition permission.
+        /// </summary>
         [TestMethod]
         public void GrantViewAnyDefinitionAndFromDatabaseRoles()
         {
-            string otherLogin = "LoginAux";
+            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string command = $"grant view any definition to login {otherLogin}";
-            string command2 = "use Database2; from sys.databaseroles select ServerId as serverId into dbo.SourceParaMetadata";
+            string command2 = $"use {DatabaseConstants.TEST_DATABASE_NAME}; from sys.databaseroles select ServerId as serverId into {DatabaseConstants.METADATA_OUTPUT_SOURCE_NAME}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
                     kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     this.loginName = otherLogin;
@@ -1920,22 +2045,25 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants view any definition permission.
+        /// </summary>
         [TestMethod]
         public void GrantViewAnyDefinitionAndFromSchemas()
         {
-            string otherLogin = "LoginAux";
+            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string command = $"grant view any definition to login {otherLogin}";
-            string command2 = "use Database2; from sys.schemas select ServerId as serverId into dbo.SourceParaMetadata";
+            string command2 = $"use {DatabaseConstants.TEST_DATABASE_NAME}; from sys.schemas select ServerId as serverId into {DatabaseConstants.METADATA_OUTPUT_SOURCE_NAME}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
                     kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     this.loginName = otherLogin;
@@ -1946,22 +2074,25 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants view any definition permission.
+        /// </summary>
         [TestMethod]
         public void GrantViewAnyDefinitionAndFromSources()
         {
-            string otherLogin = "LoginAux";
+            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string command = $"grant view any definition to login {otherLogin}";
-            string command2 = "use Database2; from sys.sources select ServerId as serverId into dbo.SourceParaMetadata";
+            string command2 = $"use {DatabaseConstants.TEST_DATABASE_NAME}; from sys.sources select ServerId as serverId into {DatabaseConstants.METADATA_OUTPUT_SOURCE_NAME}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
                     kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     this.loginName = otherLogin;
@@ -1972,48 +2103,25 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants view any definition permission.
+        /// </summary>
         [TestMethod]
         public void GrantViewAnyDefinitionAndFromStreams()
         {
-            string otherLogin = "LoginAux";
+            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string command = $"grant view any definition to login {otherLogin}";
-            string command2 = "use Database2; from sys.streams select ServerId as serverId into dbo.SourceParaMetadata";
+            string command2 = $"use {DatabaseConstants.TEST_DATABASE_NAME}; from sys.streams select ServerId as serverId into {DatabaseConstants.METADATA_OUTPUT_SOURCE_NAME}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
                     kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
 
-                    this.loginName = "AdminLogin";
-                    FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
-
-                    this.loginName = otherLogin;
-                    FirstLevelPipelineContext result2 = this.ProcessCommand(command2, kernel);
-
-                    tran.Rollback();
-                }
-            }
-        }
-
-        [TestMethod]
-        public void GrantViewAnyDefinitionAndFromViews()
-        {
-            string otherLogin = "LoginAux";
-            string command = $"grant view any definition to login {otherLogin}";
-            string command2 = "from sys.views select ServerId as servId into SourceParaPruebas";
-
-            IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
-            {
-                using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
-                {
-                    kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
-                    kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
-
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     this.loginName = otherLogin;
@@ -2028,22 +2136,25 @@ namespace Integra.Space.UnitTests
 
         #region grant view any database
 
+        /// <summary>
+        /// Grants view any database permission.
+        /// </summary>
         [TestMethod]
         public void GrantViewAnyDatabaseAndFromUsers()
         {
-            string otherLogin = "LoginAux";
+            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string command = $"grant view any database to login {otherLogin}";
-            string command2 = "use Database2; from sys.users select ServerId as serverId into dbo.SourceParaMetadata";
+            string command2 = $"use {DatabaseConstants.TEST_DATABASE_NAME}; from sys.users select ServerId as serverId into {DatabaseConstants.METADATA_OUTPUT_SOURCE_NAME}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
                     kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     this.loginName = otherLogin;
@@ -2054,22 +2165,25 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants view any database permission.
+        /// </summary>
         [TestMethod]
         public void GrantViewAnyDatabaseAndFromDatabaseRoles()
         {
-            string otherLogin = "LoginAux";
+            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string command = $"grant view any database to login {otherLogin}";
-            string command2 = "use Database2; from sys.databaseroles select ServerId as serverId into dbo.SourceParaMetadata";
+            string command2 = $"use {DatabaseConstants.TEST_DATABASE_NAME}; from sys.databaseroles select ServerId as serverId into {DatabaseConstants.METADATA_OUTPUT_SOURCE_NAME}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
                     kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     this.loginName = otherLogin;
@@ -2080,22 +2194,25 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants view any database permission.
+        /// </summary>
         [TestMethod]
         public void GrantViewAnyDatabaseAndFromSchemas()
         {
-            string otherLogin = "LoginAux";
+            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string command = $"grant view any database to login {otherLogin}";
-            string command2 = "use Database2; from sys.schemas select ServerId as serverId into dbo.SourceParaMetadata";
+            string command2 = $"use {DatabaseConstants.TEST_DATABASE_NAME}; from sys.schemas select ServerId as serverId into {DatabaseConstants.METADATA_OUTPUT_SOURCE_NAME}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
                     kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     this.loginName = otherLogin;
@@ -2106,22 +2223,25 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants view any database permission.
+        /// </summary>
         [TestMethod]
         public void GrantViewAnyDatabaseAndFromSources()
         {
-            string otherLogin = "LoginAux";
+            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string command = $"grant view any database to login {otherLogin}";
-            string command2 = "use Database2; from sys.sources select ServerId as serverId into dbo.SourceParaMetadata";
+            string command2 = $"use {DatabaseConstants.TEST_DATABASE_NAME}; from sys.sources select ServerId as serverId into {DatabaseConstants.METADATA_OUTPUT_SOURCE_NAME}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
                     kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     this.loginName = otherLogin;
@@ -2132,48 +2252,25 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants view any database permission.
+        /// </summary>
         [TestMethod]
         public void GrantViewAnyDatabaseAndFromStreams()
         {
-            string otherLogin = "LoginAux";
+            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string command = $"grant view any database to login {otherLogin}";
-            string command2 = "use Database2; from sys.streams select ServerId as serverId into dbo.SourceParaMetadata";
+            string command2 = $"use {DatabaseConstants.TEST_DATABASE_NAME}; from sys.streams select ServerId as serverId into {DatabaseConstants.METADATA_OUTPUT_SOURCE_NAME}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
                     kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
 
-                    this.loginName = "AdminLogin";
-                    FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
-
-                    this.loginName = otherLogin;
-                    FirstLevelPipelineContext result2 = this.ProcessCommand(command2, kernel);
-
-                    tran.Rollback();
-                }
-            }
-        }
-
-        [TestMethod]
-        public void GrantViewAnyDatabaseAndFromViews()
-        {
-            string otherLogin = "LoginAux";
-            string command = $"grant view any database to login {otherLogin}";
-            string command2 = "use Database2; from sys.views select ServerId as serverId into dbo.SourceParaMetadata";
-
-            IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
-            {
-                using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
-                {
-                    kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
-                    kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
-
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     this.loginName = otherLogin;
@@ -2188,22 +2285,25 @@ namespace Integra.Space.UnitTests
 
         #region grant view definition on
 
+        /// <summary>
+        /// Grant view definition on endpoint permission.
+        /// </summary>
         [TestMethod]
         public void GrantViewOnDefinitionAndFromEndpoints()
         {
-            string otherLogin = "LoginAux";
-            string command = $"grant view definition on endpoint EndpointForTest to login {otherLogin}";
-            string command2 = "use Database2; from sys.endpoints select ServerId as serverId into dbo.SourceParaMetadata";
+            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
+            string command = $"grant view definition on endpoint {DatabaseConstants.TCP_ENDPOINT_NAME} to login {otherLogin}";
+            string command2 = $"use {DatabaseConstants.TEST_DATABASE_NAME}; from sys.endpoints select ServerId as serverId into {DatabaseConstants.METADATA_OUTPUT_SOURCE_NAME}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
                     kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     this.loginName = otherLogin;
@@ -2214,22 +2314,25 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grant view definition on login permission.
+        /// </summary>
         [TestMethod]
         public void GrantViewOnDefinitionAndFromLogins()
         {
-            string otherLogin = "LoginAux";
-            string command = $"grant view definition on login LoginForTest to login {otherLogin}";
-            string command2 = "use Database2; from sys.logins select ServerId as serverId into dbo.SourceParaMetadata";
+            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
+            string command = $"grant view definition on login {DatabaseConstants.NORMAL_LOGIN_2_NAME} to login {otherLogin}";
+            string command2 = $"use {DatabaseConstants.TEST_DATABASE_NAME}; from sys.logins select ServerId as serverId into {DatabaseConstants.METADATA_OUTPUT_SOURCE_NAME}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
                     kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     this.loginName = otherLogin;
@@ -2240,22 +2343,25 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grant view definition on database permission.
+        /// </summary>
         [TestMethod]
         public void GrantViewOnDefinitionAndFromDatabases()
         {
-            string otherLogin = "LoginAux";
-            string command = $"grant view definition on database Database2 to user UserAux";
-            string command2 = "use Database2; from sys.databases select ServerId as serverId into dbo.SourceParaMetadata";
+            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
+            string command = $"grant view definition on database {DatabaseConstants.MASTER_DATABASE_NAME} to user {DatabaseConstants.NORMAL_USER_1_NAME}";
+            string command2 = $"use {DatabaseConstants.TEST_DATABASE_NAME}; from sys.databases select ServerId as serverId into {DatabaseConstants.METADATA_OUTPUT_SOURCE_NAME}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
                     kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     this.loginName = otherLogin;
@@ -2266,22 +2372,25 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grant view definition on user permission.
+        /// </summary>
         [TestMethod]
         public void GrantViewOnDefinitionAndFromUsers()
         {
-            string otherLogin = "LoginAux";
-            string command = $"grant view definition on user UserForTest to user UserAux";
-            string command2 = "use Database2; from sys.users select ServerId as serverId into dbo.SourceParaMetadata";
+            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
+            string command = $"use {DatabaseConstants.TEST_DATABASE_NAME}; grant view definition on user {DatabaseConstants.DBO_USER_NAME} to user {DatabaseConstants.NORMAL_USER_1_NAME}";
+            string command2 = $"use {DatabaseConstants.TEST_DATABASE_NAME}; from sys.users select ServerId as serverId into {DatabaseConstants.METADATA_OUTPUT_SOURCE_NAME}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
                     kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     this.loginName = otherLogin;
@@ -2292,22 +2401,25 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grant view definition on database role permission.
+        /// </summary>
         [TestMethod]
         public void GrantViewOnDefinitionAndFromDatabaseRoles()
         {
-            string otherLogin = "LoginAux";
-            string command = $"grant view definition on role RoleForTest2 to user UserAux";
-            string command2 = "use Database2; from sys.databaseroles select ServerId as serverId into dbo.SourceParaMetadata";
+            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
+            string command = $"grant view definition on role {DatabaseConstants.ROLE_1_NAME} to user {DatabaseConstants.NORMAL_USER_1_NAME}";
+            string command2 = $"use {DatabaseConstants.TEST_DATABASE_NAME}; from sys.databaseroles select ServerId as serverId into {DatabaseConstants.METADATA_OUTPUT_SOURCE_NAME}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
                     kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     this.loginName = otherLogin;
@@ -2318,22 +2430,25 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grant view definition on schema permission.
+        /// </summary>
         [TestMethod]
         public void GrantViewOnDefinitionAndFromSchemas()
         {
-            string otherLogin = "LoginAux";
-            string command = $"grant view definition on schema Schema1 to user UserAux";
-            string command2 = "use Database2; from sys.schemas select ServerId as serverId into dbo.SourceParaMetadata";
+            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
+            string command = $"grant view definition on schema {DatabaseConstants.DBO_SCHEMA_NAME} to user {DatabaseConstants.NORMAL_USER_1_NAME}";
+            string command2 = $"use {DatabaseConstants.TEST_DATABASE_NAME}; from sys.schemas select ServerId as serverId into {DatabaseConstants.METADATA_OUTPUT_SOURCE_NAME}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
                     kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     this.loginName = otherLogin;
@@ -2344,22 +2459,25 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grant view definition on source permission.
+        /// </summary>
         [TestMethod]
         public void GrantViewOnDefinitionAndFromSources()
         {
-            string otherLogin = "LoginAux";
-            string command = $"grant view definition on source SourceInicial to user UserAux";
-            string command2 = "use Database2; from sys.sources select ServerId as serverId into dbo.SourceParaMetadata";
+            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
+            string command = $"grant view definition on source {DatabaseConstants.INPUT_SOURCE_NAME} to user {DatabaseConstants.NORMAL_USER_1_NAME}";
+            string command2 = $"use {DatabaseConstants.TEST_DATABASE_NAME}; from sys.sources select ServerId as serverId into {DatabaseConstants.METADATA_OUTPUT_SOURCE_NAME}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
                     kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     this.loginName = otherLogin;
@@ -2370,47 +2488,25 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grant view definition on stream permission.
+        /// </summary>
         [TestMethod]
         public void GrantViewOnDefinitionAndFromStreams()
         {
-            string otherLogin = "LoginAux";
-            string command = $"grant view definition on stream Stream123 to user UserAux";
-            string command2 = "use Database2; from sys.streams select ServerId as serverId into dbo.SourceParaMetadata";
+            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
+            string command = $"grant view definition on stream {DatabaseConstants.TEST_STREAM_NAME} to user {DatabaseConstants.NORMAL_USER_1_NAME}";
+            string command2 = $"use {DatabaseConstants.TEST_DATABASE_NAME}; from sys.streams select ServerId as serverId into {DatabaseConstants.METADATA_OUTPUT_SOURCE_NAME}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
                     kernel.Bind<ISourceTypeFactory>().ToConstructor(x => new SourceTypeFactory());
 
-                    this.loginName = "AdminLogin";
-                    FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
-
-                    this.loginName = otherLogin;
-                    FirstLevelPipelineContext result2 = this.ProcessCommand(command2, kernel);
-
-                    tran.Rollback();
-                }
-            }
-        }
-
-        [TestMethod]
-        public void GrantViewOnDefinitionAndFromViews()
-        {
-            string otherLogin = "LoginAux";
-            string command = $"grant view definition on view ViewForTest to user UserAux";
-            string command2 = "use Database2; from sys.views select ServerId as serverId into dbo.SourceParaMetadata";
-
-            IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
-            {
-                using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
-                {
-                    kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
-
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     this.loginName = otherLogin;
@@ -2427,29 +2523,32 @@ namespace Integra.Space.UnitTests
 
         #region grant create any database
 
+        /// <summary>
+        /// Grants create any database.
+        /// </summary>
         [TestMethod]
         public void GrantCreateAnyDatabase()
         {
             string databaseName = "newDatabase";
-            string command = $"use Database1; grant create any database to login LoginAux";
-            string command2 = $"use Database1; create database {databaseName}";
+            string command = $"use {DatabaseConstants.MASTER_DATABASE_NAME}; grant create any database to login {DatabaseConstants.NORMAL_LOGIN_1_NAME}";
+            string command2 = $"use {DatabaseConstants.MASTER_DATABASE_NAME}; create database {databaseName}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    this.loginName = "LoginAux";
+                    this.loginName = DatabaseConstants.NORMAL_LOGIN_1_NAME;
                     FirstLevelPipelineContext result = this.ProcessCommand(command2, kernel);
 
                     try
                     {
-                        Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseName);
+                        Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseName);
                         Assert.AreEqual(databaseName, database.DatabaseName);
                         tran.Rollback();
                     }
@@ -2462,29 +2561,32 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants create any database.
+        /// </summary>
         [TestMethod]
         public void GrantCreateAnyDatabaseWithStatusOn()
         {
             string databaseName = "newDatabase";
-            string command = $"use Database1; grant create any database to login LoginAux";
-            string command2 = $"use Database1; create database {databaseName} with status = on";
+            string command = $"use {DatabaseConstants.MASTER_DATABASE_NAME}; grant create any database to login {DatabaseConstants.NORMAL_LOGIN_1_NAME}";
+            string command2 = $"use {DatabaseConstants.MASTER_DATABASE_NAME}; create database {databaseName} with status = on";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    this.loginName = "LoginAux";
+                    this.loginName = DatabaseConstants.NORMAL_LOGIN_1_NAME;
                     FirstLevelPipelineContext result = this.ProcessCommand(command2, kernel);
 
                     try
                     {
-                        Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseName);
+                        Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseName);
                         Assert.AreEqual(databaseName, database.DatabaseName);
                         Assert.IsTrue(database.IsActive);
                         tran.Rollback();
@@ -2498,30 +2600,33 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants create any database.
+        /// </summary>
         [TestMethod]
         public void GrantCreateAnyDatabaseWithStatusOff()
         {
             string databaseName = "newDatabase";
-            string command = $"use Database1; grant create any database to login LoginAux";
-            string command2 = $"use Database1; create database {databaseName} with status = off";
-            this.loginName = "AdminLogin";
+            string command = $"use {DatabaseConstants.MASTER_DATABASE_NAME}; grant create any database to login {DatabaseConstants.NORMAL_LOGIN_1_NAME}";
+            string command2 = $"use {DatabaseConstants.MASTER_DATABASE_NAME}; create database {databaseName} with status = off";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    this.loginName = "LoginAux";
+                    this.loginName = DatabaseConstants.NORMAL_LOGIN_1_NAME;
                     FirstLevelPipelineContext result = this.ProcessCommand(command2, kernel);
 
                     try
                     {
-                        Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseName);
+                        Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseName);
                         Assert.AreEqual(databaseName, database.DatabaseName);
                         Assert.IsFalse(database.IsActive);
                         tran.Rollback();
@@ -2539,29 +2644,32 @@ namespace Integra.Space.UnitTests
 
         #region grant create database
 
+        /// <summary>
+        /// Grants create database permission.
+        /// </summary>
         [TestMethod]
         public void GrantCreateDatabase()
         {
             string databaseName = "newDatabase";
-            string command = $"use Database1; grant create database to user UserAux";
-            string command2 = $"use Database1; create database {databaseName}";
+            string command = $"use {DatabaseConstants.MASTER_DATABASE_NAME}; grant create database to user {DatabaseConstants.NORMAL_USER_1_NAME}";
+            string command2 = $"use {DatabaseConstants.MASTER_DATABASE_NAME}; create database {databaseName}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    this.loginName = "LoginAux";
+                    this.loginName = DatabaseConstants.NORMAL_LOGIN_1_NAME;
                     FirstLevelPipelineContext result = this.ProcessCommand(command2, kernel);
 
                     try
                     {
-                        Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseName);
+                        Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseName);
                         Assert.AreEqual(databaseName, database.DatabaseName);
                         tran.Rollback();
                     }
@@ -2574,29 +2682,32 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants create database permission.
+        /// </summary>
         [TestMethod]
         public void GrantCreateDatabaseWithStatusOn()
         {
             string databaseName = "newDatabase";
-            string command = $"use Database1; grant create database to user UserAux";
-            string command2 = $"use Database1; create database {databaseName} with status = on";
+            string command = $"use {DatabaseConstants.MASTER_DATABASE_NAME}; grant create database to user {DatabaseConstants.NORMAL_USER_1_NAME}";
+            string command2 = $"use {DatabaseConstants.MASTER_DATABASE_NAME}; create database {databaseName} with status = on";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    this.loginName = "LoginAux";
+                    this.loginName = DatabaseConstants.NORMAL_LOGIN_1_NAME;
                     FirstLevelPipelineContext result = this.ProcessCommand(command2, kernel);
 
                     try
                     {
-                        Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseName);
+                        Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseName);
                         Assert.AreEqual(databaseName, database.DatabaseName);
                         Assert.IsTrue(database.IsActive);
                         tran.Rollback();
@@ -2610,30 +2721,33 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants create database permission.
+        /// </summary>
         [TestMethod]
         public void GrantCreateDatabaseWithStatusOff()
         {
             string databaseName = "newDatabase";
-            string command = $"use Database1; grant create database to user UserAux";
-            string command2 = $"use Database1; create database {databaseName} with status = off";
-            this.loginName = "AdminLogin";
+            string command = $"use {DatabaseConstants.MASTER_DATABASE_NAME}; grant create database to user {DatabaseConstants.NORMAL_USER_1_NAME}";
+            string command2 = $"use {DatabaseConstants.MASTER_DATABASE_NAME}; create database {databaseName} with status = off";
+            this.loginName = DatabaseConstants.SA_LOGIN_NAME;
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
-                    this.loginName = "LoginAux";
+                    this.loginName = DatabaseConstants.NORMAL_LOGIN_1_NAME;
                     FirstLevelPipelineContext result = this.ProcessCommand(command2, kernel);
 
                     try
                     {
-                        Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseName);
+                        Space.Database.Database database = dbContext.Databases.Single(x => x.DatabaseName == databaseName);
                         Assert.AreEqual(databaseName, database.DatabaseName);
                         Assert.IsFalse(database.IsActive);
                         tran.Rollback();
@@ -2651,22 +2765,25 @@ namespace Integra.Space.UnitTests
 
         #region grant create role
 
+        /// <summary>
+        /// Grants create role permission.
+        /// </summary>
         [TestMethod]
         public void GrantCreateRole()
         {
-            string roleName = "role1";
-            string otherLogin = "LoginAux";
-            string command = "grant create role to user UserAux";
+            string roleName = DatabaseConstants.INEXISTENT_ROLE_NAME_1;
+            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
+            string command = $"grant create role to user {DatabaseConstants.NORMAL_USER_1_NAME}";
             string command2 = $"create role {roleName}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     this.loginName = otherLogin;
@@ -2688,22 +2805,25 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants create role permission.
+        /// </summary>
         [TestMethod]
         public void GrantCreateRoleWithStatusOn()
         {
-            string roleName = "role1";
-            string otherLogin = "LoginAux";
-            string command = "grant create role to user UserAux";
+            string roleName = DatabaseConstants.INEXISTENT_ROLE_NAME_1;
+            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
+            string command = $"grant create role to user {DatabaseConstants.NORMAL_USER_1_NAME}";
             string command2 = $"create role {roleName} with status = on";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     this.loginName = otherLogin;
@@ -2725,22 +2845,25 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants create role permission.
+        /// </summary>
         [TestMethod]
         public void GrantCreateRoleWithStatusOff()
         {
-            string roleName = "role1";
-            string otherLogin = "LoginAux";
-            string command = "grant create role to user UserAux";
+            string roleName = DatabaseConstants.INEXISTENT_ROLE_NAME_1;
+            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
+            string command = $"grant create role to user {DatabaseConstants.NORMAL_USER_1_NAME}";
             string command2 = $"create role {roleName} with status = off";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     this.loginName = otherLogin;
@@ -2762,23 +2885,26 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants create role permission.
+        /// </summary>
         [TestMethod]
         public void GrantCreateRoleAddUser()
         {
-            string roleName = "role1";
-            string userName = "UserAux";
-            string otherLogin = "LoginAux";
-            string command = "grant create role to user UserAux";
+            string roleName = DatabaseConstants.INEXISTENT_ROLE_NAME_1;
+            string userName = DatabaseConstants.NORMAL_USER_1_NAME;
+            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
+            string command = $"grant create role to user {DatabaseConstants.NORMAL_USER_1_NAME}";
             string command2 = $"Create role {roleName} with add = {userName}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     this.loginName = otherLogin;
@@ -2803,25 +2929,28 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants create role permission.
+        /// </summary>
         [TestMethod]
         public void GrantCreateRoleAddUsers()
         {
-            string roleName = "role1";
-            string userName1 = "UserAux";
-            string userName2 = "UserForTest";
-            string userName3 = "AdminUser";
-            string otherLogin = "LoginAux";
-            string command = "grant create role to user UserAux";
+            string roleName = DatabaseConstants.INEXISTENT_ROLE_NAME_1;
+            string userName1 = DatabaseConstants.NORMAL_USER_1_NAME;
+            string userName2 = DatabaseConstants.NORMAL_USER_2_NAME;
+            string userName3 = DatabaseConstants.ADMIN_USER1_NAME;
+            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
+            string command = $"grant create role to user {DatabaseConstants.NORMAL_USER_1_NAME}";
             string command2 = $"Create role {roleName} with add = {userName1} {userName2} {userName3}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     this.loginName = otherLogin;
@@ -2854,22 +2983,25 @@ namespace Integra.Space.UnitTests
 
         #region grant create schema
 
+        /// <summary>
+        /// Grants create schema permission.
+        /// </summary>
         [TestMethod]
         public void GrantCreateSchema()
         {
             string schemaName = "newSchema";
-            string otherLogin = "LoginAux";
-            string command = "grant create schema to user UserAux";
+            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
+            string command = $"grant create schema to user {DatabaseConstants.NORMAL_USER_1_NAME}";
             string command2 = $"create schema {schemaName}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     this.loginName = otherLogin;
@@ -2894,22 +3026,25 @@ namespace Integra.Space.UnitTests
 
         #region grant create source
 
+        /// <summary>
+        /// Grants create source permission.
+        /// </summary>
         [TestMethod]
         public void GrantCreateSource()
         {
             string sourceName = "newSource";
-            string otherLogin = "LoginAux";
-            string command = "grant create source to user UserAux";
+            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
+            string command = $"grant create source to user {DatabaseConstants.NORMAL_USER_1_NAME}";
             string command2 = $"create source {sourceName} (column1 int, column2 double, column3 string(4000))";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     this.loginName = otherLogin;
@@ -2936,22 +3071,25 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants create source permission.
+        /// </summary>
         [TestMethod]
         public void GrantCreateSourceWithStatusOn()
         {
             string sourceName = "newSource";
-            string otherLogin = "LoginAux";
-            string command = "grant create source to user UserAux";
+            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
+            string command = $"grant create source to user {DatabaseConstants.NORMAL_USER_1_NAME}";
             string command2 = $"create source {sourceName} (column1 int, column2 double, column3 string(4000)) with status = on";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     this.loginName = otherLogin;
@@ -2978,22 +3116,25 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grants create source permission.
+        /// </summary>
         [TestMethod]
         public void GrantCreateSourceWithStatusOff()
         {
             string sourceName = "newSource";
-            string otherLogin = "LoginAux";
-            string command = "grant create source to user UserAux";
+            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
+            string command = $"grant create source to user {DatabaseConstants.NORMAL_USER_1_NAME}";
             string command2 = $"create source {sourceName} (column1 int, column2 double, column3 string(4000)) with status = off";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
 
-                    this.loginName = "AdminLogin";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
                     this.loginName = otherLogin;
@@ -3024,29 +3165,31 @@ namespace Integra.Space.UnitTests
 
         #region grant create stream
 
+        /// <summary>
+        /// Grant create stream permission.
+        /// </summary>
         [TestMethod]
         public void GrantCreateStream()
         {
-            string otherLogin = "LoginAux";
+            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string sourceForInto = "sourceForInto";
-            string command = $"use Database2; create source {sourceForInto} (c1 string(4000), c2 string(4000), numeroXXX int); grant read on source SourceParaPruebas, write on source {sourceForInto}, create stream to user UserAux";
+            string command = $"use {DatabaseConstants.MASTER_DATABASE_NAME}; create source {sourceForInto} (c1 string(4000), c2 string(4000), numeroXXX int); grant read on source {DatabaseConstants.INPUT_SOURCE_NAME}, write on source {sourceForInto}, create stream to user {DatabaseConstants.NORMAL_USER_1_NAME}";
             string streamName = "newStream";
             string eql = "cross " +
-                                   "JOIN SourceParaPruebas as t1 WHERE t1.PrimaryAccountNumber == \"9999941616073663_1\" " +
-                                   "WITH SourceParaPruebas as t2 WHERE t2.PrimaryAccountNumber == \"9999941616073663_2\" " +
+                                   $"JOIN {DatabaseConstants.INPUT_SOURCE_NAME} as t1 WHERE t1.PrimaryAccountNumber == \"9999941616073663_1\" " +
+                                   $"WITH {DatabaseConstants.INPUT_SOURCE_NAME} as t2 WHERE t2.PrimaryAccountNumber == \"9999941616073663_2\" " +
                                    "ON t1.AcquiringInstitutionIdentificationCode == t2.AcquiringInstitutionIdentificationCode " +
                                    "TIMEOUT '00:00:02' " +
-                                   //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
                                    $"SELECT (string)t1.PrimaryAccountNumber as c1, t2.PrimaryAccountNumber as c2, 1 as numeroXXX into {sourceForInto} ";
 
-            string command2 = $"use Database2; create stream {streamName} {{ {eql} }}";
+            string command2 = $"use {DatabaseConstants.MASTER_DATABASE_NAME}; create stream {streamName} {{ {eql} }}";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
-                    this.loginName = "sa";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
@@ -3079,29 +3222,31 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grant create stream permission.
+        /// </summary>
         [TestMethod]
         public void GrantCreateStreamWithStatusOn()
         {
-            string otherLogin = "LoginAux";
+            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string sourceForInto = "sourceForInto";
-            string command = $"use Database2; create source {sourceForInto} (c1 string(4000), c2 string(4000), numeroXXX int); grant write on source {sourceForInto}, read on source SourceParaPruebas, create stream to user UserAux";
+            string command = $"use {DatabaseConstants.MASTER_DATABASE_NAME}; create source {sourceForInto} (c1 string(4000), c2 string(4000), numeroXXX int); grant write on source {sourceForInto}, read on source {DatabaseConstants.INPUT_SOURCE_NAME}, create stream to user {DatabaseConstants.NORMAL_USER_1_NAME}";
             string streamName = "newStream";
             string eql = "cross " +
-                                   "JOIN SourceParaPruebas as t1 WHERE t1.PrimaryAccountNumber == \"9999941616073663_1\" " +
-                                   "WITH SourceParaPruebas as t2 WHERE t2.PrimaryAccountNumber == \"9999941616073663_2\" " +
+                                   $"JOIN {DatabaseConstants.INPUT_SOURCE_NAME} as t1 WHERE t1.PrimaryAccountNumber == \"9999941616073663_1\" " +
+                                   $"WITH {DatabaseConstants.INPUT_SOURCE_NAME} as t2 WHERE t2.PrimaryAccountNumber == \"9999941616073663_2\" " +
                                    "ON t1.AcquiringInstitutionIdentificationCode == t2.AcquiringInstitutionIdentificationCode " +
                                    "TIMEOUT '00:00:02' " +
-                                   //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
                                    $"SELECT (string)t1.PrimaryAccountNumber as c1, t2.PrimaryAccountNumber as c2, 1 as numeroXXX into {sourceForInto} ";
 
-            string command2 = $"use Database2; create stream {streamName} {{ {eql} }} with status = on";
+            string command2 = $"use {DatabaseConstants.MASTER_DATABASE_NAME}; create stream {streamName} {{ {eql} }} with status = on";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
-                    this.loginName = "sa";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
@@ -3134,29 +3279,31 @@ namespace Integra.Space.UnitTests
             }
         }
 
+        /// <summary>
+        /// Grant create stream permission.
+        /// </summary>
         [TestMethod]
         public void GrantCreateStreamWithStatusOff()
         {
-            string otherLogin = "LoginAux";
+            string otherLogin = DatabaseConstants.NORMAL_LOGIN_1_NAME;
             string sourceForInto = "sourceForInto";
-            string command = $"use Database2; create source {sourceForInto} (c1 string(4000), c2 string(4000), numeroXXX int); grant write on source {sourceForInto}, read on source SourceParaPruebas, create stream to user UserAux";
+            string command = $"use {DatabaseConstants.MASTER_DATABASE_NAME}; create source {sourceForInto} (c1 string(4000), c2 string(4000), numeroXXX int); grant write on source {sourceForInto}, read on source {DatabaseConstants.INPUT_SOURCE_NAME}, create stream to user {DatabaseConstants.NORMAL_USER_1_NAME}";
             string streamName = "newStream";
             string eql = "cross " +
-                                   "JOIN SourceParaPruebas as t1 WHERE t1.PrimaryAccountNumber == \"9999941616073663_1\" " +
-                                   "WITH SourceParaPruebas as t2 WHERE t2.PrimaryAccountNumber == \"9999941616073663_2\" " +
+                                   $"JOIN {DatabaseConstants.INPUT_SOURCE_NAME} as t1 WHERE t1.PrimaryAccountNumber == \"9999941616073663_1\" " +
+                                   $"WITH {DatabaseConstants.INPUT_SOURCE_NAME} as t2 WHERE t2.PrimaryAccountNumber == \"9999941616073663_2\" " +
                                    "ON t1.AcquiringInstitutionIdentificationCode == t2.AcquiringInstitutionIdentificationCode " +
                                    "TIMEOUT '00:00:02' " +
-                                   //"WHERE  t1.@event.Message.#1.#43 == \"Shell El RodeoGUATEMALA    GT\" " +
                                    $"SELECT (string)t1.PrimaryAccountNumber as c1, t2.PrimaryAccountNumber as c2, 1 as numeroXXX into {sourceForInto} ";
 
-            string command2 = $"use Database2; create stream {streamName} {{ {eql} }} with status = off";
+            string command2 = $"use {DatabaseConstants.MASTER_DATABASE_NAME}; create stream {streamName} {{ {eql} }} with status = off";
 
             IKernel kernel = new StandardKernel();
-            using (SpaceDbContext dbContext = new SpaceDbContext())
+            using (SpaceDbContext dbContext = new SpaceDbContext(new DropCreateSpaceDatabaseAlways(), this.TestContext.Properties["ConnectionStringName"].ToString()))
             {
                 using (DbContextTransaction tran = dbContext.Database.BeginTransaction())
                 {
-                    this.loginName = "sa";
+                    this.loginName = DatabaseConstants.SA_LOGIN_NAME;
                     kernel.Bind<SpaceDbContext>().ToConstant(dbContext);
                     FirstLevelPipelineContext result1 = this.ProcessCommand(command, kernel);
 
@@ -3194,5 +3341,29 @@ namespace Integra.Space.UnitTests
         #endregion grant create
 
         #endregion grant
+
+        /// <summary>
+        /// This method create a pipeline context and execute the specified command.
+        /// </summary>
+        /// <param name="command">Command to execute.</param>
+        /// <param name="kernel">DI kernel.</param>
+        /// <returns>Pipeline context.</returns>
+        private FirstLevelPipelineContext ProcessCommand(string command, IKernel kernel)
+        {
+            IBinding binding = kernel.GetBindings(typeof(Language.IGrammarRuleValidator)).FirstOrDefault();
+            if (binding != null)
+            {
+                kernel.RemoveBinding(binding);
+            }
+
+            kernel.Bind<Language.IGrammarRuleValidator>().ToConstant(new TestRuleValidator());
+            CommandPipelineBuilder cpb = new CommandPipelineBuilder();
+            Filter<FirstLevelPipelineContext, FirstLevelPipelineContext> pipeline = cpb.Build();
+
+            FirstLevelPipelineExecutor cpe = new FirstLevelPipelineExecutor(pipeline);
+            FirstLevelPipelineContext context = new FirstLevelPipelineContext(command, this.loginName, kernel);
+            FirstLevelPipelineContext result = cpe.Execute(context);
+            return result;
+        }
     }
 }

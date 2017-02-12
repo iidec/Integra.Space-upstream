@@ -87,7 +87,7 @@ namespace Integra.Space.Pipeline.Filters
                 {
                     // se utiliza single porque no tienen que existir permisos repetidos de este tipo.
                     string securableClassName = databaseContext.GranularPermissions
-                    .Single(gp => gp.GranularPermissionName.Replace(" ", string.Empty).Equals(permission.Permission.ToString(), StringComparison.InvariantCultureIgnoreCase))
+                    .Single(gp => gp.GranularPermissionName.Replace(" ", string.Empty).ToLower() == permission.Permission.ToString().ToLower())
                     .PermissionsBySecurables
                     .Single()
                     .SecurableClass
@@ -134,9 +134,9 @@ namespace Integra.Space.Pipeline.Filters
 
                 Schema schema = @object.GetSchema(databaseContext, login);
 
-                if (secureClass == null || !secureClass.SecurableName.Equals(@object.SecurableClass.ToString(), StringComparison.InvariantCultureIgnoreCase))
+                if (secureClass == null || !(secureClass.SecurableName.ToLower() == @object.SecurableClass.ToString().ToLower()))
                 {
-                    IEnumerable<PermissionBySecurable> pbsListAux = permissionsBySecurables.Where(x => x.GranularPermission.GranularPermissionName.Replace(" ", string.Empty).Equals(@object.GranularPermission.ToString(), StringComparison.InvariantCultureIgnoreCase));
+                    IEnumerable<PermissionBySecurable> pbsListAux = permissionsBySecurables.Where(x => x.GranularPermission.GranularPermissionName.Replace(" ", string.Empty).ToLower() == @object.GranularPermission.ToString().ToLower());
 
                     // si la lista contiene un elemento se toma ese y continua, de lo contrario toma el registro que coincida con el tipo de objeto, si hay mas de uno es error.
                     if (pbsListAux.Count() == 1)
@@ -145,7 +145,7 @@ namespace Integra.Space.Pipeline.Filters
                     }
                     else if (pbsListAux.Count() > 1)
                     {
-                        pbs = pbsListAux.Single(x => x.SecurableClass.SecurableName.Equals(@object.SecurableClass.ToString(), StringComparison.InvariantCultureIgnoreCase));
+                        pbs = pbsListAux.Single(x => x.SecurableClass.SecurableName.ToLower() == @object.SecurableClass.ToString().ToLower());
                     }
                     else
                     {
@@ -231,7 +231,7 @@ namespace Integra.Space.Pipeline.Filters
                     securableClass = permissionBySecurable.SecurableClass;
                 }*/
 
-                IEnumerable<PermissionBySecurable> pbsListAux = permissionsBySecurables.Where(x => x.GranularPermission.GranularPermissionName.Replace(" ", string.Empty).Equals(@object.GranularPermission.ToString(), StringComparison.InvariantCultureIgnoreCase));
+                IEnumerable<PermissionBySecurable> pbsListAux = permissionsBySecurables.Where(x => x.GranularPermission.GranularPermissionName.Replace(" ", string.Empty).ToLower() == @object.GranularPermission.ToString().ToLower());
 
                 // si la lista contiene un elemento se toma ese y continua, de lo contrario toma el registro que coincida con el tipo de objeto, si hay mas de uno es error.
                 if (pbsListAux.Count() == 1)
@@ -240,7 +240,7 @@ namespace Integra.Space.Pipeline.Filters
                 }
                 else
                 {
-                    permissionBySecurable = pbsListAux.Single(x => x.SecurableClass.SecurableName.Equals(@object.SecurableClass.ToString(), StringComparison.InvariantCultureIgnoreCase));
+                    permissionBySecurable = pbsListAux.Single(x => x.SecurableClass.SecurableName.ToLower() == @object.SecurableClass.ToString().ToLower());
                 }
 
                 granularPermission = permissionBySecurable.GranularPermission;

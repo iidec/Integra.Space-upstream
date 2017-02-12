@@ -52,8 +52,8 @@ namespace Integra.Space.Pipeline.Filters
             // creo el permiso de conexión 'connect sql' para el login
             ServerAssignedPermissionsToLogin newPermission = new ServerAssignedPermissionsToLogin();
             newPermission.Login = newLogin;
-            newPermission.SecurableClassId = databaseContext.SecurableClasses.Single(x => x.SecurableName.Equals(Common.SystemObjectEnum.Server.ToString(), StringComparison.InvariantCultureIgnoreCase)).SecurableClassId;
-            newPermission.GranularPermissionId = databaseContext.GranularPermissions.Single(x => x.GranularPermissionName.Replace(" ", string.Empty).Equals(Common.PermissionsEnum.ConnectSQL.ToString(), StringComparison.InvariantCultureIgnoreCase)).GranularPermissionId;
+            newPermission.SecurableClassId = databaseContext.SecurableClasses.Single(x => x.SecurableName.ToLower() == Common.SystemObjectEnum.Server.ToString().ToLower()).SecurableClassId;
+            newPermission.GranularPermissionId = databaseContext.GranularPermissions.Single(x => x.GranularPermissionName.Replace(" ", string.Empty).ToLower() == Common.PermissionsEnum.ConnectSQL.ToString().ToLower()).GranularPermissionId;
             newPermission.WithGrantOption = false;
             newPermission.ServerId = schema.ServerId;
             newPermission.Granted = true;
