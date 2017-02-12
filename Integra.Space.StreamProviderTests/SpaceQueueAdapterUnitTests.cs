@@ -25,9 +25,6 @@ namespace Integra.Space.StreamProviderTests
 		[TestInitialize]
 		public void Initialize()
 		{
-			Trace.Listeners.Add(new TextWriterTraceListener(Console.Out));
-			Debug.Listeners.Add(new TextWriterTraceListener(Console.Out));
-
 			Mock<Logger> loggerMock = new Mock<Logger>();
 			batchContainerFactoryMock = new Mock<IRedisBatchContainerFactory>();
 
@@ -35,21 +32,6 @@ namespace Integra.Space.StreamProviderTests
 			streamQueueMapper = new HashRingBasedStreamQueueMapper(1, "NN");
 			connectionString = new RedisConnectionString(TestContext.Properties["redisconnectionstring"].ToString());
 			invalidConnectionString = new RedisConnectionString(TestContext.Properties["invalidredisconnectionstring"].ToString());
-
-			System.Diagnostics.Debug.AutoFlush = true;
-			System.Diagnostics.Trace.AutoFlush = true;
-
-			System.Diagnostics.Trace.WriteLine(string.Format("1 redisconnectionstring = '{0}'", TestContext.Properties["redisconnectionstring"].ToString()));
-			System.Diagnostics.Trace.WriteLine(string.Format("1 invalidredisconnectionstring = '{0}'", TestContext.Properties["invalidredisconnectionstring"].ToString()));
-
-			System.Diagnostics.Debug.WriteLine(string.Format("2 redisconnectionstring = '{0}'", TestContext.Properties["redisconnectionstring"].ToString()));
-			System.Diagnostics.Debug.WriteLine(string.Format("2 invalidredisconnectionstring = '{0}'", TestContext.Properties["invalidredisconnectionstring"].ToString()));
-
-			TestContext.WriteLine(string.Format("3 redisconnectionstring = '{0}'", TestContext.Properties["redisconnectionstring"].ToString()));
-			TestContext.WriteLine(string.Format("3 invalidredisconnectionstring = '{0}'", TestContext.Properties["invalidredisconnectionstring"].ToString()));
-
-			Console.WriteLine(string.Format("4 redisconnectionstring = '{0}'", TestContext.Properties["redisconnectionstring"].ToString()));
-			Console.WriteLine(string.Format("4 invalidredisconnectionstring = '{0}'", TestContext.Properties["invalidredisconnectionstring"].ToString()));
 		}
 
 		public TestContext TestContext
@@ -119,21 +101,6 @@ namespace Integra.Space.StreamProviderTests
 		[TestMethod, TestCategory("UnitTest")]
 		public async Task QueueMessageBatchAsyncSimpleTest()
 		{
-			throw new InvalidCastException();
-
-			System.Diagnostics.Trace.WriteLine("===========");
-			System.Diagnostics.Trace.WriteLine(string.Format("1 redisconnectionstring = '{0}'", TestContext.Properties["redisconnectionstring"].ToString()));
-			System.Diagnostics.Trace.WriteLine(string.Format("1 invalidredisconnectionstring = '{0}'", TestContext.Properties["invalidredisconnectionstring"].ToString()));
-
-			System.Diagnostics.Debug.WriteLine(string.Format("2 redisconnectionstring = '{0}'", TestContext.Properties["redisconnectionstring"].ToString()));
-			System.Diagnostics.Debug.WriteLine(string.Format("2 invalidredisconnectionstring = '{0}'", TestContext.Properties["invalidredisconnectionstring"].ToString()));
-
-			TestContext.WriteLine(string.Format("3 redisconnectionstring = '{0}'", TestContext.Properties["redisconnectionstring"].ToString()));
-			TestContext.WriteLine(string.Format("3 invalidredisconnectionstring = '{0}'", TestContext.Properties["invalidredisconnectionstring"].ToString()));
-
-			Console.WriteLine(string.Format("4 redisconnectionstring = '{0}'", TestContext.Properties["redisconnectionstring"].ToString()));
-			Console.WriteLine(string.Format("4 invalidredisconnectionstring = '{0}'", TestContext.Properties["invalidredisconnectionstring"].ToString()));
-
 			Dictionary<string, object> requestContext = new Dictionary<string, object>();
 			batchContainerFactoryMock.Setup(x => x.ToRedisMessage<int>(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<IEnumerable<int>>(), It.IsAny<RedisEventSequenceToken>(), requestContext)).Returns(new RedisMessage(new byte[] { 0, 1, 2, 3 }));
 			SpaceQueueAdapter adapter = new SpaceQueueAdapter(streamQueueMapper, providerName, connectionString, logger, batchContainerFactoryMock.Object);
