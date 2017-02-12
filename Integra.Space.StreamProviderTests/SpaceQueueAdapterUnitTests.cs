@@ -7,6 +7,7 @@ using Integra.Space.StreamProvider;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using Integra.Space.StreamProvider.Redis;
+using System.Diagnostics;
 
 namespace Integra.Space.StreamProviderTests
 {
@@ -24,6 +25,9 @@ namespace Integra.Space.StreamProviderTests
 		[TestInitialize]
 		public void Initialize()
 		{
+			Trace.Listeners.Add(new TextWriterTraceListener(Console.Out));
+			Debug.Listeners.Add(new TextWriterTraceListener(Console.Out));
+
 			Mock<Logger> loggerMock = new Mock<Logger>();
 			batchContainerFactoryMock = new Mock<IRedisBatchContainerFactory>();
 
