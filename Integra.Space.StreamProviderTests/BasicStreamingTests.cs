@@ -39,13 +39,6 @@ namespace Integra.Space.StreamProviderTests
 			host = this;
 		}
 
-		// Use ClassCleanup to run code after all tests in a class have run
-		[ClassCleanup]
-		public static void MyClassCleanup()
-		{
-			host.StopAllSilos();
-		}
-
 		[TestMethod]
 		public async Task BasicStreamingTests_1()
 		{
