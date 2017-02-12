@@ -119,6 +119,8 @@ namespace Integra.Space.StreamProviderTests
 		[TestMethod, TestCategory("UnitTest")]
 		public async Task QueueMessageBatchAsyncSimpleTest()
 		{
+			throw new InvalidCastException();
+
 			System.Diagnostics.Trace.WriteLine("===========");
 			System.Diagnostics.Trace.WriteLine(string.Format("1 redisconnectionstring = '{0}'", TestContext.Properties["redisconnectionstring"].ToString()));
 			System.Diagnostics.Trace.WriteLine(string.Format("1 invalidredisconnectionstring = '{0}'", TestContext.Properties["invalidredisconnectionstring"].ToString()));
