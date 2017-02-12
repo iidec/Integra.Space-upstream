@@ -12,21 +12,36 @@ namespace Integra.Space.StreamProviderTests
 	[TestClass]
 	public class SpaceQueueAdapterReceiverUnitTests
 	{
-		private readonly Logger logger;
-		private readonly Mock<IRedisBatchContainerFactory> batchContainerFactoryMock;
-		private readonly RedisConnectionString connectionString;
-		private readonly QueueId queueId;
-		private readonly Mock<RedisQueue> redisQueueMock;
+		private TestContext testContext;
+		private Logger logger;
+		private Mock<IRedisBatchContainerFactory> batchContainerFactoryMock;
+		private RedisConnectionString connectionString;
+		private QueueId queueId;
+		private Mock<RedisQueue> redisQueueMock;
 
-		public SpaceQueueAdapterReceiverUnitTests()
+		[TestInitialize]
+		public void Initialize()
 		{
-			connectionString = new RedisConnectionString("HostAddress=54.172.20.246;HostPort=12574;Password=redizz;DatabaseId=0");
+			connectionString = new RedisConnectionString(TestContext.Properties["redisconnectionstring"].ToString());
 			connectionString.Validate();
 			Mock<Logger> loggerMock = new Mock<Logger>();
 			batchContainerFactoryMock = new Mock<IRedisBatchContainerFactory>();
 			logger = loggerMock.Object;
 			queueId = QueueId.GetQueueId("NN", 0, 0);
 			redisQueueMock = new Mock<RedisQueue>(connectionString.HostAddress, connectionString.HostPort, connectionString.Password, connectionString.DatabaseId, queueId.ToString());
+
+		}
+
+		public TestContext TestContext
+		{
+			get
+			{
+				return this.testContext;
+			}
+			set
+			{
+				this.testContext = value;
+			}
 		}
 
 		[TestMethod]
