@@ -80,7 +80,7 @@ namespace Integra.Space.Pipeline.Filters
         /// <returns>System object type.</returns>
         private SystemObjectEnum GetSystemObject(string sourceName)
         {
-            if (sourceName.ToString().Equals("servers", StringComparison.InvariantCultureIgnoreCase))
+            if (sourceName.Equals("servers", StringComparison.InvariantCultureIgnoreCase))
             {
                 return SystemObjectEnum.Server;
             }
@@ -156,7 +156,7 @@ namespace Integra.Space.Pipeline.Filters
                 if (command.Permission.CommandObject == null)
                 {
                     string securableClassName = databaseContext.GranularPermissions
-                        .Single(gp => gp.GranularPermissionName.Replace(" ", string.Empty).Equals(command.Permission.Permission.ToString(), StringComparison.InvariantCultureIgnoreCase))
+                        .Single(gp => gp.GranularPermissionName.Replace(" ", string.Empty).ToLower() == command.Permission.Permission.ToString().ToLower())
                         .PermissionsBySecurables
                         .Single()
                         .SecurableClass

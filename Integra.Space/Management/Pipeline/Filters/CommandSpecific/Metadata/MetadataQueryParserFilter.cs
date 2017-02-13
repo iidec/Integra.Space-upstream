@@ -58,7 +58,6 @@ namespace Integra.Space.Pipeline.Filters
             SpaceAssemblyBuilder sasmBuilder = new SpaceAssemblyBuilder("SpaceQueryAssembly_" + "QueryTest");
             AssemblyBuilder asmBuilder = sasmBuilder.CreateAssemblyBuilder();
             CodeGeneratorConfiguration config = new CodeGeneratorConfiguration(
-                context.SecurityContext.Login,
                 dsf,
                 asmBuilder,
                 context.Kernel,
@@ -172,7 +171,7 @@ namespace Integra.Space.Pipeline.Filters
             }
 
             // se obtienen los permisos necesarios para ejecutar el comando.
-            GranularPermission granularPermission = databaseContext.GranularPermissions.Single(x => x.GranularPermissionName.Replace(" ", string.Empty).Equals(PermissionsEnum.ViewDefinition.ToString(), StringComparison.InvariantCultureIgnoreCase));
+            GranularPermission granularPermission = databaseContext.GranularPermissions.Single(x => x.GranularPermissionName.Replace(" ", string.Empty).ToLower() == PermissionsEnum.ViewDefinition.ToString().ToLower());
             
             // se obtienen la jerarquía de permisos en base al tipo de objeto y al permiso granular.
             HashSet<string> hashSetParentPermissions = new HashSet<string>();
@@ -276,7 +275,7 @@ namespace Integra.Space.Pipeline.Filters
             // obtengo el contexto de la base de datos.
             SpaceDbContext databaseContext = context.Kernel.Get<SpaceDbContext>();
 
-            SecurableClass securableClass = databaseContext.SecurableClasses.Single(x => x.SecurableName.Equals(this.objectType.ToString(), StringComparison.InvariantCultureIgnoreCase));
+            SecurableClass securableClass = databaseContext.SecurableClasses.Single(x => x.SecurableName.ToLower() == this.objectType.ToString().ToLower());
 
             DbSet<TIn> fullSetOfObjects = this.GetDbSet(databaseContext);
 

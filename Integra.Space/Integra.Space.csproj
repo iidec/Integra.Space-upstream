@@ -41,23 +41,23 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="Integra.Space.Common, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Integra.Space.Common.Debug.0.0.1.8\lib\Integra.Space.Common.dll</HintPath>
+      <HintPath>..\packages\Integra.Space.Common.2017.2.7.12\lib\net452\Integra.Space.Common.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Integra.Space.Compiler.CodeGeneration, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Integra.Space.Compiler.CodeGenerator.0.0.1\lib\Integra.Space.Compiler.CodeGeneration.dll</HintPath>
+      <HintPath>..\packages\Integra.Space.Compiler.CodeGeneration.2017.2.7.10\lib\net452\Integra.Space.Compiler.CodeGeneration.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Integra.Space.Database, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Integra.Space.Database.Debug.0.0.2\lib\Integra.Space.Database.dll</HintPath>
+      <HintPath>..\packages\Integra.Space.Database.2017.2.10.1\lib\net452\Integra.Space.Database.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Integra.Space.Language, Version=0.0.1.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Integra.Space.Language.Debug.1.0.6.6\lib\Integra.Space.Language.dll</HintPath>
+      <HintPath>..\packages\Integra.Space.Language.Release.2017.2.7.11\lib\net452\Integra.Space.Language.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Integra.Space.Runtime, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Integra.Space.Runtime.Debug.0.0.2\lib\Integra.Space.Runtime.dll</HintPath>
+      <HintPath>..\packages\Integra.Space.Runtime.2017.2.7.10\lib\net452\Integra.Space.Runtime.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Irony, Version=1.0.0.0, Culture=neutral, PublicKeyToken=ca48ace7223ead47, processorArchitecture=MSIL">
@@ -100,6 +100,7 @@
       <HintPath>..\packages\System.Reactive.Windows.Threading.3.1.1\lib\net45\System.Reactive.Windows.Threading.dll</HintPath>
       <Private>True</Private>
     </Reference>
+    <Reference Include="System.Transactions" />
     <Reference Include="System.Windows" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
@@ -225,16 +226,19 @@
     <Folder Include="Management\Pipeline\Filters\CommandSpecific\Alter\Level4\" />
     <Folder Include="Management\Pipeline\Filters\CommandSpecific\Create\Level4\" />
   </ItemGroup>
+  <ItemGroup>
+    <Content Include="Scripts\CheckConstraints.sql" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <Import Project="..\packages\StyleCop.MSBuild.4.7.54.0\build\StyleCop.MSBuild.Targets" Condition="Exists('..\packages\StyleCop.MSBuild.4.7.54.0\build\StyleCop.MSBuild.Targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
-    <Error Condition="!Exists('..\packages\StyleCop.MSBuild.4.7.54.0\build\StyleCop.MSBuild.Targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\StyleCop.MSBuild.4.7.54.0\build\StyleCop.MSBuild.Targets'))" />
     <Error Condition="!Exists('..\packages\StyleCop.Error.MSBuild.1.0.0\build\StyleCop.Error.MSBuild.Targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\StyleCop.Error.MSBuild.1.0.0\build\StyleCop.Error.MSBuild.Targets'))" />
+    <Error Condition="!Exists('..\packages\StyleCop.MSBuild.4.7.55.0\build\StyleCop.MSBuild.Targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\StyleCop.MSBuild.4.7.55.0\build\StyleCop.MSBuild.Targets'))" />
   </Target>
   <Import Project="..\packages\StyleCop.Error.MSBuild.1.0.0\build\StyleCop.Error.MSBuild.Targets" Condition="Exists('..\packages\StyleCop.Error.MSBuild.1.0.0\build\StyleCop.Error.MSBuild.Targets')" />
+  <Import Project="..\packages\StyleCop.MSBuild.4.7.55.0\build\StyleCop.MSBuild.Targets" Condition="Exists('..\packages\StyleCop.MSBuild.4.7.55.0\build\StyleCop.MSBuild.Targets')" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">
