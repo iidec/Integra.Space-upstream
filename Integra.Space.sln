@@ -19,8 +19,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Integra.Space.StreamProvide
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{0D68D494-3F19-499D-9996-2768CA90A1F8}"
 	ProjectSection(SolutionItems) = preProject
-		Integra.Space.StreamProviderTests.runsettings = Integra.Space.StreamProviderTests.runsettings
-    Integra.Space.UnitTests.runsettings = Integra.Space.UnitTests.runsettings
+		Integra.Space.UnitTests.runsettings = Integra.Space.UnitTests.runsettings
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
