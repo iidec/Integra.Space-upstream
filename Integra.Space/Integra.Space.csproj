@@ -41,7 +41,7 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="Integra.Space.Common, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Integra.Space.Common.2017.2.7.12\lib\net452\Integra.Space.Common.dll</HintPath>
+      <HintPath>..\packages\Integra.Space.Common.2017.2.13.3\lib\net452\Integra.Space.Common.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Integra.Space.Compiler.CodeGeneration, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
@@ -53,7 +53,7 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="Integra.Space.Language, Version=0.0.1.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Integra.Space.Language.Release.2017.2.7.11\lib\net452\Integra.Space.Language.dll</HintPath>
+      <HintPath>..\packages\Integra.Space.Language.Release.2017.2.13.3\lib\net452\Integra.Space.Language.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Integra.Space.Runtime, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
@@ -225,9 +225,6 @@
   <ItemGroup>
     <Folder Include="Management\Pipeline\Filters\CommandSpecific\Alter\Level4\" />
     <Folder Include="Management\Pipeline\Filters\CommandSpecific\Create\Level4\" />
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="Scripts\CheckConstraints.sql" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
