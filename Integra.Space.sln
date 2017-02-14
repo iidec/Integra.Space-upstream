@@ -24,6 +24,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Integra.Space.Testing", "Integra.Space.Testing\Integra.Space.Testing.csproj", "{E093460E-6A7D-44E6-BAD8-2123BEFA3C1D}"
+		Integra.Space.UnitTests.runsettings = Integra.Space.UnitTests.runsettings
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
