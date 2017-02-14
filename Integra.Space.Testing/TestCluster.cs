@@ -12,19 +12,6 @@ namespace Integra.Space.Testing
 	{
 		private TestingSiloHost siloHost;
 		private TestingSiloOptions defaultSiloOptions;
-		private Orleans.Runtime.Severity currentTraceLevel = Orleans.Runtime.Severity.Off;
-
-		protected Orleans.Runtime.Severity CurrentTraceLevel
-		{
-			get
-			{
-				return currentTraceLevel;
-			}
-			set
-			{
-				currentTraceLevel = value;
-			}
-		}
 
 		protected TestingSiloOptions DefaultSiloOptions
 		{
@@ -38,14 +25,7 @@ namespace Integra.Space.Testing
 						StartFreshOrleans = true,
 						StartPrimary = true,
 						ParallelStart = false,
-						StartSecondary = false,
-						AdjustConfig = configuration => {
-							configuration.Defaults.DefaultTraceLevel = this.CurrentTraceLevel;
-							if (this.currentTraceLevel == Orleans.Runtime.Severity.Off)
-								configuration.Defaults.TraceToConsole = false;
-							else
-								configuration.Defaults.TraceToConsole = true;
-						}
+						StartSecondary = false
 						//,
 						//LivenessType = Orleans.Runtime.Configuration.GlobalConfiguration.LivenessProviderType.MembershipTableGrain
 						//ReminderServiceType = Orleans.Runtime.Configuration.GlobalConfiguration.ReminderServiceProviderType.SqlServer,
