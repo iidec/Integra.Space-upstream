@@ -12,17 +12,17 @@ namespace Integra.Space.Testing
 	{
 		private TestingSiloHost siloHost;
 		private TestingSiloOptions defaultSiloOptions;
-		private Orleans.Runtime.Severity defaultTraceLevel = Orleans.Runtime.Severity.Off;
+		private Orleans.Runtime.Severity currentTraceLevel = Orleans.Runtime.Severity.Off;
 
-		protected Orleans.Runtime.Severity DefaultTraceLevel
+		protected Orleans.Runtime.Severity CurrentTraceLevel
 		{
 			get
 			{
-				return defaultTraceLevel;
+				return currentTraceLevel;
 			}
 			set
 			{
-				defaultTraceLevel = value;
+				currentTraceLevel = value;
 			}
 		}
 
@@ -40,7 +40,7 @@ namespace Integra.Space.Testing
 						ParallelStart = false,
 						StartSecondary = false,
 						AdjustConfig = configuration => {
-							configuration.Defaults.DefaultTraceLevel = this.DefaultTraceLevel;
+							configuration.Defaults.DefaultTraceLevel = this.CurrentTraceLevel;
 						}
 						//,
 						//LivenessType = Orleans.Runtime.Configuration.GlobalConfiguration.LivenessProviderType.MembershipTableGrain
