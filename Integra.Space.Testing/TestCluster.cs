@@ -41,6 +41,10 @@ namespace Integra.Space.Testing
 						StartSecondary = false,
 						AdjustConfig = configuration => {
 							configuration.Defaults.DefaultTraceLevel = this.CurrentTraceLevel;
+							if (this.currentTraceLevel == Orleans.Runtime.Severity.Off)
+								configuration.Defaults.TraceToConsole = false;
+							else
+								configuration.Defaults.TraceToConsole = true;
 						}
 						//,
 						//LivenessType = Orleans.Runtime.Configuration.GlobalConfiguration.LivenessProviderType.MembershipTableGrain
