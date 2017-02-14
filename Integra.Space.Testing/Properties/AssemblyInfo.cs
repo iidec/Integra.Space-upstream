@@ -6,9 +6,9 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("Integra.Space.Testing")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyDescription("Integra Space Testing Library")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
+[assembly: AssemblyCompany("Integra")]
 [assembly: AssemblyProduct("Integra.Space.Testing")]
 [assembly: AssemblyCopyright("Copyright ©  2017")]
 [assembly: AssemblyTrademark("")]
