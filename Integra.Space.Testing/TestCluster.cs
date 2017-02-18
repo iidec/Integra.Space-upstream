@@ -71,7 +71,7 @@ namespace Integra.Space.Testing
 			this.DefaultSiloOptions.StartPrimary = false;
 			this.DefaultSiloOptions.ParallelStart = false;
 			this.DefaultSiloOptions.StartSecondary = true;
-			this.DefaultSiloOptions.BasePort++;
+			//this.DefaultSiloOptions.BasePort++;
 			return this.StartSecondarySilo(this.DefaultSiloOptions);
 		}
 
@@ -79,7 +79,7 @@ namespace Integra.Space.Testing
 		{
 			if (this.siloHost.Secondary == null)
 			{
-				this.siloHost.StartSecondarySilo(options, 0);
+				this.siloHost.StartSecondarySilo(options, 1);
 			}
 
 			return this.siloHost.Secondary;
