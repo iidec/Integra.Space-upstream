@@ -64,7 +64,7 @@ namespace Integra.Space.Testing
 			}
 		}
 
-		public SiloHandle StarSilo()
+		public SiloHandle DeploySilo()
 		{
 			if (++siloCounter == 1)
 			{
@@ -77,7 +77,7 @@ namespace Integra.Space.Testing
 			}
 		}
 
-		public Task StabilizeClusterAsync()
+		public Task StabilizeClusterDeployAsync()
 		{
 			return Cluster.WaitForLivenessToStabilizeAsync();
 		}
