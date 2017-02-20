@@ -38,17 +38,22 @@ namespace Integra.Space.Testing
 		{
 			get
 			{
-				// Se crea una configuración por defecto, donde hay 1 solo silo.
-				this.clusterOptions = new TestClusterOptions(1);
-				
-				// Se carga la configuración por defecto desde el xml.
-				this.clusterOptions.ClusterConfiguration.StandardLoad();
-				
-				// Agrega un nodo para que el cluster pueda levantar.
-				// this.clusterOptions.ClusterConfiguration.CreateNodeConfigurationForSilo("Primary");
+				if (this.clusterOptions == null)
+				{
 
-				// Se carga la configuración por defecto desde el xml.
-				this.clusterOptions.ClientConfiguration = ClientConfiguration.StandardLoad();
+					// Se crea una configuración por defecto, donde hay 1 solo silo.
+					this.clusterOptions = new TestClusterOptions(1);
+
+					// Se carga la configuración por defecto desde el xml.
+					this.clusterOptions.ClusterConfiguration.StandardLoad();
+
+					// Agrega un nodo para que el cluster pueda levantar.
+					// this.clusterOptions.ClusterConfiguration.CreateNodeConfigurationForSilo("Primary");
+
+					// Se carga la configuración por defecto desde el xml.
+					this.clusterOptions.ClientConfiguration = ClientConfiguration.StandardLoad();
+				}
+
 				return clusterOptions;
 			}
 		}
