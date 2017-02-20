@@ -1,4 +1,5 @@
 ﻿using Orleans;
+using Orleans.Runtime.Configuration;
 using Orleans.TestingHost;
 using System;
 using System.Collections.Generic;
@@ -8,111 +9,102 @@ using System.Threading.Tasks;
 
 namespace Integra.Space.Testing
 {
-	public abstract class TestCluster : IDisposable
+	/// <summary>
+	/// Permite crear un Cluster de pruebas. Los silos que pertenecen al cluster son creados de forma dinamica.
+	/// </summary>
+	public sealed class TestCluster : IDisposable
 	{
-		private TestingSiloHost siloHost;
-		private TestingSiloOptions defaultSiloOptions;
+		private Orleans.TestingHost.TestCluster cluster;
+		private TestClusterOptions clusterOptions;
+		private int siloCounter = 0;
 
-		protected TestingSiloOptions DefaultSiloOptions
+		public ClusterConfiguration ClusterConfiguration
 		{
 			get
 			{
-				if (this.defaultSiloOptions == null)
-				{
-					this.defaultSiloOptions = new TestingSiloOptions
-					{
-						// Valores por default usados cuando se crea el primer silo del cluster
-						StartFreshOrleans = true,
-						StartPrimary = true,
-						ParallelStart = false,
-						StartSecondary = false
-						//,
-						//LivenessType = Orleans.Runtime.Configuration.GlobalConfiguration.LivenessProviderType.MembershipTableGrain
-						//ReminderServiceType = Orleans.Runtime.Configuration.GlobalConfiguration.ReminderServiceProviderType.SqlServer,
-						//LivenessType = Orleans.Runtime.Configuration.GlobalConfiguration.LivenessProviderType.SqlServer
-					};
-				}
-
-				return this.defaultSiloOptions;
-			}
-			set
-			{
-				this.defaultSiloOptions = value;
+				return this.Options.ClusterConfiguration;
 			}
 		}
 
-		protected SiloHandle StartPrimarySilo()
-		{
-			return this.StartPrimarySilo(this.DefaultSiloOptions);
-		}
-
-		protected SiloHandle StartPrimarySilo(TestingSiloOptions options)
-		{
-			if (this.siloHost == null || siloHost.Primary == null)
-			{
-				try
-				{
-					this.siloHost = new TestingSiloHost(options);
-				}
-				catch (Exception e)
-				{
-					var ex = e;
-					throw e;
-				}
-			}
-
-			return this.siloHost.Primary;
-		}
-
-		protected SiloHandle StartSecondarySilo()
-		{
-			// Se setean los valores para crear el segundo silo del cluster
-			this.DefaultSiloOptions.StartFreshOrleans = false;
-			this.DefaultSiloOptions.StartPrimary = false;
-			this.DefaultSiloOptions.ParallelStart = false;
-			this.DefaultSiloOptions.StartSecondary = true;
-			//this.DefaultSiloOptions.BasePort++;
-			return this.StartSecondarySilo(this.DefaultSiloOptions);
-		}
-
-		protected SiloHandle StartSecondarySilo(TestingSiloOptions options)
-		{
-			if (this.siloHost.Secondary == null)
-			{
-				this.siloHost.StartSecondarySilo(options, 1);
-			}
-
-			return this.siloHost.Secondary;
-		}
-
-		protected SiloHandle StartAdditionalSilo()
-		{
-			return this.siloHost.StartAdditionalSilo();
-		}
-
-		protected void KillSilo(SiloHandle silo)
-		{
-			this.siloHost.KillSilo(silo);
-		}
-
-		protected IGrainFactory GrainFactory
+		public ClientConfiguration ClientConfiguration
 		{
 			get
 			{
-				return this.siloHost.GrainFactory;
+				return this.Options.ClientConfiguration;
 			}
 		}
 
-		protected IEnumerable<SiloHandle> GetActiveSilos()
+		private TestClusterOptions Options
 		{
-			return this.siloHost.GetActiveSilos();
+			get
+			{
+				// Se crea una configuración por defecto, donde hay 1 solo silo.
+				this.clusterOptions = new TestClusterOptions(1);
+				
+				// Se carga la configuración por defecto desde el xml.
+				this.clusterOptions.ClusterConfiguration.StandardLoad();
+				
+				// Agrega un nodo para que el cluster pueda levantar.
+				// this.clusterOptions.ClusterConfiguration.CreateNodeConfigurationForSilo("Primary");
+
+				// Se carga la configuración por defecto desde el xml.
+				this.clusterOptions.ClientConfiguration = ClientConfiguration.StandardLoad();
+				return clusterOptions;
+			}
 		}
 
-		public virtual void Dispose()
+		private Orleans.TestingHost.TestCluster Cluster
 		{
-			if (this.siloHost != null)
+			get
 			{
-				this.siloHost.StopAllSilos();
+				if (cluster == null)
+					cluster = new Orleans.TestingHost.TestCluster(this.Options);
+
+				return cluster;
+			}
+		}
+
+		public SiloHandle StarSilo()
+		{
+			if (++siloCounter == 1)
+			{
+				this.Cluster.Deploy();
+				return this.Cluster.Primary;
+			}
+			else
+			{
+				return this.Cluster.StartAdditionalSilo();
+			}
+		}
+
+		public Task StabilizeClusterAsync()
+		{
+			return Cluster.WaitForLivenessToStabilizeAsync();
+		}
+
+		public void KillSilo(SiloHandle silo)
+		{
+			this.Cluster.KillSilo(silo);
+		}
+
+		public IGrainFactory GrainFactory
+		{
+			get
+			{
+				return this.Cluster.GrainFactory;
+			}
+		}
+
+		public IEnumerable<SiloHandle> GetActiveSilos()
+		{
+			return this.Cluster.GetActiveSilos();
+		}
+
+		public void Dispose()
+		{
+			if (this.Cluster != null)
+			{
+				this.Cluster.StopAllSilos();
 			}
 		}
 	}
