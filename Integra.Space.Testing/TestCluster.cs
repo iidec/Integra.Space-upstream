@@ -12,7 +12,8 @@ namespace Integra.Space.Testing
 	/// <summary>
 	/// Permite crear un Cluster de pruebas. Los silos que pertenecen al cluster son creados de forma dinamica.
 	/// </summary>
-	public sealed class TestCluster : IDisposable
+	[Serializable]
+	public class TestCluster : IDisposable
 	{
 		private Orleans.TestingHost.TestCluster cluster;
 		private TestClusterOptions clusterOptions;
